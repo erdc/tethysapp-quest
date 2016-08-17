@@ -1,0 +1,27 @@
+{% load staticfiles tethys_gizmos %}
+
+<div class="modal-header">
+  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <h4 class="modal-title">{{ title }}</h4>
+</div>
+<div class="modal-body">
+  <form id="download-dataset-form" action="{{ action }}" method="post">
+    {% csrf_token %}
+      <input type="hidden" name="dataset" value="{{ name }}">
+    {% for property, property_options in properties.items %}
+      {% if property_options.input_type == 'select' %}
+        {% gizmo select_input property_options.input_options %}
+      {% elif property_options.input_type == 'date' %}
+        {% gizmo date_picker property_options.input_options %}
+      {% else %}
+        {% gizmo text_input property_options.input_options %}
+      {% endif %}
+    {% endfor %}
+  </form>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+  <button type="submit" class="btn btn-primary download-dataset" data-dataset-id="{{ name }}" form="download-dataset-form" value="Submit">Download</button>
+</div>
+
+{#% gizmo_dependencies %#}

@@ -1,0 +1,23 @@
+{% for option in checkbox_tree.sub_trees %}
+{% with forloop.counter0|stringformat:'s' as cur_id %}
+{% with id|add:"-"|add:cur_id as next_id %}
+  <li>
+    <div class="checkbox collapsible-container">
+      {% if option.sub_trees %}
+        <div class="collapsible collapsed" data-toggle="collapse" data-target="#collapse-checkbox_tree-{{ checkbox_tree.name }}-{{ next_id }}" aria-expanded="false" aria-controls="collapse-checkbox_tree-{{ checkbox_tree.name }}-{{ next_id }}">
+          <span class="caret"></span>
+        </div>
+      {% endif %}
+      <label>
+        <input type="checkbox" name="{{ checkbox_tree.name }}" value="{{ option.value }}"> {{ option.title }}
+      </label>
+    </div>
+    {% if option.sub_trees %}
+      <ul class="collapse" id="collapse-checkbox_tree-{{ checkbox_tree.name }}-{{ next_id }}">
+        {% include 'data_browser/checkbox_sub_tree.html' with checkbox_tree=option id=next_id %}
+      </ul>
+    {% endif %}
+  </li>
+{% endwith %}
+{% endwith %}
+{% endfor %}

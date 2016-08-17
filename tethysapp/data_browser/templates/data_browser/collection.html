@@ -1,0 +1,16 @@
+<div class="collection {{ collection.name }}-collection">
+
+    <div class="dropdown">
+      <h2>{{ collection.display_name }}</h2>
+      <button class="btn btn-default btn-pills right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu" aria-labelledby="dLabel">
+        <li><a href="#">Details</a></li>
+        <li role="separator" class="divider"></li>
+        <li><a class="delete-collection" href="{% url 'data_browser:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
+      </ul>
+    </div>
+    <div>Description: {{ collection.description }}</div>
+    <div class="collection-color" style="background-color:{{ collection.metadata.color }};"></div>
+</div>
