@@ -182,6 +182,9 @@ h1.title{
     float: right;
 }
 
+.download-dataset-options-progress{
+    display: none;
+}
 
 
 

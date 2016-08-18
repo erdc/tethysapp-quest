@@ -32,10 +32,45 @@ $('.download-dataset-options').click(function(e){
 
 // Download Button
 $('#download-options-content').on('click', '.download-dataset', function(e){
-    var dataset = $(this).attr('data-dataset-id');
-    console.log(dataset);
 
     // submit form to update dataset download options and then download
+    e.preventDefault();
+    var dataset = $(this).attr('data-dataset-id');
+    var url = $('#download-dataset-form').attr('action');
+    var data = $('#download-dataset-form').serializeArray();
+
+    $('#download-modal').hide();
+    var btn = $('#download-dataset-options-btn-' + dataset);
+    var progress = $('#download-dataset-options-progress-' + dataset);
+    progress.show();
+//    btn.hide();  // for some reason this also hides the process bar
+    btn.css('visibility', 'hidden');  // hack
+
+    $.post(url, data, function(result){
+        if(result.success){
+            //change download button to visualize
+            progress.hide();
+            btn.show();
+            btn.css('visibility', 'visible'); // hack
+            btn.removeClass('btn-primary');
+            btn.addClass('btn-success');
+            btn.html('Visualize');
+
+             //TODO
+                //update details table data
+                //
+        }
+    })
+    .done(function() {
+
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function() {
+
+    });
+
 });
 
 function add_collection_details(collection_name, collection_display_name, details_html){
@@ -53,7 +88,7 @@ $('#new-collection-form').on('submit', function(event){
         if(result.success){
             $('#collections-list').append(result.html);
             $('#new-collection-modal').modal('hide')
-            $('#collection').select2('data', {id: result.name, text: result.display_name})
+            $('#collection').select2({data: [{id: result.name, text: result.display_name }]});
             $('#collection').trigger('change');
             console.log(result.name);
         }
@@ -117,7 +152,7 @@ $('#collections-list').on('click', '.delete-collection', function(event){
 
 /*******************************************************************************
  *
- *                        INTERACTIVE STYLES
+ *                        DYNAMIC STYLES
  *
  *******************************************************************************/
 
@@ -133,6 +168,8 @@ $('#collection-details-content td:not(.status)').click(function(e){
     $(this).parent().toggleClass('selected')
 });
 
+//Hide progress bars
+$('.download-dataset-options-progress').hide();
 
 // collection detail container toggle
 function bind_show_details(elem){

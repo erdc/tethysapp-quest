@@ -42,16 +42,18 @@ function get_layer_by_name(name){
     return layer;
 }
 
-function update_collection_layer(collection_name){
-    var collection_layer = get_layer_by_name(collection_name);
+function add_collection_layer(collection){
+    var params = {'collections': collection.name};
+    var source_url = get_source_url(params);
+    load_map_layer(collection.name, source_url, true, collection.metadata.color);
+}
+
+function update_collection_layer(collection){
+    var collection_layer = get_layer_by_name(collection.name);
 //    var source = collection_layer.getSource();
 //    source.addFeatures(features);
     map.removeLayer(collection_layer);
-
-    var params = {'collections': collection_name};
-    var source_url = get_source_url(params);
-    color = collection_layer.style_[0].stroke_.color_;
-    load_map_layer(collection_name, source_url, true, color);
+    add_collection_layer(collection);
 }
 
 function remove_search_layer(){
@@ -154,11 +156,8 @@ function get_source_url(params){
 // Load Collection Layers
 for(var i=0, len=collections.length; i<len; i++){
     var collection = collections[i];
-//    var params = [{'name': 'collections',
-//                   'value': collection.name}]
-    var params = {'collections': collection.name};
-    var source_url = get_source_url(params);
-    load_map_layer(collection.name, source_url, true, collection.metadata.color);
+    add_collection_layer(collection);
+
 }
 
 // Bind events to controls
@@ -199,7 +198,7 @@ $('#add-features-form').submit(function(e){
     e.preventDefault();
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
-    var collection_name = $(this).serializeObject().collection;
+//    var collection_name = $(this).serializeObject().collection;
     var parameter = $('input[name="parameter-options"]:checked').val();
     var selected_features = search_select_interaction.getFeatures();
     var features = selected_features.array_.map(function(feature){
@@ -213,11 +212,14 @@ $('#add-features-form').submit(function(e){
               );
 
     $.get(url, data, function(result){
-        remove_search_layer();
-        update_collection_layer(collection_name);
+        if(result.success){
+            remove_search_layer();
+            update_collection_layer(result.collection);
+        }
     })
     .done(function() {
         $('#add-features-modal').hide();
+        $('#manage-tab').click()
     })
     .fail(function() {
         console.log( "error" );

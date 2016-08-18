@@ -176,13 +176,73 @@ def add_features_workflow(request):
             dataset = dsl.api.new_dataset(feature, dataset_type='download')
             dsl.api.stage_for_download(dataset, download_options={'parameter': parameter})
         success = True
+        collection = dsl.api.get_collections(metadata=True)[collection]
     except:
         pass
 
-    result = {'success': success}
+    result = {'success': success,
+              'collection': collection,
+              }
 
     return JsonResponse(result)
 
+@login_required()
+def get_download_options_workflow(request):
+    dataset = request.GET['dataset']
+    success = False
+    try:
+        download_options = dsl.api.download_options(dataset)
+        context = download_options[dataset]
+        context['name'] = dataset
+        context['action'] = reverse('data_browser:download_dataset_workflow')
+        context.setdefault('properties', {})
+        context.setdefault('title', )
+        success = True
+    except:
+        pass
+
+    set_options = json.loads(dsl.api.get_metadata(dataset)[dataset]['_download_options'])
+
+    for property, property_options in context['properties'].items():
+        if 'enum' in property_options:
+            input_type = 'select'
+            input_options = SelectInput(display_text=property_options['description'],
+                                        name=property_options['description'],
+                                        multiple=False,
+                                        options=[(option, option,) for option in property_options['enum']],
+                                        initial=set_options.get(property, ''),
+                                        )
+
+        elif 'date' in property_options['description']:
+            input_type = 'date'
+            input_options = DatePicker(name=property_options['description'],
+                                       display_text=property_options['description'],
+                                       autoclose=True,
+                                       format='m/d/yyyy',
+                                       today_button=True,
+                                       initial=set_options.get(property, '')
+                                       )
+
+        else:
+            input_type = 'text'
+            input_options = TextInput(display_text=property_options['description'],
+                                      name=property_options['description'],
+                                      placeholder='',
+                                      initial=set_options(property, '')
+                                      )
+
+
+        context['properties'][property]['input_type'] = input_type
+        context['properties'][property]['input_options'] = input_options
+
+    # html = render_to_string('data_browser/options.html', download_options)
+    html = render(request, 'data_browser/options.html', context).content
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
 
 @login_required()
 def download_dataset_workflow(request):
@@ -206,8 +266,8 @@ def download_dataset_workflow(request):
 
     result['success'] = success
 
-    # return JsonResponse(result)
-    return redirect('data_browser:home')
+    return JsonResponse(result)
+    # return redirect('data_browser:home')
 
 
 ############################################################################
@@ -299,65 +359,6 @@ def add_features(request):
         pass
 
     result = {'success': success}
-
-    return JsonResponse(result)
-
-@login_required()
-def get_download_options(request):
-    dataset = request.GET['dataset']
-    success = False
-    try:
-        download_options = dsl.api.download_options(dataset)
-        context = download_options[dataset]
-        context['name'] = dataset
-        context.setdefault('properties', {})
-        context.setdefault('title', )
-        success = True
-    except:
-        pass
-
-    set_options = json.loads(dsl.api.get_metadata(dataset)[dataset]['_download_options'])
-
-    for property, property_options in context['properties'].items():
-        if 'enum' in property_options:
-            input_type = 'select'
-            input_options = SelectInput(display_text=property_options['description'],
-                                        name=property_options['description'],
-                                        multiple=False,
-                                        options=[(option, option,) for option in property_options['enum']],
-                                        initial=set_options.get(property, ''),
-                                        )
-
-        elif 'date' in property_options['description']:
-            input_type = 'date'
-            input_options = DatePicker(name=property_options['description'],
-                                       display_text=property_options['description'],
-                                       autoclose=True,
-                                       format='m/d/yyyy',
-                                       today_button=True,
-                                       initial=set_options.get(property, '')
-                                       )
-
-        else:
-            input_type = 'text'
-            input_options = TextInput(display_text=property_options['description'],
-                                      name=property_options['description'],
-                                      placeholder='',
-                                      initial=set_options(property, '')
-                                      )
-
-
-        context['properties'][property]['input_type'] = input_type
-        context['properties'][property]['input_options'] = input_options
-        context['action'] = reverse('data_browser:download_dataset_workflow')
-
-
-    # html = render_to_string('data_browser/options.html', download_options)
-    html = render(request, 'data_browser/options.html', context).content
-
-    result = {'success': success,
-              'html': html,
-              }
 
     return JsonResponse(result)
 
