@@ -337,11 +337,11 @@ def get_features(request):
         value = request.GET.get(filter)
         if value is not None:
             filters[filter] = request.GET.get(filter)
-
+    print(filters)
     try:
         features = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
-    except:
-        pass
+    except Exception as e:
+        features = {'error_message': str(e)}
 
     return JsonResponse(features)
 

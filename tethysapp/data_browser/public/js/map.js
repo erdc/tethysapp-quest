@@ -199,7 +199,7 @@ $('#add-features-form').submit(function(e){
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 //    var collection_name = $(this).serializeObject().collection;
-    var parameter = $('input[name="parameter-options"]:checked').val();
+    var parameter = $('input[name="parameter"]:checked').val();
     var selected_features = search_select_interaction.getFeatures();
     var features = selected_features.array_.map(function(feature){
         return feature.id_;

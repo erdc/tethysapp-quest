@@ -7,6 +7,7 @@
 
 // Download Options Button
 $('.download-dataset-options').click(function(e){
+    console.log(this);
     var dataset = $(this).attr('data-dataset-id');
     var data = {'dataset': dataset};
     var url = get_download_options_url;
@@ -40,21 +41,10 @@ $('#download-options-content').on('click', '.download-dataset', function(e){
     var data = $('#download-dataset-form').serializeArray();
 
     $('#download-modal').hide();
-    var btn = $('#download-dataset-options-btn-' + dataset);
-    var progress = $('#download-dataset-options-progress-' + dataset);
-    progress.show();
-//    btn.hide();  // for some reason this also hides the process bar
-    btn.css('visibility', 'hidden');  // hack
 
     $.post(url, data, function(result){
         if(result.success){
             //change download button to visualize
-            progress.hide();
-            btn.show();
-            btn.css('visibility', 'visible'); // hack
-            btn.removeClass('btn-primary');
-            btn.addClass('btn-success');
-            btn.html('Visualize');
 
              //TODO
                 //update details table data
@@ -168,9 +158,6 @@ $('#collection-details-content td:not(.status)').click(function(e){
     $(this).parent().toggleClass('selected')
 });
 
-//Hide progress bars
-$('.download-dataset-options-progress').hide();
-
 // collection detail container toggle
 function bind_show_details(elem){
     $(elem).unbind('click').click(function(e){
@@ -206,8 +193,8 @@ $('#minimize-collection-details').click(function(){
 
 
 // automate service selection based on parameter selection
-$('input[name="parameter-options"]').change(function(e){
-    var selected_value = $('input[name="parameter-options"]:checked').val();
+$('input[name="parameter"]').change(function(e){
+    var selected_value = $('input[name="parameter"]:checked').val();
     for(i=0, len=services.length; i<len; i++){
         var service = services[i];
         var service_checkbox = $('input[value="' + service.name + '"]');
