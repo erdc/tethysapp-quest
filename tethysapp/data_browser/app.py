@@ -37,12 +37,26 @@ class DataBrowser(TethysAppBase):
                     UrlMap(name='add_features_workflow',
                            url='data-browser/rest/workflows/add-features',
                            controller='data_browser.controllers.add_features_workflow'),
+
                     UrlMap(name='get_download_options_workflow',
                            url='data-browser/rest/workflows/download-options',
                            controller='data_browser.controllers.get_download_options_workflow'),
+                    UrlMap(name='get_filter_options_workflow',
+                           url='data-browser/rest/workflows/filter-options',
+                           controller='data_browser.controllers.get_filter_options_workflow'),
+                    UrlMap(name='get_visualize_options_workflow',
+                           url='data-browser/rest/workflows/visualize-options',
+                           controller='data_browser.controllers.get_visualize_options_workflow'),
+
                     UrlMap(name='download_dataset_workflow',
                            url='data-browser/rest/workflows/download-dataset',
                            controller='data_browser.controllers.download_dataset_workflow'),
+                    UrlMap(name='apply_filter_workflow',
+                           url='data-browser/rest/workflows/apply-filter',
+                           controller='data_browser.controllers.apply_filter_workflow'),
+                    UrlMap(name='visualize_dataset_workflow',
+                           url='data-browser/rest/workflows/visualize-dataset',
+                           controller='data_browser.controllers.visualize_dataset_workflow'),
 
 
 

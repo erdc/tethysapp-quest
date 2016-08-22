@@ -218,7 +218,7 @@ $('#add-features-form').submit(function(e){
         }
     })
     .done(function() {
-        $('#add-features-modal').hide();
+        $('#add-features-modal').modal('hide');
         $('#manage-tab').click()
     })
     .fail(function() {

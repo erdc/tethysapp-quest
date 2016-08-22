@@ -182,6 +182,10 @@ h1.title{
     float: right;
 }
 
+#visualize_modal{
+    width: 99%;
+}
+
 
 
 /* checkbox_tree styles */

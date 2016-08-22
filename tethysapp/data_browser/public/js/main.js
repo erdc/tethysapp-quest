@@ -6,17 +6,33 @@
  *******************************************************************************/
 
 // Download Options Button
-$('.download-dataset-options').click(function(e){
-    console.log(this);
+$('.get-options').click(function(e){
     var dataset = $(this).attr('data-dataset-id');
     var data = {'dataset': dataset};
-    var url = get_download_options_url;
-//    $('#download-options-content').load(url, $.param(data), function(e){
+    var type = $(this).attr('data-options-type');
+    var url = {'download': get_download_options_url,
+               'filter': get_filter_options_url,
+               'visualize': get_visualize_options_url,
+               }[type];
+//    $('#options-content').load(url, $.param(data), function(e){
 //        $('.select2').select2();
 //    });
     $.get(url, data, function(result){
         if(result.success){
-            $('#download-options-content').html(result.html);
+
+            var options = function(){
+                $('#options-content').html(result.html);
+                $('#options-modal').modal('show');
+            };
+            var visualize = function(){
+               $('#visualize-content').html(result.html);
+               $('#visualize-modal').modal('show');
+            }
+            {'download': options,
+             'filter': options,
+             'visualize': visualize,
+             }[type]();
+
         }
     })
     .done(function() {
@@ -32,18 +48,19 @@ $('.download-dataset-options').click(function(e){
 });
 
 // Download Button
-$('#download-options-content').on('click', '.download-dataset', function(e){
+$('#options-content').on('click', '.options-submit', function(e){
 
     // submit form to update dataset download options and then download
     e.preventDefault();
     var dataset = $(this).attr('data-dataset-id');
-    var url = $('#download-dataset-form').attr('action');
-    var data = $('#download-dataset-form').serializeArray();
-
-    $('#download-modal').hide();
+    var url = $('#options-form').attr('action');
+    var data = $('#options-form').serializeArray();
+    var type = $(this).attr('data-options-type');
+    $('#options-modal').modal('hide');
 
     $.post(url, data, function(result){
         if(result.success){
+            console.log(result);
             //change download button to visualize
 
              //TODO

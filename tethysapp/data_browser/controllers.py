@@ -186,22 +186,32 @@ def add_features_workflow(request):
 
     return JsonResponse(result)
 
-@login_required()
-def get_download_options_workflow(request):
+
+def get_options_form(request, options_type, get_options_function, options_metadata_name, submit_controller_name, submit_btn_text):
+
     dataset = request.GET['dataset']
+    context = {'options_type': options_type,
+               'action': reverse('data_browser:{}'.format(submit_controller_name)),
+               'dataset_id': dataset,
+               'submit_btn_text': submit_btn_text,
+               }
     success = False
     try:
-        download_options = dsl.api.download_options(dataset)
-        context = download_options[dataset]
-        context['name'] = dataset
-        context['action'] = reverse('data_browser:download_dataset_workflow')
-        context.setdefault('properties', {})
-        context.setdefault('title', )
-        success = True
-    except:
-        pass
+        options = get_options_function(dataset)
+        if dataset in options:
+            options = options[dataset]
+        context['properties'] = options.get('properties', {})
+        context['title'] = options.get('title', '')
 
-    set_options = json.loads(dsl.api.get_metadata(dataset)[dataset]['_download_options'])
+        success = True
+    except Exception as e:
+        raise(e)
+
+
+    set_options = {}
+    metadata = dsl.api.get_metadata(dataset)[dataset]
+    if options_metadata_name in metadata:
+        set_options = json.loads(metadata[options_metadata_name])
 
     for property, property_options in context['properties'].items():
         if 'enum' in property_options:
@@ -231,18 +241,54 @@ def get_download_options_workflow(request):
                                       initial=set_options(property, '')
                                       )
 
-
         context['properties'][property]['input_type'] = input_type
         context['properties'][property]['input_options'] = input_options
 
-    # html = render_to_string('data_browser/options.html', download_options)
+    # html = render_to_string('data_browser/options.html', context)
     html = render(request, 'data_browser/options.html', context).content
 
     result = {'success': success,
               'html': html,
               }
 
+    return result
+
+
+@login_required()
+def get_download_options_workflow(request):
+    result = get_options_form(request,
+                              options_type='download',
+                              get_options_function=dsl.api.download_options,
+                              options_metadata_name='_download_options',
+                              submit_controller_name='download_dataset_workflow',
+                              submit_btn_text='Download')
+
     return JsonResponse(result)
+
+
+@login_required()
+def get_filter_options_workflow(request):
+    result = get_options_form(request,
+                              options_type='filter',
+                              get_options_function=dsl.api.apply_filter_options,
+                              options_metadata_name='_apply_filter_options',
+                              submit_controller_name='apply_filter_workflow',
+                              submit_btn_text='Apply Filter')
+
+    return JsonResponse(result)
+
+
+@login_required()
+def get_visualize_options_workflow(request):
+    result = get_options_form(request,
+                              options_type='visualize',
+                              get_options_function=dsl.api.visualize_dataset_options,
+                              options_metadata_name='_visualize_options',
+                              submit_controller_name='visualize_dataset_workflow',
+                              submit_btn_text='Visualize')
+
+    return JsonResponse(result)
+
 
 @login_required()
 def download_dataset_workflow(request):
@@ -269,6 +315,14 @@ def download_dataset_workflow(request):
     return JsonResponse(result)
     # return redirect('data_browser:home')
 
+@login_required()
+def apply_filter_workflow(request):
+    pass
+
+
+@login_required()
+def visualize_dataset_workflow(request):
+    pass
 
 ############################################################################
 
