@@ -27,11 +27,14 @@ $('.get-options').click(function(e){
             var visualize = function(){
                $('#visualize-content').html(result.html);
                $('#visualize-modal').modal('show');
-            }
-            {'download': options,
+               console.log(type);
+            };
+            var func = {'download': options,
              'filter': options,
              'visualize': visualize,
-             }[type]();
+             }
+
+             func[type]();
 
         }
     })
