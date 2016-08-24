@@ -2,6 +2,9 @@ import random
 import json
 
 import dsl
+from tethys_gizmos.gizmo_options import TableView
+
+ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 def get_random_color():
     r = lambda: random.randint(0,255)
@@ -118,3 +121,29 @@ def get_dataset_rows(datasets):
         rows.append((name, location, source, source_type, parameter, data_type, status))
 
     return rows
+
+def get_datasets_table_options(collection):
+    return TableView(column_names=get_dataset_columns(),
+                     rows=get_dataset_rows(collection['datasets']),
+                     hover=True,
+                     striped=False,
+                     bordered=False,
+                     condensed=False
+                     )
+
+def get_collections_with_metadata(collection_names=None):
+    collections = dsl.api.get_collections(metadata=True)
+    if collection_names:
+        collections = [metadata for name, metadata in collections.items() if name in collection_names]
+    else:
+        collections = list(collections.values())
+
+    for collection in collections:
+        collection['features'] = list(dsl.api.get_features(metadata=True, collections=collection['name']).values())
+        collection['datasets'] = list(dsl.api.get_datasets(metadata=True, filters={'collection': collection['name']}).values())
+        collection['table_view_options'] = get_datasets_table_options(collection)
+
+    return collections
+
+def get_collection_with_metadata(collection_name):
+    return get_collections_with_metadata([collection_name])[0]

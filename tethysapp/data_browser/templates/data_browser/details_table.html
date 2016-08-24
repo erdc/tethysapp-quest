@@ -1,3 +1,4 @@
+{% with columns=collection.table_view_options.column_names rows=collection.table_view_options.rows %}
 <div role="tabpanel" class="tab-pane collection-detail {{ collection.name }}-collection" id="collection-detail-{{ collection.name }}" style="backgroud: {{ collection.metadata.color }};">
   <!--<h1>{{ collection.display_name }}</h1>-->
   <table class="table table-hover">
@@ -24,3 +25,4 @@
     </tbody>
   </table>
 </div>
+{% endwith %}

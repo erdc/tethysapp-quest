@@ -15,13 +15,8 @@ $.fn.serializeObject = function()
     return o;
 };
 
-
-$(function() { //wait for page to load
-
-
-
-var map = TETHYS_MAP_VIEW.getMap();
-var search_select_interaction,
+var map,
+    search_select_interaction,
     SEARCH_LAYER_NAME = 'search-layer';
 
 
@@ -48,18 +43,20 @@ function add_collection_layer(collection){
     load_map_layer(collection.name, source_url, true, collection.metadata.color);
 }
 
+function remove_layer(layer_name){
+    var layer = get_layer_by_name(layer_name);
+    map.removeLayer(layer);
+}
+
 function update_collection_layer(collection){
-    var collection_layer = get_layer_by_name(collection.name);
 //    var source = collection_layer.getSource();
 //    source.addFeatures(features);
-    map.removeLayer(collection_layer);
+    remove_layer(collection.name);
     add_collection_layer(collection);
 }
 
 function remove_search_layer(){
-    var search_layer = get_layer_by_name(SEARCH_LAYER_NAME);
-
-    map.removeLayer(search_layer);
+    remove_layer(SEARCH_LAYER_NAME);
     map.removeInteraction(search_select_interaction);
 //    search_select_interaction.getFeatures().clear();
 }
@@ -147,6 +144,10 @@ function get_source_url(params){
     return url;
 }
 
+$(function() { //wait for page to load
+
+map = TETHYS_MAP_VIEW.getMap();
+
 //for(i=0, len=source_urls.length; i<len; i++){
 //    var url = layer_source_urls[i];
 //    load_map_layer(url);
@@ -164,6 +165,7 @@ for(var i=0, len=collections.length; i<len; i++){
 
 $('#search-form').submit(function(e){
     e.preventDefault();
+    remove_search_layer();
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
     data.push({'name': 'bbox',
@@ -171,22 +173,7 @@ $('#search-form').submit(function(e){
 
     url = get_source_url(data);
     load_map_layer(SEARCH_LAYER_NAME, url, true);
-//    $.get(url, data, function(result){
-//        console.log(result);
-//        add_geojson_layer(result);
-//    })
-//    .done(function() {
-//
-//    })
-//    .fail(function() {
-//        console.log( "error" );
-//    })
-//    .always(function() {
-//
-//    });
 });
-
-
 
 $('#add-to-collection-button').click(function(e){
     var selected_features = search_select_interaction.getFeatures();
@@ -215,6 +202,10 @@ $('#add-features-form').submit(function(e){
         if(result.success){
             remove_search_layer();
             update_collection_layer(result.collection);
+
+            // update details table
+            update_details_table(result.collection.name, result.details_table_html);
+
         }
     })
     .done(function() {

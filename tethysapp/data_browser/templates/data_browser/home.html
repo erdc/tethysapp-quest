@@ -9,7 +9,7 @@
     <!--<button id="minimize-collection-details" type="button" class="btn btn-default btn-sm">-</button>-->
     <div id="collection-details-content" class="tab-content">
       {% for collection in collections %}
-        {% include 'data_browser/details_table.html' with collection=collection columns=collection.table_view_options.column_names rows=collection.table_view_options.rows %}
+        {% include 'data_browser/details_table.html' with collection=collection %}
       {% endfor %}
     </div>
 
@@ -50,7 +50,7 @@
   <script>
     var get_download_options_url = '{% url 'data_browser:get_download_options_workflow' %}';
     var get_filter_options_url = '{% url 'data_browser:get_filter_options_workflow' %}';
-    var get_visualize_options_url = '{% url 'data_browser:get_visualize_options_workflow' %}';
+    var visualize_dataset_url = '{% url 'data_browser:visualize_dataset_workflow' %}';
     var get_features_url = '{% url 'data_browser:get_features' %}';
     var services = {% autoescape off %}{{ services }}{% endautoescape %};
     var collections = {% autoescape off %}{{ collections_json }}{% endautoescape %};

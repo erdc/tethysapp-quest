@@ -1,33 +1,51 @@
 
+function update_details_table(collection_name, html){
+    $('#collection-detail-' + collection_name).replaceWith(html);
+    // get new details table to show
+    $('#collection-details-nav a:first').tab('show');
+    $('#collection-details-nav a:last').tab('show');
+    $('li.' + collection_name + '-collection a').tab('show');
+
+
+}
+
+
 /*******************************************************************************
  *
  *                        BUTTON HANDLERS
  *
  *******************************************************************************/
 
-// Download Options Button
-$('.get-options').click(function(e){
+// Download/Visualize Options Button
+$('#collection-details-content').on('click', '.get-options', function(e){
     var dataset = $(this).attr('data-dataset-id');
     var data = {'dataset': dataset};
     var type = $(this).attr('data-options-type');
     var url = {'download': get_download_options_url,
                'filter': get_filter_options_url,
-               'visualize': get_visualize_options_url,
+               'visualize': visualize_dataset_url,
                }[type];
 //    $('#options-content').load(url, $.param(data), function(e){
 //        $('.select2').select2();
 //    });
     $.get(url, data, function(result){
         if(result.success){
-
             var options = function(){
-                $('#options-content').html(result.html);
-                $('#options-modal').modal('show');
+                if(result.html){
+                    $('#options-content').html(result.html);
+                    $('#options-modal').modal('show');
+                }
+                else{
+                    update_details_table(result.collection_name, result.details_table_html);
+                }
             };
             var visualize = function(){
-               $('#visualize-content').html(result.html);
                $('#visualize-modal').modal('show');
-               console.log(type);
+               $('#visualize-content').html(result.html);
+               setTimeout(function(){
+                    TETHYS_PLOT_VIEW.initPlot($('.d3-plot, .highcharts-plot'));
+               }, 500);
+
             };
             var func = {'download': options,
              'filter': options,
@@ -63,12 +81,7 @@ $('#options-content').on('click', '.options-submit', function(e){
 
     $.post(url, data, function(result){
         if(result.success){
-            console.log(result);
-            //change download button to visualize
-
-             //TODO
-                //update details table data
-                //
+            update_details_table(result.collection_name, result.details_table_html);
         }
     })
     .done(function() {
@@ -96,11 +109,19 @@ $('#new-collection-form').on('submit', function(event){
     var data = $(this).serializeArray();
     $.post(url, data, function(result){
         if(result.success){
-            $('#collections-list').append(result.html);
+            $('#collections-list').append(result.collection_html);
             $('#new-collection-modal').modal('hide')
-            $('#collection').select2({data: [{id: result.name, text: result.display_name }]});
+            // update collection select
+            $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
             $('#collection').trigger('change');
-            console.log(result.name);
+            // add details table
+            $('#collection-details-nav ul').append(
+                $('<li role="presentation" class="nav-tab ' +  result.collection.name + '-collection"><a href="#collection-detail-' +  result.collection.name + '" aria-controls="collection-detail-' +  result.collection.name + '" role="tab" data-toggle="tab">' +  result.collection.display_name + '</a></li>')
+            );
+            $('#collection-details-content').append(result.details_table_html);
+            $('#collection-details-nav li a').each(function(){
+                bind_show_details(this);
+            });
         }
     })
     .done(function() {
@@ -124,6 +145,9 @@ $('#collections-list').on('click', '.delete-collection', function(event){
     $.get(url, function(result){
         if(result.success){
             $(collection_elements).remove();
+            remove_layer(collection_name);
+            $('#collection-details-nav a:first').tab('show');
+
         }
     });
 });

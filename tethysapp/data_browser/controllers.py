@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 
@@ -10,6 +11,8 @@ from tethys_sdk.gizmos import (MapView,
                                TableView,
                                DatePicker,
                                TextInput,
+                               TimeSeries,
+                               LinePlot,
                                )
 
 import utilities
@@ -25,17 +28,9 @@ def home(request):
 
     # features = dsl.api.get_features(services=dsl.api.get_services()[0])
 
-    collections = list(dsl.api.get_collections(metadata=True).values())
-    for collection in collections:
-        collection['features'] = list(dsl.api.get_features(metadata=True, collections=collection['name']).values())
-        collection['datasets'] = list(dsl.api.get_datasets(metadata=True, filters={'collection': collection['name']}).values())
-        collection['table_view_options'] = get_datasets_table_options(collection)
-
-
+    collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
     providers = utilities.get_dsl_providers_with_services()
-
-
     checkbox_tree = utilities.get_hierarchical_provider_list()
     services = json.dumps(list(dsl.api.get_services(metadata=True).values()))
 
@@ -104,18 +99,6 @@ def home(request):
     return render(request, 'data_browser/home.html', context)
 
 
-def get_datasets_table_options(collection):
-    return TableView(column_names=utilities.get_dataset_columns(),
-                     rows=utilities.get_dataset_rows(collection['datasets']),
-                     hover=True,
-                     striped=False,
-                     bordered=False,
-                     condensed=False
-                     )
-
-
-
-
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
@@ -134,30 +117,28 @@ import utilities
 def new_collection_workflow(request):
     success = False
     html = None
-    name = None
-    display_name = None
 
-    if request.POST:
-        collection_name = request.POST.get('collection_name')
-        if collection_name:
-            code_name = utilities.codify(collection_name)
-            color = utilities.get_random_color()
-            description = request.POST['description']
-            dsl.api.new_collection(code_name,
-                                   display_name=collection_name,
-                                   description=description,
-                                   metadata={'color': color})
+    collection_name = request.POST.get('collection_name')
+    code_name = utilities.codify(collection_name)
+    color = utilities.get_random_color()
+    description = request.POST['description']
+    dsl.api.new_collection(code_name,
+                           display_name=collection_name,
+                           description=description,
+                           metadata={'color': color})
 
-            collection = dsl.api.get_collections(metadata=True)[code_name]
-            html = render(request, 'data_browser/collection.html', {'collection': collection}).content
-            success = True
-            name = code_name
-            display_name = collection['display_name']
+    collection = utilities.get_collection_with_metadata(code_name)
+
+    context = {'collection': collection}
+
+    collection_html = render(request, 'data_browser/collection.html', context).content
+    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    success = True
 
     result = {'success': success,
-              'html': html,
-              'name': name,
-              'display_name': display_name,
+              'collection_html': collection_html,
+              'details_table_html': details_table_html,
+              'collection': collection,
               }
 
     return JsonResponse(result)
@@ -176,12 +157,17 @@ def add_features_workflow(request):
             dataset = dsl.api.new_dataset(feature, dataset_type='download')
             dsl.api.stage_for_download(dataset, download_options={'parameter': parameter})
         success = True
-        collection = dsl.api.get_collections(metadata=True)[collection]
+        collection = utilities.get_collection_with_metadata(collection)
     except:
         pass
 
+    context = {'collection': collection}
+
+    details_table_html = render(request, 'data_browser/details_table.html', context).content
+
     result = {'success': success,
               'collection': collection,
+              'details_table_html': details_table_html,
               }
 
     return JsonResponse(result)
@@ -200,13 +186,15 @@ def get_options_form(request, options_type, get_options_function, options_metada
         options = get_options_function(dataset)
         if dataset in options:
             options = options[dataset]
-        context['properties'] = options.get('properties', {})
+        context['properties'] = options.get('properties', None)
         context['title'] = options.get('title', '')
 
         success = True
     except Exception as e:
         raise(e)
 
+    if context['properties'] is None:
+        return download_dataset(request, dataset)
 
     set_options = {}
     metadata = dsl.api.get_metadata(dataset)[dataset]
@@ -251,41 +239,60 @@ def get_options_form(request, options_type, get_options_function, options_metada
               'html': html,
               }
 
-    return result
+    return JsonResponse(result)
 
 
 @login_required()
 def get_download_options_workflow(request):
-    result = get_options_form(request,
+    return get_options_form(request,
                               options_type='download',
                               get_options_function=dsl.api.download_options,
                               options_metadata_name='_download_options',
                               submit_controller_name='download_dataset_workflow',
                               submit_btn_text='Download')
 
-    return JsonResponse(result)
-
 
 @login_required()
 def get_filter_options_workflow(request):
-    result = get_options_form(request,
+    return get_options_form(request,
                               options_type='filter',
                               get_options_function=dsl.api.apply_filter_options,
                               options_metadata_name='_apply_filter_options',
                               submit_controller_name='apply_filter_workflow',
                               submit_btn_text='Apply Filter')
 
-    return JsonResponse(result)
-
 
 @login_required()
 def get_visualize_options_workflow(request):
-    result = get_options_form(request,
+    return get_options_form(request,
                               options_type='visualize',
                               get_options_function=dsl.api.visualize_dataset_options,
                               options_metadata_name='_visualize_options',
                               submit_controller_name='visualize_dataset_workflow',
                               submit_btn_text='Visualize')
+
+def get_details_table(request, collection):
+    collection = utilities.get_collection_with_metadata(collection)
+    context = {'collection': collection}
+
+    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    return details_table_html
+
+
+def download_dataset(request, dataset, options=None):
+    success = False
+    result = {}
+    try:
+        dsl.api.stage_for_download(dataset, download_options=options)
+        response = dsl.api.download_datasets(dataset)
+        collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
+        success = True
+    except Exception as e:
+        result['error_message'] = str(e)
+
+    result['success'] = success
+    result['details_table_html'] = get_details_table(request, collection)
+    result['collection_name'] = collection
 
     return JsonResponse(result)
 
@@ -294,26 +301,13 @@ def get_visualize_options_workflow(request):
 def download_dataset_workflow(request):
     download_options = dict(request.POST.items())
     dataset = download_options.pop('dataset')
+    download_options.pop('csrfmiddlewaretoken')
     for key, value in download_options.items():
         if not value:
             download_options.pop(key)
-    download_options.pop('csrfmiddlewaretoken')
-    print(download_options)
-    success = False
-    result = {}
 
-    try:
-        dsl.api.stage_for_download(dataset, download_options=download_options)
-        response = dsl.api.download_datasets(dataset)
-        print(response)
-        success = True
-    except Exception as e:
-        result['error_message'] = str(e)
+    return download_dataset(request, dataset, download_options)
 
-    result['success'] = success
-
-    return JsonResponse(result)
-    # return redirect('data_browser:home')
 
 @login_required()
 def apply_filter_workflow(request):
@@ -322,7 +316,43 @@ def apply_filter_workflow(request):
 
 @login_required()
 def visualize_dataset_workflow(request):
-    pass
+    dataset = request.GET['dataset']
+    data = dsl.api.open_dataset(dataset, fmt='dict')
+    parameter = data['metadata']['parameter']
+    timeseries = data['data'][parameter]
+    timeseries = [(datetime.strptime(date, utilities.ISO_DATETIME_FORMAT), value) for date, value in timeseries]
+    title = 'Plot View'
+    success = True
+    '''
+    engine = 'd3'
+    '''
+    engine = 'highcharts'
+    # '''
+
+    plot_view_options = TimeSeries(
+        height='550px',
+        width='1500px',
+        title=' ',
+        engine=engine,
+        y_axis_title='Snow depth',
+        y_axis_units='m',
+        series=[{
+            'name': 'Winter 2007-2008',
+            'data': timeseries,
+        }]
+    )
+
+    context = {'title': title,
+              'plot_view_options': plot_view_options,
+               }
+
+    html = render(request, 'data_browser/visualize.html', context).content
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
 
 ############################################################################
 
@@ -391,7 +421,7 @@ def get_features(request):
         value = request.GET.get(filter)
         if value is not None:
             filters[filter] = request.GET.get(filter)
-    print(filters)
+
     try:
         features = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
     except Exception as e:
