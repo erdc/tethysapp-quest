@@ -1,7 +1,8 @@
 
 function update_details_table(collection_name, html){
     $('#collection-detail-' + collection_name).replaceWith(html);
-    // get new details table to show
+    // hack to get new details table to show
+    // TODO doesn't work when there is only one collection
     $('#collection-details-nav a:first').tab('show');
     $('#collection-details-nav a:last').tab('show');
     $('li.' + collection_name + '-collection a').tab('show');
