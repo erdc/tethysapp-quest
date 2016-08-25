@@ -87,7 +87,7 @@ def get_feature_source(feature):
 
 
 def get_dataset_parameter(dataset):
-    parameter = dataset['parameter']
+    parameter = dataset.get('parameter')
     if not parameter:
         download_options = dataset.get('download_options')
         download_options = json.loads(download_options)
