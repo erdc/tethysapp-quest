@@ -57,6 +57,9 @@ class DataBrowser(TethysAppBase):
                     UrlMap(name='visualize_dataset_workflow',
                            url='data-browser/rest/workflows/visualize-dataset',
                            controller='data_browser.controllers.visualize_dataset_workflow'),
+                    UrlMap(name='delete_dataset_workflow',
+                           url='data-browser/rest/workflows/delete-dataset',
+                           controller='data_browser.controllers.delete_dataset_workflow'),
 
 
 
