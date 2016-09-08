@@ -1,6 +1,7 @@
 from datetime import datetime
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 from tethys_sdk.gizmos import (MapView,
                                MVDraw,
@@ -20,6 +21,8 @@ import utilities
 import dsl
 import json
 
+
+@ensure_csrf_cookie
 @login_required()
 def home(request):
     """
@@ -351,6 +354,27 @@ def visualize_dataset_workflow(request):
     result = {'success': success,
               'html': html,
               }
+
+    return JsonResponse(result)
+
+
+@login_required()
+def delete_dataset_workflow(request):
+    result = {'success': False}
+    dataset = request.POST['dataset'] # or request.GET.get('dataset')  #TODO pick one
+    try:
+        # get the name of the collection before deleting dataset
+        collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
+        result['collection_name'] = collection
+
+        dsl.api.delete(dataset)
+
+        # get the updated collection details after the dataset has been deleted
+        result['details_table_html'] = get_details_table(request, collection)
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['error_message'] = str(e)
 
     return JsonResponse(result)
 
