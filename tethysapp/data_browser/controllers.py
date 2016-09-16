@@ -14,6 +14,7 @@ from tethys_sdk.gizmos import (MapView,
                                TextInput,
                                TimeSeries,
                                LinePlot,
+                               ToggleSwitch,
                                )
 
 import utilities
@@ -87,6 +88,16 @@ def home(request):
                                             options=[(collection['display_name'], collection['name']) for collection in collections],
                                             )
 
+    select_mode_toggle = ToggleSwitch(display_text='Select Mode',
+                                      name='select_mode',
+                                      on_label='Locations',
+                                      off_label='Datasets',
+                                      on_style='success',
+                                      off_style='danger',
+                                      initial=True,
+                                      size='large',
+                                      classes='map-toggle-control')
+
 
     context = {'collections': collections,
                'collections_json': json.dumps(collections),
@@ -97,6 +108,7 @@ def home(request):
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
                'collection_select_options': collection_select_options,
+               'select_mode_toggle': select_mode_toggle,
                }
 
     return render(request, 'data_browser/home.html', context)
@@ -321,7 +333,8 @@ def apply_filter_workflow(request):
 def visualize_dataset_workflow(request):
     dataset = request.GET['dataset']
     data = dsl.api.open_dataset(dataset, fmt='dict')
-    parameter = data['metadata']['parameter']
+    metadata = data['metadata']
+    parameter = metadata['parameter']
     timeseries = data['data'][parameter]
     timeseries = [(datetime.strptime(date, utilities.ISO_DATETIME_FORMAT), value) for date, value in timeseries]
     title = 'Plot View'
@@ -337,10 +350,10 @@ def visualize_dataset_workflow(request):
         width='1500px',
         title=' ',
         engine=engine,
-        y_axis_title='Snow depth',
-        y_axis_units='m',
+        y_axis_title=parameter,
+        y_axis_units=metadata['units'],
         series=[{
-            'name': 'Winter 2007-2008',
+            'name': dataset,
             'data': timeseries,
         }]
     )
@@ -357,6 +370,34 @@ def visualize_dataset_workflow(request):
 
     return JsonResponse(result)
 
+
+@login_required()
+def show_metadata_workflow(request):
+    dataset = request.GET['dataset']
+
+    title = 'Metadata'
+
+    dataset = dsl.api.get_datasets(metadata=True)[dataset]
+    rows = [(k, v) for k, v in dataset.items()]
+
+    table_view_options = TableView(column_names=('Property', 'Value'),
+                                   rows=rows,
+                                   hover=True,
+                                   striped=True,
+                                   bordered=True,
+                                   condensed=False)
+
+    context = {'title': title,
+               'table_view_options': table_view_options,
+               }
+
+    html = render(request, 'data_browser/metadata.html', context).content
+
+    result = {'success': True,
+              'html': html,
+              }
+
+    return JsonResponse(result)
 
 @login_required()
 def delete_dataset_workflow(request):

@@ -187,6 +187,23 @@ h1.title{
 }
 
 
+/*
+.ol-ctx-menu-container {
+    position: absolute;
+    background: #333 !important;
+    color: #fff !important;
+    font-size: 15px !important;
+}
+*/
+.map-toggle-control{
+    position: fixed;
+    right: 20px;
+    top: 150px;
+}
+.context-menu-title span{
+    margin-top: 10px;
+    font-size: 20px;
+}
 
 /* checkbox_tree styles */
 

@@ -155,13 +155,122 @@ map = TETHYS_MAP_VIEW.getMap();
 
 
 // Load Collection Layers
-for(var i=0, len=collections.length; i<len; i++){
-    var collection = collections[i];
-    add_collection_layer(collection);
+collections.forEach(add_collection_layer);
+//for(var i=0, len=collections.length; i<len; i++){
+//    var collection = collections[i];
+//    add_collection_layer(collection);
+//
+//}
+
+
+
+// Bind events to controls
+
+// map context menu
+
+function get_datasets_from_feature(feature){
+    var collection = feature.collection;
+    var feature_id = feature.id_;
 
 }
 
-// Bind events to controls
+function get_dataset_context_menu_items(dataset_id){
+
+    var dataset_contextmenu_items = [
+        {
+            text: 'Download',
+            callback: function(){
+                    populate_options_form_for_dataset(dataset_id, 'download');
+                },
+        },
+        {
+            text: 'Visualize',
+            callback: function(){
+                    populate_options_form_for_dataset(dataset_id, 'visualize');
+                },
+        },
+        {
+            text: 'Apply Filter',
+            callback: function(){
+                    populate_options_form_for_dataset(dataset_id, 'filter');
+                },
+        },
+        {
+            text: 'Show Metadata',
+            callback: function(){
+                    show_metadata(dataset_id);
+                },
+        },
+        {
+            text: 'Delete',
+            callback: function(){
+                    delete_dataset(dataset_id);
+                },
+        },
+    ];
+
+    return dataset_contextmenu_items;
+}
+
+function get_menu_items(feature){
+    var feature_id = feature.id_;
+    var dataset_ids = datasets_by_feature[feature_id];
+    var location_contextmenu_items = [
+        {
+            text: 'Location',
+            classname: 'context-menu-title ol-ctx-menu-separator',
+        },
+        '-',
+        {
+          text: 'Show Metadata',
+    //      icon: url_marker,
+    //      callback: marker
+        },
+//        '-', // this is a separator
+        {
+          text: 'Delete',
+//          callback: delete_feature,
+        },
+        {
+            text: 'Datasets',
+            classname: 'context-menu-title ol-ctx-menu-separator',
+        },
+        '-',
+      ];
+
+    dataset_ids.forEach(function(dataset_id){
+        location_contextmenu_items.push({
+            text: dataset_id,
+            items: get_dataset_context_menu_items(dataset_id),
+        });
+    });
+
+    return location_contextmenu_items;
+}
+
+var map_context_menu = new ContextMenu({
+    width: 300,
+});
+
+map.addControl(map_context_menu);
+
+map_context_menu.on('beforeopen', function(evt){
+  var feature = map.forEachFeatureAtPixel(evt.pixel, function(ft, l){
+    return ft;
+  });
+
+  if (feature) { // open only on features
+    map_context_menu.enable();
+    map_context_menu.clear();
+    map_context_menu.extend(get_menu_items(feature));
+  } else {
+    map_context_menu.disable();
+  }
+});
+
+map.getViewport().addEventListener('contextmenu', function (evt) {
+    evt.preventDefault();
+});
 
 $('#search-form').submit(function(e){
     e.preventDefault();
@@ -201,6 +310,7 @@ $('#add-features-form').submit(function(e){
     $.get(url, data, function(result){
         if(result.success){
             remove_search_layer();
+            update_datasets_by_feature(result.collection);
             update_collection_layer(result.collection);
 
             // update details table

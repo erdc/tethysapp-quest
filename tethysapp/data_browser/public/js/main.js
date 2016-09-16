@@ -1,3 +1,17 @@
+// mapping of datasets to their feature id
+var datasets_by_feature = {};
+
+
+function update_datasets_by_feature(collection){
+    collection.features[1].forEach(function(feature){
+        datasets_by_feature[feature.id] = [];
+    });
+    collection.datasets.forEach(function(dataset){
+        datasets_by_feature[dataset.feature].push(dataset.name);
+    });
+}
+
+collections.forEach(update_datasets_by_feature);
 
 /*******************************************************************************
  *
@@ -55,8 +69,12 @@ function get_dataset_id_from_details_table_row(row){
 
 function populate_options_form(event){
     var dataset = $(this).attr('data-dataset-id');
-    var data = {'dataset': dataset};
     var type = $(this).attr('data-options-type');
+    populate_options_form_for_dataset(dataset, type);
+}
+
+function populate_options_form_for_dataset(dataset, type){
+    var data = {'dataset': dataset};
     var url = {download: get_download_options_url,
                filter: get_filter_options_url,
                visualize: visualize_dataset_url,
@@ -94,6 +112,27 @@ function populate_options_form(event){
     })
     .done(function() {
         $('.select2').select2();
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function() {
+
+    });
+}
+
+function show_metadata(dataset){
+    var data = {'dataset': dataset};
+    var url = show_metadata_url;
+
+    $.get(url, data, function(result){
+        if(result.success){
+             $('#metadata-content').html(result.html);
+             $('#metadata-modal').modal('show');
+        }
+    })
+    .done(function() {
+
     })
     .fail(function() {
         console.log( "error" );

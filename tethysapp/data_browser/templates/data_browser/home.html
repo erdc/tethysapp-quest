@@ -12,27 +12,46 @@
         {% include 'data_browser/details_table.html' with collection=collection %}
       {% endfor %}
     </div>
-
-    <!-- Download/Filter/Visualize Options Modal -->
-    <div class="modal fade" id="options-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" id="options-content">
-          {% gizmo select_input None %}
-          {% gizmo date_picker None %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Visualize Modal -->
-    <div class="modal fade" id="visualize-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
-      <div class="modal-dialog" id="visualize-modal-container" role="document">
-        <div class="modal-content" id="visualize-content">
-          {% gizmo plot_view None %}
-        </div>
-      </div>
-    </div>
-
   </div>
+  <!--{% gizmo toggle_switch select_mode_toggle %}-->
+
+
+  <!-- Download/Filter/Visualize Options Modal -->
+  <div class="modal fade" id="options-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" id="options-content">
+        {% gizmo select_input None %}
+        {% gizmo date_picker None %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Visualize Modal -->
+  <div class="modal fade" id="visualize-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal-dialog" id="visualize-modal-container" role="document">
+      <div class="modal-content" id="visualize-content">
+        {% gizmo plot_view None %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Metadata Modal -->
+  <div class="modal fade" id="metadata-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal-dialog" id="metadata-modal-container" role="document">
+      <div class="modal-content" id="metadata-content">
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
+  <ul id="details-context-menu" class="dropdown-menu" role="menu" style="display:none" >
+      <li><a tabindex="-1" href="#">Download</a></li>
+      <li><a tabindex="-1" href="#">Apply Filter</a></li>
+      <li><a tabindex="-1" href="#">Visualize</a></li>
+      <li class="divider"></li>
+      <li><a tabindex="-1" href="#">Delete</a></li>
+  </ul>
 {% endblock %}
 
 {% block app_actions %}
@@ -48,10 +67,12 @@
 {% block scripts %}
   {{ block.super }}
   <script>
+    var show_metadata_url = '{% url 'data_browser:show_metadata_workflow' %}';
     var get_download_options_url = '{% url 'data_browser:get_download_options_workflow' %}';
     var get_filter_options_url = '{% url 'data_browser:get_filter_options_workflow' %}';
     var visualize_dataset_url = '{% url 'data_browser:visualize_dataset_workflow' %}';
     var get_features_url = '{% url 'data_browser:get_features' %}';
+    var delete_dataset_url = '{% url 'data_browser:delete_dataset_workflow' %}';
     var services = {% autoescape off %}{{ services }}{% endautoescape %};
     var collections = {% autoescape off %}{{ collections_json }}{% endautoescape %};
     var source_urls = [];
@@ -59,4 +80,5 @@
   </script>
   <script src="{% static 'data_browser/js/main.js' %}" type="text/javascript"></script>
   <script src="{% static 'data_browser/js/map.js' %}" type="text/javascript"></script>
+  <script src="{% static 'data_browser/vendor/ol3-contextmenu/ol3-contextmenu.js' %}" type="text/javascript"></script>
 {% endblock %}
