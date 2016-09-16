@@ -406,9 +406,10 @@ def delete_dataset_workflow(request):
     try:
         # get the name of the collection before deleting dataset
         collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
-        result['collection_name'] = collection
 
         dsl.api.delete(dataset)
+
+        result['collection'] = utilities.get_collection_with_metadata(collection)
 
         # get the updated collection details after the dataset has been deleted
         result['details_table_html'] = get_details_table(request, collection)

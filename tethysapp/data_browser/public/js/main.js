@@ -48,7 +48,8 @@ function delete_dataset(dataset_id){
 
     $.post(url, data, function(result){
         if(result.success){
-            update_details_table(result.collection_name, result.details_table_html);
+            update_details_table(result.collection.name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
         }
     })
     .done(function() {
