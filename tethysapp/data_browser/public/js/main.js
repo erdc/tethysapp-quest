@@ -95,8 +95,8 @@ function populate_options_form_for_dataset(dataset, type){
                 }
             };
             var visualize = function(){
-               $('#visualize-modal').modal('show');
-               $('#visualize-content').html(result.html);
+               show_plot_layout();
+               $('#plot-container').html(result.html);
                setTimeout(function(){
                     TETHYS_PLOT_VIEW.initPlot($('.d3-plot, .highcharts-plot'));
                }, 500);
@@ -128,8 +128,8 @@ function show_metadata(dataset){
 
     $.get(url, data, function(result){
         if(result.success){
-             $('#metadata-content').html(result.html);
-             $('#metadata-modal').modal('show');
+            show_metadata_layout();
+            $('#metadata-content').html(result.html);
         }
     })
     .done(function() {
@@ -288,40 +288,6 @@ bind_context_menu();
 $('#collection-details-content td:not(.status)').click(function(e){
     $(this).parent().toggleClass('selected')
 });
-
-// collection detail container toggle
-function bind_show_details(elem){
-    $(elem).unbind('click').click(function(e){
-        $('#collection-details-container').slideDown();
-        $('#collection-details-nav li a').each(function(){
-            bind_show_details(this);
-        });
-        bind_hide_details(elem);
-    });
-}
-
-function bind_hide_details(elem){
-    $(elem).unbind('click').click(function(e){
-        $('#collection-details-container').slideUp();
-        setTimeout(function(){
-            $('#collection-details-nav li.active').removeClass('active');
-        }, 100);
-        bind_show_details(elem);
-    });
-}
-
-$('#collection-details-nav li a').each(function(){
-    bind_show_details(this);
-});
-$('#minimize-collection-details').click(function(){
-    $('#collection-details-container').slideUp();
-    $('#collection-details-nav li.active').removeClass('active');
-    $('#collection-details-nav li a').each(function(){
-        bind_show_details(this);
-    });
-});
-
-
 
 // automate service selection based on parameter selection
 $('input[name="parameter"]').change(function(e){

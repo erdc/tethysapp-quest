@@ -79,7 +79,7 @@ def home(request):
                                view=view_options,
                                basemap='OpenStreetMap',
                                draw=None,
-                               legend=True
+                               legend=False
                                )
 
     collection_select_options = SelectInput(display_text='Select Collection',
@@ -346,8 +346,8 @@ def visualize_dataset_workflow(request):
     # '''
 
     plot_view_options = TimeSeries(
-        height='550px',
-        width='1500px',
+        height='100%',
+        width='100%',
         title=' ',
         engine=engine,
         y_axis_title=parameter,
@@ -384,7 +384,7 @@ def show_metadata_workflow(request):
                                    rows=rows,
                                    hover=True,
                                    striped=True,
-                                   bordered=True,
+                                   bordered=False,
                                    condensed=False)
 
     context = {'title': title,

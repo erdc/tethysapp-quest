@@ -7,6 +7,8 @@
 {% block styles %}
   {{ block.super }}
   <link href="{% static 'data_browser/vendor/ol3-contextmenu/ol3-contextmenu.min.css' %}" rel="stylesheet"/>
+  <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-base.css" />
+  <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-light-theme.css" />
 {% endblock %}
 
 {% block app_icon %}
@@ -30,4 +32,5 @@
 {% block content_dependent_styles %}
   {{ block.super }}
   <link href="{% static 'data_browser/css/main.css' %}" rel="stylesheet"/>
+  <script type="text/javascript" src="//golden-layout.com/assets/js/goldenlayout.min.js"></script>
 {% endblock %}
