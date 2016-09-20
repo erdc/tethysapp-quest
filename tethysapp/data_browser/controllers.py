@@ -22,6 +22,7 @@ import utilities
 
 import dsl
 import json
+import os
 
 
 @ensure_csrf_cookie
@@ -30,7 +31,9 @@ def home(request):
     """
     Controller for the app home page.
     """
-    dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path})
+    dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
+                             'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+                             })
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
