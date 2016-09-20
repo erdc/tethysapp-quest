@@ -192,6 +192,7 @@ h1.title{
 #collection-details-nav{
     width: 50%;
     margin: auto;
+    padding-top: 5px;
 }
 
 #collection-details-nav .nav-tab a{

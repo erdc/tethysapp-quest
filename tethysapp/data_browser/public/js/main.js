@@ -192,9 +192,6 @@ function new_collection(event){
                 $('<li role="presentation" class="nav-tab ' +  result.collection.name + '-collection"><a href="#collection-detail-' +  result.collection.name + '" aria-controls="collection-detail-' +  result.collection.name + '" role="tab" data-toggle="tab">' +  result.collection.display_name + '</a></li>')
             );
             $('#collection-details-content').append(result.details_table_html);
-            $('#collection-details-nav li a').each(function(){
-                bind_show_details(this);
-            });
         }
     })
     .done(function() {

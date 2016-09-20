@@ -35,24 +35,20 @@
       <div id="metadata-content"></div>
     </div>
 
-
-    <!--{% gizmo toggle_switch select_mode_toggle %}-->
-
-    <!-- Visualize Modal -->
+    <!-- Plot Container -->
     <div id="plot-container">
       {% gizmo plot_view None %}
     </div>
+  </div>
 
-    <!-- Download/Filter/Visualize Options Modal -->
-    <div class="modal fade" id="options-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content" id="options-content">
-          {% gizmo select_input None %}
-          {% gizmo date_picker None %}
-        </div>
+  <!-- Download/Filter/Visualize Options Modal -->
+  <div class="modal fade" id="options-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content" id="options-content">
+        {% gizmo select_input None %}
+        {% gizmo date_picker None %}
       </div>
     </div>
-
   </div>
 
   <!-- Context Menu -->
