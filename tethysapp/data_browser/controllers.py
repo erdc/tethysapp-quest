@@ -17,6 +17,7 @@ from tethys_sdk.gizmos import (MapView,
                                ToggleSwitch,
                                )
 
+from app import DataBrowser as app
 import utilities
 
 import dsl
@@ -29,8 +30,7 @@ def home(request):
     """
     Controller for the app home page.
     """
-
-    # features = dsl.api.get_features(services=dsl.api.get_services()[0])
+    dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path})
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
