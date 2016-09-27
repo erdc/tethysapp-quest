@@ -256,7 +256,7 @@ def get_options_form(request, options_type, get_options_function, options_metada
             input_options = TextInput(display_text=property_options['description'],
                                       name=property_options['description'],
                                       placeholder='',
-                                      initial=set_options(property, '')
+                                      initial=set_options.get(property, '')
                                       )
 
         context['properties'][property]['input_type'] = input_type
@@ -281,12 +281,11 @@ def get_download_options_workflow(request):
                               submit_controller_name='download_dataset_workflow',
                               submit_btn_text='Download')
 
-
 @login_required()
 def get_filter_options_workflow(request):
     return get_options_form(request,
                               options_type='filter',
-                              get_options_function=dsl.api.apply_filter_options,
+                              get_options_function=utilities.get_filter_options,
                               options_metadata_name='_apply_filter_options',
                               submit_controller_name='apply_filter_workflow',
                               submit_btn_text='Apply Filter')
@@ -388,12 +387,15 @@ def visualize_dataset_workflow(request):
 
 @login_required()
 def show_metadata_workflow(request):
-    dataset = request.GET['dataset']
+    id = request.GET['id']
 
     title = 'Metadata'
 
-    dataset = dsl.api.get_datasets(metadata=True)[dataset]
-    rows = [(k, v) for k, v in dataset.items()]
+    if id.startswith('f'):
+        metadata = dsl.api.get_features(features=id, metadata=True)['features'][0]['properties']
+    elif id.startswith('d'):
+        metadata = dsl.api.get_datasets(metadata=True)[id]
+    rows = [(k, v) for k, v in metadata.items()]
 
     table_view_options = TableView(column_names=('Property', 'Value'),
                                    rows=rows,
@@ -417,7 +419,7 @@ def show_metadata_workflow(request):
 @login_required()
 def delete_dataset_workflow(request):
     result = {'success': False}
-    dataset = request.POST['dataset'] # or request.GET.get('dataset')  #TODO pick one
+    dataset = request.POST['dataset']
     try:
         # get the name of the collection before deleting dataset
         collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
@@ -427,6 +429,27 @@ def delete_dataset_workflow(request):
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
         # get the updated collection details after the dataset has been deleted
+        result['details_table_html'] = get_details_table(request, collection)
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['error_message'] = str(e)
+
+    return JsonResponse(result)
+
+@login_required()
+def delete_feature_workflow(request):
+    result = {'success': False}
+    feature = request.POST['feature']
+    try:
+        # get the name of the collection before deleting feature
+        collection = dsl.api.get_features(features=feature, metadata=True)['features'][0]['properties']['collection']
+
+        dsl.api.delete(feature)
+
+        result['collection'] = utilities.get_collection_with_metadata(collection)
+
+        # get the updated collection details after the feature has been deleted
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
     except Exception as e:

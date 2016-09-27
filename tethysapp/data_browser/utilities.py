@@ -156,6 +156,18 @@ def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
 
 
+def get_filter_options(dataset):
+    #TODO filter list of filters by datatype instead of having it hardcoded for ts-filters
+    filters = [f for f in dsl.api.get_filters() if f.startswith('ts')]
+    options = {}
+
+    #TODO redesign so that all filter options can be sent back
+    for filter in filters:
+        options = dsl.api.apply_filter_options(filter)
+
+    return options
+
+
 def update_dsl_cache():
     dsl.api.update_settings({'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                              })

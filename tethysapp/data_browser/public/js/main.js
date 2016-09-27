@@ -66,6 +66,34 @@ function delete_dataset(dataset_id){
     });
 }
 
+function delete_feature(feature_id){
+    var url = delete_feature_url;
+    var csrftoken = getCookie('csrftoken');
+    var data = {feature: feature_id,
+                csrfmiddlewaretoken: csrftoken};
+
+    $.post(url, data, function(result){
+        if(result.success){
+            // delete feature on map
+            var layer = get_layer_by_name(result.collection.name);
+            layer.getSource().removeFeature(layer.getSource().getFeatureById(feature_id));
+
+            // update details table
+            update_details_table(result.collection.name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
+        }
+    })
+    .done(function() {
+
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function() {
+
+    });
+}
+
 function get_dataset_id_from_details_table_row(row){
     var dataset_id = row.children('td').first().text();
     return dataset_id;
@@ -125,8 +153,8 @@ function populate_options_form_for_dataset(dataset, type){
     });
 }
 
-function show_metadata(dataset){
-    var data = {'dataset': dataset};
+function show_metadata(id){
+    var data = {'id': id};
     var url = show_metadata_url;
 
     $.get(url, data, function(result){

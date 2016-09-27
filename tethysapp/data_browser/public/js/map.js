@@ -167,13 +167,6 @@ collections.forEach(add_collection_layer);
 // Bind events to controls
 
 // map context menu
-
-function get_datasets_from_feature(feature){
-    var collection = feature.collection;
-    var feature_id = feature.id_;
-
-}
-
 function get_dataset_context_menu_items(dataset){
 
     var dataset_id = dataset.name;
@@ -235,13 +228,16 @@ function get_menu_items(feature){
         '-',
         {
           text: 'Show Metadata',
-    //      icon: url_marker,
-    //      callback: marker
+          callback: function(){
+            show_metadata(feature_id);
+          },
         },
 //        '-', // this is a separator
         {
           text: 'Delete',
-//          callback: delete_feature,
+          callback: function(){
+                delete_feature(feature_id);
+          }
         },
         {
             text: 'Datasets',
@@ -267,8 +263,8 @@ var map_context_menu = new ContextMenu({
 map.addControl(map_context_menu);
 
 map_context_menu.on('beforeopen', function(evt){
-  var feature = map.forEachFeatureAtPixel(evt.pixel, function(ft, l){
-    return ft;
+  var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+    return feature;
   });
 
   if (feature) { // open only on features
