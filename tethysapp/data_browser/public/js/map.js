@@ -174,27 +174,39 @@ function get_datasets_from_feature(feature){
 
 }
 
-function get_dataset_context_menu_items(dataset_id){
+function get_dataset_context_menu_items(dataset){
 
-    var dataset_contextmenu_items = [
-        {
-            text: 'Download',
-            callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'download');
-                },
-        },
-        {
-            text: 'Visualize',
-            callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'visualize');
-                },
-        },
-        {
-            text: 'Apply Filter',
-            callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'filter');
-                },
-        },
+    var dataset_id = dataset.name;
+
+    var dataset_contextmenu_items = [];
+
+    if(dataset.download_status != 'downloaded'){
+        dataset_contextmenu_items.push(
+            {
+                text: 'Download',
+                callback: function(){
+                        populate_options_form_for_dataset(dataset_id, 'download');
+                    },
+            }
+        )
+    }
+    if(dataset.download_status == 'downloaded'){
+        dataset_contextmenu_items.push(
+            {
+                text: 'Visualize',
+                callback: function(){
+                        populate_options_form_for_dataset(dataset_id, 'visualize');
+                    },
+            },
+            {
+                text: 'Apply Filter',
+                callback: function(){
+                        populate_options_form_for_dataset(dataset_id, 'filter');
+                    },
+            }
+        )
+    }
+    dataset_contextmenu_items.push(
         {
             text: 'Show Metadata',
             callback: function(){
@@ -206,15 +218,15 @@ function get_dataset_context_menu_items(dataset_id){
             callback: function(){
                     delete_dataset(dataset_id);
                 },
-        },
-    ];
+        }
+    );
 
     return dataset_contextmenu_items;
 }
 
 function get_menu_items(feature){
     var feature_id = feature.id_;
-    var dataset_ids = datasets_by_feature[feature_id];
+    var datasets = datasets_by_feature[feature_id];
     var location_contextmenu_items = [
         {
             text: 'Location',
@@ -238,10 +250,10 @@ function get_menu_items(feature){
         '-',
       ];
 
-    dataset_ids.forEach(function(dataset_id){
+    datasets.forEach(function(dataset){
         location_contextmenu_items.push({
-            text: dataset_id,
-            items: get_dataset_context_menu_items(dataset_id),
+            text: dataset.name,
+            items: get_dataset_context_menu_items(dataset),
         });
     });
 

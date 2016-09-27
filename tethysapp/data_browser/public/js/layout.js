@@ -138,7 +138,16 @@ function show_plot_layout(){
 }
 
 function show_table_layout(){
-
+    var id = 'table', parent_id = 'col', index = 1;
+    $('#table-toggle').addClass('active');
+    var item = myLayout.root.getItemsById(id);
+    if(item.length > 0){
+        // table is already visible
+    }
+    else
+    {
+        show_layout_item(id, parent_id, index);
+    }
 }
 
 function show_metadata_layout(){

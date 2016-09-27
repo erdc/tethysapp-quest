@@ -97,6 +97,10 @@ h1.title{
     display: inline-block;
 }
 
+.collection .dropdown-menu{
+    right: 0;
+}
+
 .right{
     float: right;
 }
@@ -152,6 +156,10 @@ h1.title{
     background: white;
 }
 
+#plot-placeholder{
+    padding: 10px;
+}
+
 #metadata-container{
     padding: 10px 2px 5px 10px;
 }
@@ -196,24 +204,27 @@ h1.title{
 }
 
 #collection-details-nav .nav-tab a{
-    background: rgba(26, 51, 76, 0.7);
     margin: 0 2px;
+    padding: 0;
     color: white;
 }
 
-#collection-details-nav .nav-tab a:hover{
-    background: rgba(26, 51, 76, 0.2);
+#collection-details-nav .nav-tab a div{
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 15px;
 }
 
-#collection-details-nav .nav-tab.active a{
-    background: rgb(26, 51, 76);
-    color: white;
+#collection-details-nav .nav-tab a div:hover{
+    background: rgba(255, 255, 255, 0.2);
 }
 
-#collection-details-nav .nav-tab.active a:hover{
-    background: rgba(26, 51, 76, 0.2);
+#collection-details-nav .nav-tab.active div{
+    background: rgba(255, 255, 255, 0);
 }
 
+#collection-details-nav .nav-tab.active div:hover{
+    background: rgba(255, 255, 255, 0);
+}
 
 #minimize-collection-details{
     margin: 2px;

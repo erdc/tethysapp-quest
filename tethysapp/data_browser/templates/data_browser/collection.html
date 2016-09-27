@@ -6,7 +6,7 @@
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu" aria-labelledby="dLabel">
-        <li><a href="#">Details</a></li>
+        <li><a class="collection-details-menu-item" href="#" data-collection-name="{{ collection.name }}">Details</a></li>
         <li role="separator" class="divider"></li>
         <li><a class="delete-collection" href="{% url 'data_browser:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
       </ul>

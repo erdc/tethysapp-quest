@@ -13,16 +13,20 @@
 
     <!-- Collection Details Tables -->
     <div id="collection-details-container" class="app-content">
+      <!--<button id="minimize-collection-details" type="button" class="btn btn-default btn-sm">-</button>-->
       <div id="collection-details-nav">
         <ul class="nav nav-pills nav-justified" role="tablist">
           {% for collection in collections %}
-            <li role="presentation" class="nav-tab {{ collection.name }}-collection"><a href="#collection-detail-{{ collection.name }}" aria-controls="collection-detail-{{ collection.name }}" role="tab" data-toggle="tab">{{ collection.display_name }}</a></li>
+            {% include 'data_browser/details_table_tab.html' with collection=collection %}
           {% endfor %}
         </ul>
       </div>
 
-      <!--<button id="minimize-collection-details" type="button" class="btn btn-default btn-sm">-</button>-->
       <div id="collection-details-content" class="tab-content">
+        <div id="table-placeholder" class="text-center" {% if collections %}style="display: none;"{% endif %}>
+          <h1>No Collections have been created</h1>
+          <button type="button" class="btn btn-lg btn-primary" data-toggle="modal" data-target="#new-collection-modal">Create Collection</button>
+        </div>
         {% for collection in collections %}
           {% include 'data_browser/details_table.html' with collection=collection %}
         {% endfor %}
@@ -37,7 +41,11 @@
 
     <!-- Plot Container -->
     <div id="plot-container">
-      {% gizmo plot_view None %}
+      <div id="plot-placeholder" class="text-center">
+        {% gizmo plot_view None %}
+        <h1>No datasets have been visualized</h1>
+        <div>To visualize a dataset right click on a location on the map and select visualize, or click the View button for a dataset in the table.</div>
+      </div>
     </div>
   </div>
 

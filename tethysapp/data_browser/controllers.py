@@ -13,7 +13,6 @@ from tethys_sdk.gizmos import (MapView,
                                DatePicker,
                                TextInput,
                                TimeSeries,
-                               LinePlot,
                                ToggleSwitch,
                                )
 
@@ -34,6 +33,7 @@ def home(request):
     dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                              'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                              })
+    print(dsl.api.get_settings())
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
@@ -101,6 +101,15 @@ def home(request):
                                       size='large',
                                       classes='map-toggle-control')
 
+    plot_view_options = TimeSeries(height='100%',
+                                   width='100%',
+                                   title=' ',
+                                   engine='highcharts',
+                                   y_axis_title='',
+                                   y_axis_units='',
+                                   series=[]
+                                   )
+
 
     context = {'collections': collections,
                'collections_json': json.dumps(collections),
@@ -110,6 +119,7 @@ def home(request):
                'checkbox_tree': checkbox_tree,
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
+               'plot_view_options': plot_view_options,
                'collection_select_options': collection_select_options,
                'select_mode_toggle': select_mode_toggle,
                }
@@ -151,11 +161,13 @@ def new_collection_workflow(request):
 
     collection_html = render(request, 'data_browser/collection.html', context).content
     details_table_html = render(request, 'data_browser/details_table.html', context).content
+    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content
     success = True
 
     result = {'success': success,
               'collection_html': collection_html,
               'details_table_html': details_table_html,
+              'details_table_tab_html': details_table_tab_html,
               'collection': collection,
               }
 

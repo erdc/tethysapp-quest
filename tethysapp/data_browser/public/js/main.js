@@ -7,7 +7,7 @@ function update_datasets_by_feature(collection){
         datasets_by_feature[feature.id] = [];
     });
     collection.datasets.forEach(function(dataset){
-        datasets_by_feature[dataset.feature].push(dataset.name);
+        datasets_by_feature[dataset.feature].push(dataset);
     });
 }
 
@@ -19,17 +19,20 @@ collections.forEach(update_datasets_by_feature);
  *
  *******************************************************************************/
 
-function reload_collection_details_tabs(){
-    // hack to get new details table to show
-    // TODO doesn't work when there is only one collection
+function reload_collection_details_tabs(select_index){
     var active_tab = $('#collection-details-nav li.active');
-    $('#collection-details-nav li a').tab('show')
-    active_tab.tab('show');
-    if(active_tab.length == 0){
-        $('#collection-details-nav li.active').removeClass('active');
+    // remove active state so tab can be reset
+    active_tab.removeClass('active');
+    // activate all tabs
+    $('#collection-details-nav li a').tab('show');
+
+    if(active_tab.length){
+        // reactivate active tab
+        active_tab.children('a').tab('show');
     }
-    if($('#collection-details-nav li a').length == 1){
-        // do something to get it to refresh.
+    else{
+        // activate the first tab
+        $('#collection-details-nav li:first a').tab('show');
     }
 }
 
@@ -182,16 +185,16 @@ function new_collection(event){
     var data = $(this).serializeArray();
     $.post(url, data, function(result){
         if(result.success){
+            $('#table-placeholder').css('display', 'none');
             $('#collections-list').append(result.collection_html);
             $('#new-collection-modal').modal('hide')
             // update collection select
             $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
             $('#collection').trigger('change');
             // add details table
-            $('#collection-details-nav ul').append(
-                $('<li role="presentation" class="nav-tab ' +  result.collection.name + '-collection"><a href="#collection-detail-' +  result.collection.name + '" aria-controls="collection-detail-' +  result.collection.name + '" role="tab" data-toggle="tab">' +  result.collection.display_name + '</a></li>')
-            );
+            $('#collection-details-nav ul').append(result.details_table_tab_html);
             $('#collection-details-content').append(result.details_table_html);
+            reload_collection_details_tabs();
         }
     })
     .done(function() {
@@ -215,8 +218,11 @@ function delete_collection(event){
         if(result.success){
             $(collection_elements).remove();
             reload_collection_details_tabs();
+            // if there are no more collections display the placeholder div
+            if(!$('#collection-details-nav li').length){
+                $('#table-placeholder').css('display', 'block');
+            }
             remove_layer(collection_name);
-            $('#collection-details-nav a:first').tab('show');
             // update collection select
             $('#collection option[value="' + collection_name + '"]').remove();
             $('#collection').select2('val', '');
@@ -263,7 +269,18 @@ $('#new-collection-form').on('submit', new_collection);
 // Delete Collection Link
 $('#collections-list').on('click', '.delete-collection', delete_collection);
 
+// Show Collection Details
+$('#collections-list').on('click', '.collection-details-menu-item', function(){
+    var collection_name = $(this).attr('data-collection-name');
+    $('#collection-details-nav li.' + collection_name + '-collection a').click();
+    show_table_layout();
+});
+
+
+
 bind_context_menu();
+
+reload_collection_details_tabs();
 
 });
 
@@ -417,13 +434,14 @@ $.fn.contextMenu = function (settings) {
             // return native menu if pressing control
             if (e.ctrlKey) return;
 
+
             //open menu
             var $menu = $(settings.menuSelector)
                 .data("invokedOn", $(e.target))
                 .show()
                 .css({
                     position: "absolute",
-                    left: getMenuPosition(e.clientX, 'width', 'scrollLeft'),
+                    left: getMenuPosition(e.clientX - parseInt($('#app-content').css('padding-right')), 'width', 'scrollLeft'),
                     top: getMenuPosition(e.clientY, 'height', 'scrollTop')
                 })
                 .off('click')

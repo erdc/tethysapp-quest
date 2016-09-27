@@ -1,8 +1,12 @@
 import random
 import json
+import os
 
 import dsl
 from tethys_gizmos.gizmo_options import TableView
+
+from app import DataBrowser as app
+
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
@@ -122,6 +126,7 @@ def get_dataset_rows(datasets):
 
     return rows
 
+
 def get_datasets_table_options(collection):
     return TableView(column_names=get_dataset_columns(),
                      rows=get_dataset_rows(collection['datasets']),
@@ -130,6 +135,7 @@ def get_datasets_table_options(collection):
                      bordered=False,
                      condensed=False
                      )
+
 
 def get_collections_with_metadata(collection_names=None):
     collections = dsl.api.get_collections(metadata=True)
@@ -145,5 +151,17 @@ def get_collections_with_metadata(collection_names=None):
 
     return collections
 
+
 def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
+
+
+def update_dsl_cache():
+    dsl.api.update_settings({'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+                             })
+    services = dsl.api.get_services()
+    for service in services:
+        try:
+            dsl.api.get_features(services=service, update_cache=True)
+        except:
+            print("Error with {0}".format(service))
