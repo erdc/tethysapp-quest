@@ -33,7 +33,6 @@ def home(request):
     dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                              'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                              })
-    print(dsl.api.get_settings())
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
@@ -203,33 +202,14 @@ def add_features_workflow(request):
     return JsonResponse(result)
 
 
-def get_options_form(request, options_type, get_options_function, options_metadata_name, submit_controller_name, submit_btn_text):
-
-    dataset = request.GET['dataset']
+def get_options_html(request, uri, options, set_options, options_type, submit_controller_name, submit_btn_text):
     context = {'options_type': options_type,
                'action': reverse('data_browser:{}'.format(submit_controller_name)),
-               'dataset_id': dataset,
+               'uri': uri,
                'submit_btn_text': submit_btn_text,
+               'properties': options.get('properties', None),
+               'title': options.get('title', ''),
                }
-    success = False
-    try:
-        options = get_options_function(dataset)
-        if dataset in options:
-            options = options[dataset]
-        context['properties'] = options.get('properties', None)
-        context['title'] = options.get('title', '')
-
-        success = True
-    except Exception as e:
-        raise(e)
-
-    if context['properties'] is None:
-        return download_dataset(request, dataset)
-
-    set_options = {}
-    metadata = dsl.api.get_metadata(dataset)[dataset]
-    if options_metadata_name in metadata:
-        set_options = json.loads(metadata[options_metadata_name])
 
     for property, property_options in context['properties'].items():
         if 'enum' in property_options:
@@ -250,7 +230,6 @@ def get_options_form(request, options_type, get_options_function, options_metada
                                        today_button=True,
                                        initial=set_options.get(property, '')
                                        )
-
         else:
             input_type = 'text'
             input_options = TextInput(display_text=property_options['description'],
@@ -265,6 +244,76 @@ def get_options_form(request, options_type, get_options_function, options_metada
     # html = render_to_string('data_browser/options.html', context)
     html = render(request, 'data_browser/options.html', context).content
 
+    return html
+
+
+@login_required()
+def get_download_options_workflow(request):
+    dataset = request.GET['dataset']
+    success = False
+    try:
+        options = dsl.api.download_options(dataset)
+        if dataset in options:
+            options = options[dataset]
+
+        success = True
+    except Exception as e:
+        raise(e)
+
+    if 'properties' not in options:
+        return download_dataset(request, dataset)
+
+    options_metadata_name = '_download_options'
+    set_options = {}
+    metadata = dsl.api.get_metadata(dataset)[dataset]
+    if options_metadata_name in metadata:
+        set_options = json.loads(metadata[options_metadata_name])
+        if not set_options:
+            set_options = {}
+
+    html = get_options_html(request,
+                            uri=dataset,
+                            options=options,
+                            set_options=set_options,
+                            options_type='download',
+                            submit_controller_name='download_dataset_workflow',
+                            submit_btn_text='Download')
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
+
+@login_required()
+def get_filter_list_workflow(request):
+    dataset_id = request.GET['dataset']
+    options_type = 'filter',
+    submit_controller_name = 'apply_filter_workflow',
+    submit_btn_text = 'Apply Filter'
+    options = {'title': 'Apply Filter',
+               }
+
+    success = False
+    try:
+        # filters = dsl.api.get_filters(filters={'dataset': dataset_id})
+        filters = utilities.get_filters(dataset_id)
+        print(filters)
+        options['properties'] = filters
+
+        success = True
+    except Exception as e:
+        raise(e)
+
+    html = get_options_html(request,
+                            uri=dataset_id,
+                            options=options,
+                            set_options={},
+                            options_type=options_type,
+                            submit_controller_name=submit_controller_name,
+                            submit_btn_text=submit_btn_text)
+
+
     result = {'success': success,
               'html': html,
               }
@@ -273,32 +322,122 @@ def get_options_form(request, options_type, get_options_function, options_metada
 
 
 @login_required()
-def get_download_options_workflow(request):
-    return get_options_form(request,
-                              options_type='download',
-                              get_options_function=dsl.api.download_options,
-                              options_metadata_name='_download_options',
-                              submit_controller_name='download_dataset_workflow',
-                              submit_btn_text='Download')
-
-@login_required()
 def get_filter_options_workflow(request):
-    return get_options_form(request,
-                              options_type='filter',
-                              get_options_function=utilities.get_filter_options,
-                              options_metadata_name='_apply_filter_options',
-                              submit_controller_name='apply_filter_workflow',
-                              submit_btn_text='Apply Filter')
+    dataset_id = request.GET['dataset']
+    options_metadata_name = '_apply_filter_options',
+    options_type = 'filter',
+    submit_controller_name = 'apply_filter_workflow',
+    submit_btn_text = 'Apply Filter'
+
+    get_options_function = dsl.api.apply_filter_options
+
+    success = False
+    try:
+        options = get_options_function(dataset_id)
+        if dataset_id in options:
+            options = options[dataset_id]
+
+        success = True
+    except Exception as e:
+        raise(e)
+
+    set_options = {}
+    metadata = dsl.api.get_metadata(dataset_id)[dataset_id]
+    if options_metadata_name in metadata:
+        set_options = json.loads(metadata[options_metadata_name])
+        if not set_options:
+            set_options = {}
+
+    html = get_options_html(request,
+                            uri=dataset_id,
+                            options=options,
+                            set_options=set_options,
+                            options_type=options_type,
+                            submit_controller_name=submit_controller_name,
+                            submit_btn_text=submit_btn_text)
+
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
 
 
 @login_required()
 def get_visualize_options_workflow(request):
-    return get_options_form(request,
-                              options_type='visualize',
-                              get_options_function=dsl.api.visualize_dataset_options,
-                              options_metadata_name='_visualize_options',
-                              submit_controller_name='visualize_dataset_workflow',
-                              submit_btn_text='Visualize')
+    dataset_id = request.GET['dataset']
+    options_type = 'visualize'
+    get_options_function = dsl.api.visualize_dataset_options
+    options_metadata_name = '_visualize_options'
+    submit_controller_name = 'visualize_dataset_workflow'
+    submit_btn_text = 'Visualize'
+
+    success = False
+    try:
+        options = get_options_function(dataset_id)
+        if dataset_id in options:
+            options = options[dataset_id]
+
+        success = True
+    except Exception as e:
+        raise(e)
+
+    set_options = {}
+    metadata = dsl.api.get_metadata(dataset_id)[dataset_id]
+    if options_metadata_name in metadata:
+        set_options = json.loads(metadata[options_metadata_name])
+        if not set_options:
+            set_options = {}
+
+    html = get_options_html(request,
+                            uri=dataset_id,
+                            options=options,
+                            set_options=set_options,
+                            options_type=options_type,
+                            submit_controller_name=submit_controller_name,
+                            submit_btn_text=submit_btn_text)
+
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
+
+
+@login_required()
+def add_data_workflow(request):
+    feature = request.POST['feature']
+
+    success = False
+    try:
+        options = dsl.api.download_options(feature)
+        options = options[feature]
+
+        success = True
+    except Exception as e:
+        raise (e)
+
+    if 'properties' not in options:
+        return download_dataset(request, feature)
+
+
+    html = get_options_html(request,
+                            uri=feature,
+                            options=options,
+                            set_options={},
+                            options_type='download',
+                            submit_controller_name='download_dataset_workflow',
+                            submit_btn_text='Download')
+
+    result = {'success': success,
+              'html': html,
+              }
+
+
+    return JsonResponse(result)
+
 
 def get_details_table(request, collection):
     collection = utilities.get_collection_with_metadata(collection)
@@ -308,20 +447,27 @@ def get_details_table(request, collection):
     return details_table_html
 
 
-def download_dataset(request, dataset, options=None):
+def download_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        dsl.api.stage_for_download(dataset, download_options=options)
-        response = dsl.api.download_datasets(dataset)
-        collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
+        if uri.startswith('f'):
+            dataset_id = dsl.api.new_dataset(uri, dataset_type='download')
+        elif uri.startswith('d'):
+            dataset_id = uri
+        else:
+            dataset_id = None
+
+        dsl.api.stage_for_download(dataset_id, download_options=options)
+        response = dsl.api.download_datasets(dataset_id)
+        collection = dsl.api.get_datasets(metadata=True)[dataset_id]['collection']
+        result['details_table_html'] = get_details_table(request, collection)
+        result['collection_name'] = collection
         success = True
     except Exception as e:
         result['error_message'] = str(e)
 
     result['success'] = success
-    result['details_table_html'] = get_details_table(request, collection)
-    result['collection_name'] = collection
 
     return JsonResponse(result)
 
@@ -329,7 +475,7 @@ def download_dataset(request, dataset, options=None):
 @login_required()
 def download_dataset_workflow(request):
     download_options = dict(request.POST.items())
-    dataset = download_options.pop('dataset')
+    dataset = download_options.pop('uri')
     download_options.pop('csrfmiddlewaretoken')
     for key, value in download_options.items():
         if not value:
@@ -340,7 +486,23 @@ def download_dataset_workflow(request):
 
 @login_required()
 def apply_filter_workflow(request):
-    pass
+    result = {'success': False}
+    dataset_id = request.POST['uri']
+    filter = request.POST.get('filter')
+    try:
+        # get the name of the collection before deleting feature
+        collection = dsl.api.get_datasets(metadata=True)[dataset_id]['collection']
+
+        result['collection'] = utilities.get_collection_with_metadata(collection)
+
+        # get the updated collection details after the feature has been deleted
+        result['details_table_html'] = get_details_table(request, collection)
+        result['success'] = True
+    except Exception as e:
+        result['success'] = False
+        result['error_message'] = str(e)
+
+    return JsonResponse(result)
 
 
 @login_required()
@@ -387,14 +549,14 @@ def visualize_dataset_workflow(request):
 
 @login_required()
 def show_metadata_workflow(request):
-    id = request.GET['id']
+    uri = request.GET['uri']
 
     title = 'Metadata'
 
-    if id.startswith('f'):
-        metadata = dsl.api.get_features(features=id, metadata=True)['features'][0]['properties']
-    elif id.startswith('d'):
-        metadata = dsl.api.get_datasets(metadata=True)[id]
+    if uri.startswith('f'):
+        metadata = dsl.api.get_features(features=uri, metadata=True)['features'][0]['properties']
+    elif uri.startswith('d'):
+        metadata = dsl.api.get_datasets(metadata=True)[uri]
     rows = [(k, v) for k, v in metadata.items()]
 
     table_view_options = TableView(column_names=('Property', 'Value'),

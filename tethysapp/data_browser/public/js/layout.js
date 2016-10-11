@@ -142,7 +142,7 @@ function show_table_layout(){
     $('#table-toggle').addClass('active');
     var item = myLayout.root.getItemsById(id);
     if(item.length > 0){
-        // table is already visible
+        // plot is already visible
     }
     else
     {

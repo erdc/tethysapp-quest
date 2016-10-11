@@ -1,6 +1,7 @@
 import random
 import json
 import os
+import urllib
 
 import dsl
 from tethys_gizmos.gizmo_options import TableView
@@ -25,6 +26,8 @@ def get_rgba_color_from_hex(hex, a):
 
 def codify(name):
     name = name.lower().replace(' ', '_')
+    # name = urllib.quote_plus(name)
+    # name = name.lower()
     return name
 
 
@@ -95,7 +98,8 @@ def get_dataset_parameter(dataset):
     if not parameter:
         download_options = dataset.get('download_options')
         download_options = json.loads(download_options)
-        parameter = download_options.get('parameter')
+        if download_options:
+            parameter = download_options.get('parameter')
 
     return parameter
 
@@ -155,17 +159,13 @@ def get_collections_with_metadata(collection_names=None):
 def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
 
-
-def get_filter_options(dataset):
+#TODO this is just a temporary workaround because filtering for the DSL get_filters function seems to be broken
+def get_filters(dataset):
     #TODO filter list of filters by datatype instead of having it hardcoded for ts-filters
-    filters = [f for f in dsl.api.get_filters() if f.startswith('ts')]
-    options = {}
+    filters = {f: m for f, m in dsl.api.get_filters(metadata=True) if f.startswith('ts')}
+    return filters
 
-    #TODO redesign so that all filter options can be sent back
-    for filter in filters:
-        options = dsl.api.apply_filter_options(filter)
 
-    return options
 
 
 def update_dsl_cache():

@@ -94,6 +94,34 @@ function delete_feature(feature_id){
     });
 }
 
+function add_data(feature_id){
+    var url = add_data_url;
+    var csrftoken = getCookie('csrftoken');
+    var data = {feature: feature_id,
+                csrfmiddlewaretoken: csrftoken};
+
+    $.post(url, data, function(result){
+        if(result.success){
+            if(result.html){
+                $('#options-content').html(result.html);
+                $('#options-modal').modal('show');
+            }
+            else{
+                update_details_table(result.collection_name, result.details_table_html);
+            }
+        }
+    })
+    .done(function() {
+        $('.select2').select2();
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function() {
+
+    });
+}
+
 function get_dataset_id_from_details_table_row(row){
     var dataset_id = row.children('td').first().text();
     return dataset_id;
@@ -108,7 +136,7 @@ function populate_options_form(event){
 function populate_options_form_for_dataset(dataset, type){
     var data = {'dataset': dataset};
     var url = {download: get_download_options_url,
-               filter: get_filter_options_url,
+               filter: get_filter_list_url,
                visualize: visualize_dataset_url,
                }[type];
 //    $('#options-content').load(url, $.param(data), function(e){
@@ -153,8 +181,8 @@ function populate_options_form_for_dataset(dataset, type){
     });
 }
 
-function show_metadata(id){
-    var data = {'id': id};
+function show_metadata(uri){
+    var data = {'uri': uri};
     var url = show_metadata_url;
 
     $.get(url, data, function(result){
@@ -174,19 +202,35 @@ function show_metadata(id){
     });
 }
 
-function submit_options(event){
+function change_status_to_loading(dataset_iu){
 
-    // submit form to update dataset download options and then download
+    $('#download-dataset-options-btn-' + dataset_id).hide();
+    $('#visualize-dataset-options-btn-' + dataset_id).hide();
+    $('#loading-gif-' + dataset_id).show();
+}
+
+
+function submit_options(event){
     event.preventDefault();
-    var dataset = $(this).attr('data-dataset-id');
     var url = $('#options-form').attr('action');
     var data = $('#options-form').serializeArray();
-    var type = $(this).attr('data-options-type');
     $('#options-modal').modal('hide');
+
+    var dataset_id;
+    data.forEach(function(obj){
+        if(obj.name == 'uri'){
+            dataset_id = obj.value;
+        }
+    });
+
+    change_status_to_loading(dataset_id);
 
     $.post(url, data, function(result){
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
+        }
+        else{
+            console.log(result);
         }
     })
     .done(function() {
@@ -263,9 +307,9 @@ function bind_context_menu(){
     $("#collection-details-container td").contextMenu({
         menuSelector: "#details-context-menu",
         menuSelected: function (invokedOn, selectedMenu) {
-            var options = {'Download': '',
-                           'Apply Filter': '',
-                           'Visualize': '',
+            var options = {'Download': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'download');},
+                           'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
+                           'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
                            'Delete': delete_dataset,
                            }
 
@@ -275,6 +319,70 @@ function bind_context_menu(){
         }
     });
 }
+
+$('#add-to-collection-button').click(function(e){
+    var selected_features = search_select_interaction.getFeatures();
+    $('#number-of-selected-features').text(selected_features.array_.length + ' features are selected.');
+
+});
+
+$('#search-form').submit(function(e){
+    e.preventDefault();
+    remove_search_layer();
+    var url = $(this).attr('action');
+    var data = $(this).serializeArray();
+    data.push({'name': 'bbox',
+               'value': get_map_extents()});
+
+    url = get_source_url(data);
+    load_map_layer(SEARCH_LAYER_NAME, url, true);
+});
+
+$('#add-features-form').submit(function(e){
+    e.preventDefault();
+    var url = $(this).attr('action');
+    var data = $(this).serializeArray();
+//    var collection_name = $(this).serializeObject().collection;
+    var parameter = $('input[name="parameter"]:checked').val();
+    var selected_features = search_select_interaction.getFeatures();
+    var features = selected_features.array_.map(function(feature){
+        return feature.id_;
+    });
+
+    data.push({'name': 'features',
+               'value': features},
+              {'name': 'parameter',
+               'value': parameter}
+              );
+
+    $.get(url, data, function(result){
+        if(result.success){
+            remove_search_layer();
+            update_datasets_by_feature(result.collection);
+            update_collection_layer(result.collection);
+
+            // update details table
+            update_details_table(result.collection.name, result.details_table_html);
+
+        }
+    })
+    .done(function() {
+        $('#add-features-modal').modal('hide');
+        $('#manage-tab').click()
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function() {
+
+    });
+});
+
+
+// Tabs
+$('#manage-tab').click(function(e){
+    remove_search_layer();
+});
 
 
 /*******************************************************************************

@@ -7,7 +7,7 @@
 <div class="modal-body">
   <form id="options-form" action="{{ action }}" method="post">
     {% csrf_token %}
-      <input type="hidden" name="dataset" value="{{ dataset_id }}">
+      <input type="hidden" name="uri" value="{{ uri }}">
     {% for property, property_options in properties.items %}
       {% if property_options.input_type == 'select' %}
         {% gizmo select_input property_options.input_options %}
@@ -21,7 +21,7 @@
 </div>
 <div class="modal-footer">
   <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-  <button type="submit" class="btn btn-primary options-submit" id="{{ options_type }}-options-submit-btn" data-options-type="{{ options_type }}" data-dataset-id="{{ dataset_id }}" form="options-form" value="Submit">{{ submit_btn_text }}</button>
+  <button type="submit" class="btn btn-primary options-submit" id="{{ options_type }}-options-submit-btn" data-options-type="{{ options_type }}" form="options-form" value="Submit">{{ submit_btn_text }}</button>
 </div>
 
 {#% gizmo_dependencies %#}

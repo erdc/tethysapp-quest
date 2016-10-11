@@ -1,3 +1,5 @@
+{% load staticfiles %}
+
 {% if status == 'downloaded' %}
   <button type="button" class="btn btn-success btn-sm get-options" id="visualize-dataset-options-btn-{{ dataset }}" data-options-type="visualize" data-dataset-id="{{ dataset }}">
     View
@@ -13,3 +15,4 @@
     </div>
   </div>
 {% endif %}
+<img src="{% static 'data_browser/images/loading.gif' %}" id="loading-gif-{{ dataset }}" style="display: none;">
