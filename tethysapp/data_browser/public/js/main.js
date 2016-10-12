@@ -202,7 +202,7 @@ function show_metadata(uri){
     });
 }
 
-function change_status_to_loading(dataset_iu){
+function change_status_to_loading(dataset_id){
 
     $('#download-dataset-options-btn-' + dataset_id).hide();
     $('#visualize-dataset-options-btn-' + dataset_id).hide();
@@ -310,6 +310,7 @@ function bind_context_menu(){
             var options = {'Download': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'download');},
                            'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
                            'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
+                           'Show Metadata': show_metadata,
                            'Delete': delete_dataset,
                            }
 
@@ -559,6 +560,18 @@ $.ajaxSetup({
  *
  *******************************************************************************/
 
+function get_contextmenu_items(target){
+    menu_html = '' +
+      '<li><a tabindex="-1" href="#">Download</a></li>' +
+      '<li><a tabindex="-1" href="#">Apply Filter</a></li>' +
+      '<li><a tabindex="-1" href="#">Visualize</a></li>' +
+      '<li><a tabindex="-1" href="#">Show Metadata</a></li>' +
+      '<li class="divider"></li>' +
+      '<li><a tabindex="-1" href="#">Delete</a></li>';
+
+      return menu_html;
+}
+
 
 //Context Menu code from: http://jsfiddle.net/kylemit/x9tgy/
 $.fn.contextMenu = function (settings) {
@@ -574,6 +587,7 @@ $.fn.contextMenu = function (settings) {
             //open menu
             var $menu = $(settings.menuSelector)
                 .data("invokedOn", $(e.target))
+                .html(get_contextmenu_items($(e.target)))
                 .show()
                 .css({
                     position: "absolute",
