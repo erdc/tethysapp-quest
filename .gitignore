@@ -1,0 +1,10 @@
+*.egg-info
+*.pyc
+*.class
+*.pyo
+*.pydevproject
+*.project
+*.idea
+*.sqlite3
+*~
+tethysapp/data_browser/workspaces/
