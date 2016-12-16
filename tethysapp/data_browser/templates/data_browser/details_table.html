@@ -1,16 +1,15 @@
 {% with columns=collection.table_view_options.column_names rows=collection.table_view_options.rows %}
 <div role="tabpanel" class="tab-pane collection-detail {{ collection.name }}-collection" id="collection-detail-{{ collection.name }}" style="backgroud: {{ collection.metadata.color }};">
   <!--<h1>{{ collection.display_name }}</h1>-->
-  <table class="collection_detail_datatable display" width="100%">
+  <table class="collection_detail_datatable display" cellspacing="0" width="100%" data-page-length="5" data-length-menu="[5, 10, 25, 50]">
       <thead>
-          <tr class="">
+          <tr>
           {% for column in columns %}
             <th>{{ column }}</th>
           {% endfor %}
-            <th></th>
+            <th>Action</th>
           </tr>
       </thead>
-
       <tbody>
         {% for row in rows %}
         <tr>
@@ -22,7 +21,7 @@
           </td>
         </tr>
         {% endfor %}
-    </tbody>
+      </tbody>
   </table>
 </div>
 {% endwith %}
