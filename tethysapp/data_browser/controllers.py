@@ -2,6 +2,7 @@ from datetime import datetime
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
+import plotly.graph_objs as go
 
 from tethys_sdk.gizmos import (MapView,
                                MVDraw,
@@ -11,8 +12,8 @@ from tethys_sdk.gizmos import (MapView,
                                SelectInput,
                                TableView,
                                DatePicker,
+                               PlotlyView,
                                TextInput,
-                               TimeSeries,
                                ToggleSwitch,
                                )
 
@@ -84,26 +85,6 @@ def home(request):
                                             options=[(collection['display_name'], collection['name']) for collection in collections],
                                             )
 
-    select_mode_toggle = ToggleSwitch(display_text='Select Mode',
-                                      name='select_mode',
-                                      on_label='Locations',
-                                      off_label='Datasets',
-                                      on_style='success',
-                                      off_style='danger',
-                                      initial=True,
-                                      size='large',
-                                      classes='map-toggle-control')
-
-    plot_view_options = TimeSeries(height='100%',
-                                   width='100%',
-                                   title=' ',
-                                   engine='highcharts',
-                                   y_axis_title='',
-                                   y_axis_units='',
-                                   series=[]
-                                   )
-
-
     context = {'collections': collections,
                'collections_json': json.dumps(collections),
                'services': services,
@@ -112,9 +93,7 @@ def home(request):
                'checkbox_tree': checkbox_tree,
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
-               'plot_view_options': plot_view_options,
                'collection_select_options': collection_select_options,
-               'select_mode_toggle': select_mode_toggle,
                }
 
     return render(request, 'data_browser/home.html', context)
@@ -512,41 +491,47 @@ def apply_filter_workflow(request):
 @login_required()
 @activate_user_settings
 def visualize_dataset_workflow(request):
+    '''
+    This controler is for visualizing
+    time series data in a plot
+    '''
     dataset = request.GET['dataset']
     data = dsl.api.open_dataset(dataset, fmt='dict')
     metadata = data['metadata']
     parameter = metadata['parameter']
-    # timeseries = data['data'][parameter]
-    timeseries = data['data'].values()[0]
-    timeseries = [(datetime.strptime(date, utilities.ISO_DATETIME_FORMAT), value) for date, value in timeseries]
-    title = 'Plot View'
-    success = True
-    '''
-    engine = 'd3'
-    '''
-    engine = 'highcharts'
-    # '''
+    dates, values = zip(*data['data'].values()[0])
 
-    plot_view_options = TimeSeries(
-        height='100%',
-        width='100%',
-        title=' ',
-        engine=engine,
-        y_axis_title=parameter,
-        y_axis_units=metadata['units'],
-        series=[{
-            'name': dataset,
-            'data': timeseries,
-        }]
+    scatter_series = go.Scatter(
+        x=[datetime.strptime(date, utilities.ISO_DATETIME_FORMAT)
+           for date in dates],
+        y=values,
+        name=dataset,
+        fill='tozeroy'
     )
 
-    context = {'title': title,
-              'plot_view_options': plot_view_options,
-               }
+    plotly_layout = go.Layout(
+        showlegend=True,
+        height=350,
+        margin=go.Margin(
+            l=70,
+            r=0,
+            b=25,
+            t=10,
+            pad=4
+        ),
+        yaxis=dict(
+            title="{0} ({1})".format(parameter, metadata['units']),
+        ),
+    )
+
+    plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
+                                             layout=plotly_layout))
+
+    context = {'plot_view_options': plot_view_options, }
 
     html = render(request, 'data_browser/visualize.html', context).content
 
-    result = {'success': success,
+    result = {'success': True,
               'html': html,
               }
 

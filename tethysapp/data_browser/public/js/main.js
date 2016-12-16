@@ -39,6 +39,7 @@ function reload_collection_details_tabs(select_index){
 
 function update_details_table(collection_name, html){
     $('#collection-detail-' + collection_name).replaceWith(html);
+    $('#collection-detail-' + collection_name).find('table').DataTable();
     reload_collection_details_tabs();
     bind_context_menu();
 }
@@ -49,14 +50,12 @@ function delete_dataset(dataset_id){
     var data = {dataset: dataset_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -72,7 +71,8 @@ function delete_feature(feature_id){
     var data = {feature: feature_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             // delete feature on map
             var layer = get_layer_by_name(result.collection.name);
@@ -82,9 +82,6 @@ function delete_feature(feature_id){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -100,19 +97,19 @@ function add_data(feature_id){
     var data = {feature: feature_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
+                $('#options-content').find('.select2').select2();
             }
             else{
                 update_details_table(result.collection_name, result.details_table_html);
             }
         }
-    })
-    .done(function() {
-        $('.select2').select2();
+
     })
     .fail(function() {
         console.log( "error" );
@@ -142,12 +139,14 @@ function populate_options_form_for_dataset(dataset, type){
 //    $('#options-content').load(url, $.param(data), function(e){
 //        $('.select2').select2();
 //    });
-    $.get(url, data, function(result){
+    $.get(url, data)
+    .done(function(result) {
         if(result.success){
             var options = function(){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
+                    $('#options-content').find('.select2').select2();
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
@@ -155,10 +154,10 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
-               $('#plot-container').html(result.html);
+               $('#plot-container').html("<h2> Loading ... </h2>");
                setTimeout(function(){
-                    TETHYS_PLOT_VIEW.initHighChartsPlot($('.d3-plot, .highcharts-plot'));
-               }, 500);
+                   $('#plot-container').html(result.html);
+               }, 100);
 
             };
             var func = {retrieve: options,
@@ -169,9 +168,7 @@ function populate_options_form_for_dataset(dataset, type){
              func[type]();
 
         }
-    })
-    .done(function() {
-        $('.select2').select2();
+
     })
     .fail(function() {
         console.log( "error" );
@@ -185,14 +182,12 @@ function show_metadata(uri){
     var data = {'uri': uri};
     var url = show_metadata_url;
 
-    $.get(url, data, function(result){
+    $.get(url, data)
+    .done(function(result) {
         if(result.success){
             show_metadata_layout();
             $('#metadata-content').html(result.html);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -225,16 +220,14 @@ function submit_options(event){
 
     change_status_to_loading(dataset_id);
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
         }
         else{
             console.log(result);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -262,7 +255,8 @@ function new_collection(event){
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result){
         if(result.success){
             $('#table-placeholder').css('display', 'none');
             $('#collections-list').append(result.collection_html);
@@ -275,9 +269,6 @@ function new_collection(event){
             $('#collection-details-content').append(result.details_table_html);
             reload_collection_details_tabs();
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -293,7 +284,8 @@ function delete_collection(event){
     var collection_name = $(this).attr('data-collection-name');
     var collection_elements = $('.' + collection_name + '-collection');
 
-    $.get(url, function(result){
+    $.get(url)
+    .done(function(result){
         if(result.success){
             $(collection_elements).remove();
             reload_collection_details_tabs();
@@ -487,7 +479,8 @@ $('#add-features-form').submit(function(e){
                'value': parameter}
               );
 
-    $.get(url, data, function(result){
+    $.get(url, data)
+    .done(function(result) {
         if(result.success){
             remove_search_layer();
             update_datasets_by_feature(result.collection);
@@ -497,8 +490,7 @@ $('#add-features-form').submit(function(e){
             update_details_table(result.collection.name, result.details_table_html);
 
         }
-    })
-    .done(function() {
+
         $('#add-features-modal').modal('hide');
         $('#manage-tab').click()
     })
@@ -556,6 +548,8 @@ $('#collections-list').on('click', '.collection-details-menu-item', function(){
 bind_context_menu();
 
 reload_collection_details_tabs();
+
+$('.collection_detail_datatable').DataTable();
 
 });
 

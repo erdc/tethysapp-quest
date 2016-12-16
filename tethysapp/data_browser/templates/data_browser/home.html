@@ -1,7 +1,12 @@
 {% extends "data_browser/base.html" %}
 {% load staticfiles tethys_gizmos %}
 
-
+{% block import_gizmos %}
+  {% import_gizmo_dependency date_picker %}
+  {% import_gizmo_dependency datatable_view %}
+  {% import_gizmo_dependency plotly_view %}
+  {% import_gizmo_dependency select_input %}
+{% endblock %}
 
 {% block app_content %}
   <div id="layout"></div>
@@ -42,7 +47,9 @@
     <!-- Plot Container -->
     <div id="plot-container">
       <div id="plot-placeholder" class="text-center">
-        {% gizmo plot_view None %}
+        {% comment %}
+            {% gizmo plotly_view None %}
+        {% endcomment %}
         <h1>No datasets have been visualized</h1>
         <div>To visualize a dataset right click on a location on the map and select visualize, or click the View button for a dataset in the table.</div>
       </div>
@@ -53,8 +60,10 @@
   <div class="modal fade" id="options-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
     <div class="modal-dialog" role="document">
       <div class="modal-content" id="options-content">
-        {% gizmo select_input None %}
-        {% gizmo date_picker None %}
+        {% comment %}
+            {% gizmo select_input None %}
+            {% gizmo date_picker None %}
+        {% endcomment %}
       </div>
     </div>
   </div>

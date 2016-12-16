@@ -66,6 +66,7 @@ var load_map_layer = function(name, source_url, selectable, color, legend, callb
     var layer_options = {'name': name};
 
     // create a vector source that loads a url that returns GeoJSON
+    //TODO: NEED TO CHECK IF ANYTHING RETURNED
     var layer_source = new ol.source.Vector({
         url: source_url,
         format: new ol.format.GeoJSON(),
