@@ -286,7 +286,7 @@ function new_collection(event){
         if(result.success){
             $('#table-placeholder').css('display', 'none');
             $('#collections-list').append(result.collection_html);
-            $('#new-collection-modal').modal('hide')
+            $('#new-collection-modal').modal('hide');
             // update collection select
             $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
             $('#collection').trigger('change');
@@ -529,6 +529,11 @@ $('#add-features-form').submit(function(e){
     });
 });
 
+$('#new-collection-modal').on('hidden.bs.modal', function () {
+    // reset form
+    $(this).find('#collection_name').val('');
+    $(this).find('#description').val('');
+})
 
 // Tabs
 $('#manage-tab').click(function(e){
