@@ -39,9 +39,15 @@ function reload_collection_details_tabs(select_index){
 
 function update_details_table(collection_name, html){
     $('#collection-detail-' + collection_name).replaceWith(html);
-    $('#collection-detail-' + collection_name).find('table').DataTable();
+    $('#collection-detail-' + collection_name)
+    .find('.collection_detail_datatable').DataTable();
+
     reload_collection_details_tabs();
     bind_context_menu();
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    $('#collection-detail-' + collection_name)
+    .find('.collection_detail_datatable').DataTable()
+    .columns.adjust().draw();
 }
 
 function delete_dataset(dataset_id){
@@ -124,6 +130,25 @@ function get_dataset_id_from_details_table_row(row){
     return dataset_id;
 }
 
+function resize_plot() {
+    var layout_plot_div = $("#plot-container");
+    var plot_id = layout_plot_div.find('.plotly-graph-div').attr('id');
+    if (typeof plot_id != 'undefined')
+    {
+        var resize_info =  {
+                             width  : layout_plot_div.width(),
+                             height : layout_plot_div.height()
+                           };
+
+        Plotly.relayout(plot_id, resize_info);
+    }
+}
+
+function resize_table() {
+    var layout_table_div = $("#collection-details-container");
+    layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-165+"px");
+}
+
 function populate_options_form(event){
     var dataset = $(this).attr('data-dataset-id');
     var type = $(this).attr('data-options-type');
@@ -154,9 +179,10 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
-               $('#plot-container').html("<h2> Loading ... </h2>");
+               $('#plot-container').html('<h2 class="text-center"> Loading ... </h2>');
                setTimeout(function(){
                    $('#plot-container').html(result.html);
+                   resize_plot();
                }, 100);
 
             };
@@ -432,6 +458,7 @@ function bind_context_menu(){
 //        }
     });
 }
+
 
 $('#add-to-collection-button').click(function(e){
     var selected_features = search_select_interaction.getFeatures();

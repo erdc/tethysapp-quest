@@ -101,6 +101,12 @@ function add_layout_item( id, parent_id, index){
 
 function show_layout_item(id, parent_id, index){
     add_layout_item(id, parent_id, index);
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    if(id == 'table')
+    {
+        $('.collection_detail_datatable').DataTable()
+        .columns.adjust().draw();
+    }
 }
 
 function hide_layout_item(item, id){
@@ -173,9 +179,13 @@ $('#close-metadata-btn').click(function(){
 });
 
 $('#plot-toggle').click(function(){
-    toggle_layout_item(this, 'plot', 'col', 1)
+    toggle_layout_item(this, 'plot', 'col', 1);
 });
 
 $('#table-toggle').click(function(){
-    toggle_layout_item(this, 'table', 'col')
+    toggle_layout_item(this, 'table', 'col');
 });
+
+
+$(LAYOUT_DIV_MAPPING['plot']).changeSize(resize_plot);
+$(LAYOUT_DIV_MAPPING['table']).changeSize(resize_table);
