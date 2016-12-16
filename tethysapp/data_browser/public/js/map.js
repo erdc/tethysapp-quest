@@ -225,4 +225,31 @@ map.getViewport().addEventListener('contextmenu', function (evt) {
     evt.preventDefault();
 });
 
+// a DragBox interaction used to select features by drawing boxes
+var dragBox = new ol.interaction.DragBox({
+  condition: ol.events.condition.shiftKeyOnly,
+  style: new ol.style.Style({
+    stroke: new ol.style.Stroke({
+      color: [0, 0, 255, 1]
+    })
+  })
+});
+
+map.addInteraction(dragBox);
+
+var selection_interaction = TETHYS_MAP_VIEW.getSelectInteraction();
+
+dragBox.on('boxend', function() {
+  // features that intersect the box are added to the collection of
+  // selected features, and their names are displayed in the "info"
+  // div
+  var extent = dragBox.getGeometry().getExtent();
+
+  // Get the search layer
+  var vector_layer = get_layer_by_name(SEARCH_LAYER_NAME);
+  vector_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
+    search_select_interaction.getFeatures().push(feature);
+  });
+});
+
 }); //end of script
