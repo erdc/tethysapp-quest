@@ -174,9 +174,9 @@ function get_dataset_context_menu_items(dataset){
     var dataset_contextmenu_items = [
 
         {
-            text: 'Download',
+            text: 'Retrieve',
             callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'download');
+                    populate_options_form_for_dataset(dataset_id, 'retrieve');
                 },
         }
     ];
@@ -194,6 +194,12 @@ function get_dataset_context_menu_items(dataset){
                 callback: function(){
                         populate_options_form_for_dataset(dataset_id, 'filter');
                     },
+            },
+            {
+                text: 'Download',
+                callback: function(){
+                    export_dataset(dataset_id);
+                }
             }
         )
     }

@@ -135,7 +135,7 @@ function populate_options_form(event){
 
 function populate_options_form_for_dataset(dataset, type){
     var data = {'dataset': dataset};
-    var url = {download: get_download_options_url,
+    var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
                visualize: visualize_dataset_url,
                }[type];
@@ -157,11 +157,11 @@ function populate_options_form_for_dataset(dataset, type){
                show_plot_layout();
                $('#plot-container').html(result.html);
                setTimeout(function(){
-                    TETHYS_PLOT_VIEW.initPlot($('.d3-plot, .highcharts-plot'));
+                    TETHYS_PLOT_VIEW.initHighChartsPlot($('.d3-plot, .highcharts-plot'));
                }, 500);
 
             };
-            var func = {download: options,
+            var func = {retrieve: options,
                         filter: options,
                         visualize: visualize,
                         }
@@ -204,7 +204,7 @@ function show_metadata(uri){
 
 function change_status_to_loading(dataset_id){
 
-    $('#download-dataset-options-btn-' + dataset_id).hide();
+    $('#retrieve-dataset-options-btn-' + dataset_id).hide();
     $('#visualize-dataset-options-btn-' + dataset_id).hide();
     $('#loading-gif-' + dataset_id).show();
 }
@@ -242,6 +242,12 @@ function submit_options(event){
     .always(function() {
 
     });
+}
+
+function export_dataset(dataset_id){
+var data = {'dataset': dataset_id};
+    var url = export_dataset_url + '?' + $.param(data);
+    window.location = url;
 }
 
 function add_collection_details(collection_name, collection_display_name, details_html){
@@ -307,10 +313,11 @@ function bind_context_menu(){
     $("#collection-details-container td").contextMenu({
         menuSelector: "#details-context-menu",
         menuSelected: function (invokedOn, selectedMenu) {
-            var options = {'Download': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'download');},
+            var options = {'Retrieve': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'retrieve');},
                            'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
                            'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
                            'Show Metadata': show_metadata,
+                           'Download': function(dataset_id){export_dataset(dataset_id);},
                            'Delete': delete_dataset,
                            }
 
@@ -394,10 +401,13 @@ $('#manage-tab').click(function(e){
 
 $(function() { //wait for page to load
 
-// Download/Visualize Options Button
+// Retrieve/Visualize Options Button
 $('#collection-details-content').on('click', '.get-options', populate_options_form);
 
-// Download Button
+// Export Dataset Button
+$('#collection-details-content').on('click', '.export-dataset', function(){export_dataset($(this).attr('data-dataset-id'))});
+
+// Retrieve Button
 $('#options-content').on('click', '.options-submit', submit_options);
 
 // New Collection Button
@@ -562,10 +572,11 @@ $.ajaxSetup({
 
 function get_contextmenu_items(target){
     menu_html = '' +
-      '<li><a tabindex="-1" href="#">Download</a></li>' +
+      '<li><a tabindex="-1" href="#">Retrieve</a></li>' +
       '<li><a tabindex="-1" href="#">Apply Filter</a></li>' +
       '<li><a tabindex="-1" href="#">Visualize</a></li>' +
       '<li><a tabindex="-1" href="#">Show Metadata</a></li>' +
+      '<li><a tabindex="-1" href="#">Download</a></li>' +
       '<li class="divider"></li>' +
       '<li><a tabindex="-1" href="#">Delete</a></li>';
 

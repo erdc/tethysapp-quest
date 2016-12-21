@@ -121,7 +121,7 @@ function toggle_layout_item( toggle_control, id, parent_id, index){
         show_layout_item(id, parent_id, index);
     }
 
-    TETHYS_PLOT_VIEW.initPlot($('.d3-plot, .highcharts-plot'));
+    TETHYS_PLOT_VIEW.initHighChartsPlot($('.d3-plot, .highcharts-plot'));
 }
 
 function show_plot_layout(){

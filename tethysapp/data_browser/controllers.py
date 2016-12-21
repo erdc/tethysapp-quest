@@ -23,16 +23,31 @@ import dsl
 import json
 import os
 
+def activate_user_settings(func):
+
+    def wrapper(request, *args, **kwargs):
+
+        dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
+                                 'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+                                 })
+
+        return func(request, *args, **kwargs)
+
+    return wrapper
+
+
+
 
 @ensure_csrf_cookie
 @login_required()
+@activate_user_settings
 def home(request):
     """
     Controller for the app home page.
     """
-    dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
-                             'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
-                             })
+    # dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
+    #                          'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+    #                          })
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
@@ -49,35 +64,12 @@ def home(request):
         minZoom=2
     )
 
-    layers = []
-
-    # for collection in collections:
-    #     collection_color = collection['metadata']['color']
-    #     collection_fill_color = utilities.get_rgba_color_from_hex(collection_color, 0.3)
-    #
-    #     geojson_object = dsl.api.get_features(collections=collection['name'], metadata=True)
-    #
-    #
-    #     geojson_layer = MVLayer(source='GeoJSON',
-    #                             options=geojson_object,
-    #                             legend_title=collection['display_name'],
-    #                             # layer_options=layer_options,
-    #                             # legend_extent=[-46.7, -48.5, 74, 59],
-    #                             legend_classes=[
-    #                                 MVLegendClass('polygon', 'Polygons', fill='rgba({r}, {g}, {b}, {a})'.format(**collection_fill_color), stroke=collection_color),
-    #                                 MVLegendClass('line', 'Lines', stroke=collection_color),
-    #                                 MVLegendClass('point', 'Points', fill='rgba({r}, {g}, {b}, {a})'.format(**collection_fill_color), stroke=collection_color)]
-    #                             )
-    #
-    #     layers.append(geojson_layer)
-
     map_view_options = MapView(height='100%',
                                width='100%',
                                controls=['ZoomSlider', 'Rotate', 'FullScreen',
                                          {'MousePosition': {'projection': 'EPSG:4326'}},
                                          {'ZoomToExtent': {'projection': 'EPSG:4326', 'extent': [-130, 22, -10, 54]}}
                                          ],
-                               layers=layers,
                                view=view_options,
                                basemap='OpenStreetMap',
                                draw=None,
@@ -126,7 +118,7 @@ def home(request):
     return render(request, 'data_browser/home.html', context)
 
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
 from django.core.urlresolvers import reverse
@@ -141,6 +133,7 @@ import utilities
 
 
 @login_required()
+@activate_user_settings
 def new_collection_workflow(request):
     success = False
     html = None
@@ -174,6 +167,7 @@ def new_collection_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def add_features_workflow(request):
     collection = request.GET['collection']
     features = request.GET['features']
@@ -248,6 +242,7 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
 
 
 @login_required()
+@activate_user_settings
 def get_download_options_workflow(request):
     dataset = request.GET['dataset']
     success = False
@@ -261,7 +256,7 @@ def get_download_options_workflow(request):
         raise(e)
 
     if 'properties' not in options:
-        return download_dataset(request, dataset)
+        return retrieve_dataset(request, dataset)
 
     options_metadata_name = '_download_options'
     set_options = {}
@@ -275,9 +270,9 @@ def get_download_options_workflow(request):
                             uri=dataset,
                             options=options,
                             set_options=set_options,
-                            options_type='download',
-                            submit_controller_name='download_dataset_workflow',
-                            submit_btn_text='Download')
+                            options_type='retrieve',
+                            submit_controller_name='retrieve_dataset_workflow',
+                            submit_btn_text='Retrieve')
 
     result = {'success': success,
               'html': html,
@@ -286,6 +281,7 @@ def get_download_options_workflow(request):
     return JsonResponse(result)
 
 @login_required()
+@activate_user_settings
 def get_filter_list_workflow(request):
     dataset_id = request.GET['dataset']
     options_type = 'filter',
@@ -322,6 +318,7 @@ def get_filter_list_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def get_filter_options_workflow(request):
     dataset_id = request.GET['dataset']
     options_metadata_name = '_apply_filter_options',
@@ -365,6 +362,7 @@ def get_filter_options_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def get_visualize_options_workflow(request):
     dataset_id = request.GET['dataset']
     options_type = 'visualize'
@@ -407,6 +405,7 @@ def get_visualize_options_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def add_data_workflow(request):
     feature = request.POST['feature']
 
@@ -420,16 +419,16 @@ def add_data_workflow(request):
         raise (e)
 
     if 'properties' not in options:
-        return download_dataset(request, feature)
+        return retrieve_dataset(request, feature)
 
 
     html = get_options_html(request,
                             uri=feature,
                             options=options,
                             set_options={},
-                            options_type='download',
-                            submit_controller_name='download_dataset_workflow',
-                            submit_btn_text='Download')
+                            options_type='retrieve',
+                            submit_controller_name='retrieve_dataset_workflow',
+                            submit_btn_text='Retrieve')
 
     result = {'success': success,
               'html': html,
@@ -447,7 +446,7 @@ def get_details_table(request, collection):
     return details_table_html
 
 
-def download_dataset(request, uri, options=None):
+def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
@@ -473,18 +472,20 @@ def download_dataset(request, uri, options=None):
 
 
 @login_required()
-def download_dataset_workflow(request):
-    download_options = dict(request.POST.items())
-    dataset = download_options.pop('uri')
-    download_options.pop('csrfmiddlewaretoken')
-    for key, value in download_options.items():
+@activate_user_settings
+def retrieve_dataset_workflow(request):
+    retrieve_options = dict(request.POST.items())
+    dataset = retrieve_options.pop('uri')
+    retrieve_options.pop('csrfmiddlewaretoken')
+    for key, value in retrieve_options.items():
         if not value:
-            download_options.pop(key)
+            retrieve_options.pop(key)
 
-    return download_dataset(request, dataset, download_options)
+    return retrieve_dataset(request, dataset, retrieve_options)
 
 
 @login_required()
+@activate_user_settings
 def apply_filter_workflow(request):
     result = {'success': False}
     dataset_id = request.POST['uri']
@@ -506,6 +507,7 @@ def apply_filter_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def visualize_dataset_workflow(request):
     dataset = request.GET['dataset']
     data = dsl.api.open_dataset(dataset, fmt='dict')
@@ -548,6 +550,7 @@ def visualize_dataset_workflow(request):
 
 
 @login_required()
+@activate_user_settings
 def show_metadata_workflow(request):
     uri = request.GET['uri']
 
@@ -579,6 +582,7 @@ def show_metadata_workflow(request):
     return JsonResponse(result)
 
 @login_required()
+@activate_user_settings
 def delete_dataset_workflow(request):
     result = {'success': False}
     dataset = request.POST['dataset']
@@ -600,6 +604,7 @@ def delete_dataset_workflow(request):
     return JsonResponse(result)
 
 @login_required()
+@activate_user_settings
 def delete_feature_workflow(request):
     result = {'success': False}
     feature = request.POST['feature']
@@ -627,6 +632,7 @@ def delete_feature_workflow(request):
 ############################################################################
 
 @login_required()
+@activate_user_settings
 def new_collection(request):
     if request.POST:
         collection_name = request.POST.get('collection_name')
@@ -644,6 +650,7 @@ def new_collection(request):
 
 
 @login_required()
+@activate_user_settings
 def get_collection(request, name):
     success = False
     collection = None
@@ -658,11 +665,13 @@ def get_collection(request, name):
 
 
 @login_required()
+@activate_user_settings
 def update_collection(request, name):
     pass
 
 
 @login_required()
+@activate_user_settings
 def delete_collection(request, name):
     success = False
     collections = dsl.api.get_collections()
@@ -679,6 +688,7 @@ def delete_collection(request, name):
 
 
 @login_required()
+@activate_user_settings
 def get_features(request):
     services = request.GET.get('services')
     collections = request.GET.get('collections')
@@ -697,6 +707,7 @@ def get_features(request):
 
 
 @login_required()
+@activate_user_settings
 def add_features(request):
     collection = request.GET['collection']
     features = request.GET['features']
@@ -713,7 +724,8 @@ def add_features(request):
     return JsonResponse(result)
 
 @login_required()
-def download_datasets(request):
+@activate_user_settings
+def retrieve_datasets(request):
     dataset = request.GET['dataset']
     success = False
     try:
@@ -726,3 +738,35 @@ def download_datasets(request):
 
     return JsonResponse(result)
 
+@login_required()
+@activate_user_settings
+def export_dataset(request):
+    dataset = request.GET['dataset']
+    success = False
+    try:
+        metadata = dsl.api.get_metadata(dataset)[dataset]
+        success = True
+    except:
+        pass
+
+    from django.utils.encoding import smart_str
+
+    file_path = metadata['_save_path']
+
+    # hack to get around how DSL is saving time series files
+    if metadata['_file_format'] == 'timeseries-hdf5':
+        file_path = '{0}.h5'.format(file_path)
+    file_name = os.path.basename(file_path)
+    f = open(file_path, 'rb')
+    # workspace_path = app.get_app_workspace().path
+    # workspace_path = os.path.dirname(workspace_path)
+    # file_path = os.path.relpath(file_path, workspace_path)
+    # file_path = os.path.join('/workspaces', app.package, file_path)
+
+    response = HttpResponse(f)
+    response['Content-Type'] = 'application/force-download'  # TODO figure out mimetype
+    response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(file_name)
+    # response['X-Accel-Redirect'] = smart_str(file_path)
+    # It's usually a good idea to set the 'Content-Length' header too.
+    # You can also set any other required headers: Cache-Control, etc.
+    return response

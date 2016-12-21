@@ -231,6 +231,11 @@ h1.title{
     float: right;.active
 }
 
+.actions-btn{
+    display: inline-block;
+    margin: 2px 0 0 0;
+}
+
 #visualize-modal-container{
     width: 99%;
 }
