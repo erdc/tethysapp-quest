@@ -261,6 +261,7 @@ function new_collection(event){
     event.preventDefault();
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
+
     $.post(url, data, function(result){
         if(result.success){
             $('#table-placeholder').css('display', 'none');
@@ -309,22 +310,134 @@ function delete_collection(event){
     });
 }
 
+// map context menu
+function get_dataset_context_menu_items(dataset){
+
+    var dataset_id = dataset.name;
+
+    var dataset_contextmenu_items = [
+
+        {
+            text: 'Download',
+            callback: function(){
+                    populate_options_form_for_dataset(dataset_id, 'download');
+                },
+        }
+    ];
+
+    if(dataset.download_status == 'downloaded'){
+        dataset_contextmenu_items.push(
+            {
+                text: 'Visualize',
+                callback: function(){
+                        populate_options_form_for_dataset(dataset_id, 'visualize');
+                    },
+            },
+            {
+                text: 'Apply Filter',
+                callback: function(){
+                        populate_options_form_for_dataset(dataset_id, 'filter');
+                    },
+            },
+            {
+                text: 'Export',
+                callback: function(){
+                    export_dataset(dataset_id);
+                },
+            }
+        )
+    }
+    dataset_contextmenu_items.push(
+        {
+            text: 'Show Metadata',
+            callback: function(){
+                    show_metadata(dataset_id);
+                },
+        },
+        {
+            text: 'Delete',
+            callback: function(){
+                    delete_dataset(dataset_id);
+                },
+        }
+    );
+
+    return dataset_contextmenu_items;
+}
+
+function get_menu_items(feature){
+    var feature_id = feature.id_;
+    if(feature_id.startsWith('svc')){
+        return [{
+            text: 'Add To Collection',
+            callback: function(){
+                //select feature
+                search_select_interaction.getFeatures().push(feature);
+                // open add to collection modal
+                $('#add-to-collection-button').click();
+            }
+        }]
+    }else if(feature_id.startsWith('f')){
+        var datasets = datasets_by_feature[feature_id];
+        var location_contextmenu_items = [
+            {
+                text: 'Location',
+                classname: 'context-menu-title ol-ctx-menu-separator',
+            },
+            '-',
+            {
+              text: 'Add Data',
+              callback: function(){
+                add_data(feature_id);
+              },
+            },
+            {
+              text: 'Show Metadata',
+              callback: function(){
+                show_metadata(feature_id);
+              },
+            },
+    //        '-', // this is a separator
+            {
+              text: 'Delete',
+              callback: function(){
+                    delete_feature(feature_id);
+              }
+            },
+            {
+                text: 'Datasets',
+                classname: 'context-menu-title ol-ctx-menu-separator',
+            },
+            '-',
+          ];
+
+        datasets.forEach(function(dataset){
+            location_contextmenu_items.push({
+                text: dataset.name,
+                items: get_dataset_context_menu_items(dataset),
+            });
+        });
+
+        return location_contextmenu_items;
+    };
+}
+
 function bind_context_menu(){
     $("#collection-details-container td").contextMenu({
         menuSelector: "#details-context-menu",
-        menuSelected: function (invokedOn, selectedMenu) {
-            var options = {'Retrieve': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'retrieve');},
-                           'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
-                           'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
-                           'Show Metadata': show_metadata,
-                           'Download': function(dataset_id){export_dataset(dataset_id);},
-                           'Delete': delete_dataset,
-                           }
-
-            var option = options[selectedMenu.text()];
-            var dataset_id = get_dataset_id_from_details_table_row(invokedOn.parent());
-            option(dataset_id);
-        }
+//        menuSelected: function (invokedOn, selectedMenu) {
+//            var options = {'Retrieve': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'retrieve');},
+//                           'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
+//                           'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
+//                           'Show Metadata': show_metadata,
+//                           'Download': function(dataset_id){export_dataset(dataset_id);},
+//                           'Delete': delete_dataset,
+//                           }
+//
+//            var option = options[selectedMenu.text()];
+//            var dataset_id = get_dataset_id_from_details_table_row(invokedOn.parent());
+//            option(dataset_id);
+//        }
     });
 }
 
@@ -337,17 +450,28 @@ $('#add-to-collection-button').click(function(e){
 $('#search-form').submit(function(e){
     e.preventDefault();
     remove_search_layer();
+    $('#search-button').hide();
+    $('#loading-gif-search').show();
+    $('#add-to-collection-button').hide();
+
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
     data.push({'name': 'bbox',
                'value': get_map_extents()});
 
     url = get_source_url(data);
-    load_map_layer(SEARCH_LAYER_NAME, url, true);
+    load_map_layer(SEARCH_LAYER_NAME, url, true, null, null, function(){
+        $('#search-button').show();
+        $('#loading-gif-search').hide();
+        $('#add-to-collection-button').show();
+    });
+
+
 });
 
 $('#add-features-form').submit(function(e){
     e.preventDefault();
+    $('#add-to-collection-button').hide();
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 //    var collection_name = $(this).serializeObject().collection;
@@ -571,16 +695,20 @@ $.ajaxSetup({
  *******************************************************************************/
 
 function get_contextmenu_items(target){
-    menu_html = '' +
-      '<li><a tabindex="-1" href="#">Retrieve</a></li>' +
-      '<li><a tabindex="-1" href="#">Apply Filter</a></li>' +
-      '<li><a tabindex="-1" href="#">Visualize</a></li>' +
-      '<li><a tabindex="-1" href="#">Show Metadata</a></li>' +
-      '<li><a tabindex="-1" href="#">Download</a></li>' +
-      '<li class="divider"></li>' +
-      '<li><a tabindex="-1" href="#">Delete</a></li>';
+    var dataset_id = get_dataset_id_from_details_table_row(target.parent());
+    var download_status = target.parent().children('td').last().prev().text();
+    dataset = {name: dataset_id,
+               download_status: download_status}
+    return get_dataset_context_menu_items(dataset);
+}
 
-      return menu_html;
+function html_from_options(options){
+    var html = '';
+    options.forEach(function(option){
+        html += '\n<li><a tabindex="-1" href="#">' + option.text + '</a></li>'
+    });
+
+    return html;
 }
 
 
@@ -594,11 +722,20 @@ $.fn.contextMenu = function (settings) {
             // return native menu if pressing control
             if (e.ctrlKey) return;
 
+            // Get menu options
+            var options = get_contextmenu_items($(e.target));
+
+            var callbacks = {};
+
+            options.forEach(function(option){
+                callbacks[option.text] = option.callback;
+            });
 
             //open menu
             var $menu = $(settings.menuSelector)
                 .data("invokedOn", $(e.target))
-                .html(get_contextmenu_items($(e.target)))
+                .data("options", options)
+                .html(html_from_options(options))
                 .show()
                 .css({
                     position: "absolute",
@@ -611,8 +748,8 @@ $.fn.contextMenu = function (settings) {
 
                     var $invokedOn = $menu.data("invokedOn");
                     var $selectedMenu = $(e.target);
-
-                    settings.menuSelected.call(this, $invokedOn, $selectedMenu);
+                    callbacks[$selectedMenu.text()]();
+//                    settings.menuSelected.call(this, $invokedOn, $selectedMenu);
                 });
 
             return false;

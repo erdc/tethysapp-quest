@@ -79,14 +79,21 @@
         </div>
       </div>
       </form>
-      <button id="search-button" class="btn btn-primary" type="submit" form="search-form">
-        <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
-        Search
-      </button>
-      <button id="add-to-collection-button" type="button" class="btn btn-success" data-toggle="modal" data-target="#add-features-modal">
-        <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
-        Add to Collection
-      </button>
+      <div>
+        <div>
+          <button id="search-button" class="btn btn-primary" type="submit" form="search-form">
+            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+            Search
+          </button>
+          <img src="{% static 'data_browser/images/loading.gif' %}" id="loading-gif-search" style="display: none;">
+        </div>
+        <div>
+          <button id="add-to-collection-button" type="button" class="btn btn-success" data-toggle="modal" data-target="#add-features-modal" style="display: none;">
+            <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+            Add to Collection
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

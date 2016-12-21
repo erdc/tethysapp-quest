@@ -61,7 +61,7 @@ function remove_search_layer(){
 //    search_select_interaction.getFeatures().clear();
 }
 
-var load_map_layer = function(name, source_url, selectable, color, legend){
+var load_map_layer = function(name, source_url, selectable, color, legend, callback){
 
     var layer_options = {'name': name};
 
@@ -73,6 +73,25 @@ var load_map_layer = function(name, source_url, selectable, color, legend){
     });
 
     layer_options.source = layer_source;
+
+     var fill = new ol.style.Fill({
+       color: 'rgba(255,255,255,0.4)'
+     });
+     var stroke = new ol.style.Stroke({
+       color: '#3399CC',
+       width: 5
+     });
+     var styles = [
+       new ol.style.Style({
+         image: new ol.style.Circle({
+           fill: fill,
+           stroke: stroke,
+           radius: 8
+         }),
+         fill: fill,
+         stroke: stroke
+       })
+     ];
 
     if(color){
         var fill_color = get_fill_color(color);
@@ -94,9 +113,9 @@ var load_map_layer = function(name, source_url, selectable, color, legend){
              stroke: stroke
             })
         ];
-
-        layer_options.style = styles;
     }
+
+    layer_options.style = styles;
 
     // a vector layer to render the source
     var layer = new ol.layer.Vector(layer_options);
@@ -116,6 +135,19 @@ var load_map_layer = function(name, source_url, selectable, color, legend){
         layer.setProperties({'tethys_legend_title': source_url});
         TETHYS_MAP_VIEW.updateLegend();
     }
+
+    var listenerKey = layer_source.on('change', function(e) {
+        if (layer_source.getState() == 'ready') {
+            if(callback){
+                callback();
+            }
+            // and unregister the "change" listener
+            ol.Observable.unByKey(listenerKey);
+            // or vectorSource.unByKey(listenerKey) if
+            // you don't use the current master branch
+            // of ol3
+        }
+    });
 }
 
 // Code copied from http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
@@ -166,117 +198,7 @@ collections.forEach(add_collection_layer);
 
 // Bind events to controls
 
-// map context menu
-function get_dataset_context_menu_items(dataset){
 
-    var dataset_id = dataset.name;
-
-    var dataset_contextmenu_items = [
-
-        {
-            text: 'Retrieve',
-            callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'retrieve');
-                },
-        }
-    ];
-
-    if(dataset.download_status == 'downloaded'){
-        dataset_contextmenu_items.push(
-            {
-                text: 'Visualize',
-                callback: function(){
-                        populate_options_form_for_dataset(dataset_id, 'visualize');
-                    },
-            },
-            {
-                text: 'Apply Filter',
-                callback: function(){
-                        populate_options_form_for_dataset(dataset_id, 'filter');
-                    },
-            },
-            {
-                text: 'Download',
-                callback: function(){
-                    export_dataset(dataset_id);
-                }
-            }
-        )
-    }
-    dataset_contextmenu_items.push(
-        {
-            text: 'Show Metadata',
-            callback: function(){
-                    show_metadata(dataset_id);
-                },
-        },
-        {
-            text: 'Delete',
-            callback: function(){
-                    delete_dataset(dataset_id);
-                },
-        }
-    );
-
-    return dataset_contextmenu_items;
-}
-
-function get_menu_items(feature){
-    var feature_id = feature.id_;
-    if(feature_id.startsWith('svc')){
-        return [{
-            text: 'Add To Collection',
-            callback: function(){
-                //select feature
-                search_select_interaction.getFeatures().push(feature);
-                // open add to collection modal
-                $('#add-to-collection-button').click();
-            }
-        }]
-    }else if(feature_id.startsWith('f')){
-        var datasets = datasets_by_feature[feature_id];
-        var location_contextmenu_items = [
-            {
-                text: 'Location',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-            {
-              text: 'Add Data',
-              callback: function(){
-                add_data(feature_id);
-              },
-            },
-            {
-              text: 'Show Metadata',
-              callback: function(){
-                show_metadata(feature_id);
-              },
-            },
-    //        '-', // this is a separator
-            {
-              text: 'Delete',
-              callback: function(){
-                    delete_feature(feature_id);
-              }
-            },
-            {
-                text: 'Datasets',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-          ];
-
-        datasets.forEach(function(dataset){
-            location_contextmenu_items.push({
-                text: dataset.name,
-                items: get_dataset_context_menu_items(dataset),
-            });
-        });
-
-        return location_contextmenu_items;
-    };
-}
 
 var map_context_menu = new ContextMenu({
     width: 300,

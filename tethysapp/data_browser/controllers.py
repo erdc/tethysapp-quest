@@ -36,8 +36,6 @@ def activate_user_settings(func):
     return wrapper
 
 
-
-
 @ensure_csrf_cookie
 @login_required()
 @activate_user_settings
@@ -244,16 +242,18 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
 @login_required()
 @activate_user_settings
 def get_download_options_workflow(request):
+    print(request.GET)
     dataset = request.GET['dataset']
     success = False
-    try:
+    # try:
+    if True:
         options = dsl.api.download_options(dataset)
         if dataset in options:
             options = options[dataset]
 
         success = True
-    except Exception as e:
-        raise(e)
+    # except Exception as e:
+        # raise(e)
 
     if 'properties' not in options:
         return retrieve_dataset(request, dataset)
@@ -294,7 +294,6 @@ def get_filter_list_workflow(request):
     try:
         # filters = dsl.api.get_filters(filters={'dataset': dataset_id})
         filters = utilities.get_filters(dataset_id)
-        print(filters)
         options['properties'] = filters
 
         success = True
@@ -513,7 +512,8 @@ def visualize_dataset_workflow(request):
     data = dsl.api.open_dataset(dataset, fmt='dict')
     metadata = data['metadata']
     parameter = metadata['parameter']
-    timeseries = data['data'][parameter]
+    # timeseries = data['data'][parameter]
+    timeseries = data['data'].values()[0]
     timeseries = [(datetime.strptime(date, utilities.ISO_DATETIME_FORMAT), value) for date, value in timeseries]
     title = 'Plot View'
     success = True
