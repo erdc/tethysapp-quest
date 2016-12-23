@@ -27,9 +27,16 @@ def activate_user_settings(func):
 
     def wrapper(request, *args, **kwargs):
 
+        settings = dsl.api.get_settings()
+
         dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                                  'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                                  })
+        settings_file = dsl.util.config._default_config_file()
+        if os.path.exists(settings_file):
+            dsl.api.update_settings_from_file(settings_file)
+        else:
+            dsl.api.save_settings(settings_file)
 
         return func(request, *args, **kwargs)
 
@@ -43,9 +50,6 @@ def home(request):
     """
     Controller for the app home page.
     """
-    # dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
-    #                          'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
-    #                          })
 
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
@@ -632,6 +636,12 @@ def delete_feature_workflow(request):
 ############################################################################
 
 @login_required()
+# @activate_user_settings
+def get_settings(request):
+    return JsonResponse(dsl.api.get_settings())
+
+
+@login_required()
 @activate_user_settings
 def new_collection(request):
     if request.POST:
@@ -693,7 +703,20 @@ def get_features(request):
     services = request.GET.get('services')
     collections = request.GET.get('collections')
     filters = {}
-    for filter in ['geom_type', 'parameter', 'bbox']:
+    bbox2 = None
+    bbox = request.GET.get('bbox')
+    if bbox:
+        bbox = [float(i) for i in bbox.split(",")]
+        xmin, ymin, xmax, ymax = bbox
+        if xmax > 180:
+            bbox2 = [-180, ymin, xmax-360, ymax]
+            bbox =  [xmin, ymin, 180, ymax]
+        elif xmin < -180:
+            bbox2 = [xmin + 360, ymin, 180, ymax]
+            bbox = [-180, ymin, xmax, ymax]
+
+        filters['bbox'] = bbox
+    for filter in ['geom_type', 'parameter']:
         value = request.GET.get(filter)
         if value is not None:
             filters[filter] = request.GET.get(filter)
@@ -702,6 +725,17 @@ def get_features(request):
         features = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
     except Exception as e:
         features = {'error_message': str(e)}
+
+    if bbox2 is not None:
+        try:
+            filters['bbox'] = bbox2
+            features2 = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
+            features["features"] += features2["features"]
+        except Exception as e:
+            if 'error_message' in features.keys():
+                features['error_message'] += " {0}".format(e)
+            else:
+                features = {'error_message': str(e)}
 
     return JsonResponse(features)
 

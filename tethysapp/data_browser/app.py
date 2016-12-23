@@ -77,6 +77,9 @@ class DataBrowser(TethysAppBase):
 
 
                     # -------------------  API  -----------------------
+                    UrlMap(name='settings',
+                           url='data-browser/rest/settings',
+                           controller='data_browser.controllers.get_settings'),
 
                     # Collection Endpoints
                     UrlMap(name='new_collection',
