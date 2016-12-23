@@ -514,6 +514,10 @@ $('#add-features-form').submit(function(e){
 // Tabs
 $('#manage-tab').click(function(e){
     remove_search_layer();
+    $('#search-button').show();
+    $('#loading-gif-search').hide();
+    $('#add-to-collection-button').hide();
+
 });
 
 
