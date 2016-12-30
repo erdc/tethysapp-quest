@@ -154,6 +154,7 @@ h1.title{
     width: 100%;
     height: 100%;
     background: white;
+    padding: 10px;
 }
 
 #plot-placeholder{
@@ -166,15 +167,13 @@ h1.title{
 #metadata-content{
     overflow: auto;
 }
+
 #close-metadata-btn{
     position: absolute;
     right: 5px;
 }
 
-#collection-details-container{
-    padding: 10px;
-    overflow-y: auto;
-}
+
 /*
 #collection-details-content thead,tbody{
     display: inline-block;

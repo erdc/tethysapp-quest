@@ -18,7 +18,7 @@
 
     <!-- Collection Details Tables -->
     <div id="collection-details-container" class="app-content">
-      <!--<button id="minimize-collection-details" type="button" class="btn btn-default btn-sm">-</button>-->
+      <button type="button" class="close" id="close-table-btn" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       <div id="collection-details-nav">
         <ul class="nav nav-pills nav-justified" role="tablist">
           {% for collection in collections %}
@@ -46,7 +46,7 @@
 
     <!-- Plot Container -->
     <div id="plot-container">
-      <div id="plot-placeholder" class="text-center">
+      <div id="plot-content" class="text-center">
         <h1>No datasets have been visualized</h1>
         <div>To visualize a dataset right click on a location on the map and select visualize, or click the View button for a dataset in the table.</div>
       </div>
@@ -75,7 +75,6 @@
 {% block app_actions %}
   <div id="layout-nav">
     <ul class="nav nav-pills nav-justified" role="tablist">
-      <li role="presentation" class="nav-tab"><a href="" id="plot-toggle" aria-controls="plot" role="tab" data-toggle="tab">Plot</a></li>
       <li role="presentation" class="nav-tab"><a href="" id="table-toggle" aria-controls="table" role="tab" data-toggle="tab">Table</a></li>
     </ul>
   </div>

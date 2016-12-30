@@ -137,7 +137,7 @@ function resize_plot() {
     {
         var resize_info =  {
                              width  : layout_plot_div.width(),
-                             height : layout_plot_div.height()
+                             height : layout_plot_div.height()-20
                            };
 
         Plotly.relayout(plot_id, resize_info);
@@ -179,9 +179,9 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
-               $('#plot-container').html('<h2 class="text-center"> Loading ... </h2>');
+               $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
                setTimeout(function(){
-                   $('#plot-container').html(result.html);
+                   $('#plot-content').replaceWith(result.html);
                    resize_plot();
                }, 100);
 
@@ -286,7 +286,7 @@ function new_collection(event){
         if(result.success){
             $('#table-placeholder').css('display', 'none');
             $('#collections-list').append(result.collection_html);
-            $('#new-collection-modal').modal('hide');
+            $('#new-collection-modal').modal('hide')
             // update collection select
             $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
             $('#collection').trigger('change');
@@ -529,11 +529,6 @@ $('#add-features-form').submit(function(e){
     });
 });
 
-$('#new-collection-modal').on('hidden.bs.modal', function () {
-    // reset form
-    $(this).find('#collection_name').val('');
-    $(this).find('#description').val('');
-})
 
 // Tabs
 $('#manage-tab').click(function(e){
