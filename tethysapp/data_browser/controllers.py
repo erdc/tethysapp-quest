@@ -513,11 +513,14 @@ def visualize_dataset_workflow(request):
         showlegend=True,
         height=350,
         margin=go.Margin(
-            l=70,
+            l=50,
             r=0,
-            b=25,
-            t=10,
+            b=30,
+            t=0,
             pad=4
+        ),
+        legend=dict(
+            orientation='h',
         ),
         yaxis=dict(
             title="{0} ({1})".format(parameter, metadata['units']),
@@ -525,7 +528,10 @@ def visualize_dataset_workflow(request):
     )
 
     plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
-                                             layout=plotly_layout))
+                                             layout=plotly_layout),
+                                   height='100%',
+                                   attributes={'id': 'plot-content', },
+                                   )
 
     context = {'plot_view_options': plot_view_options, }
 
