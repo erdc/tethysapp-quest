@@ -34,6 +34,9 @@ function reload_collection_details_tabs(select_index){
         // activate the first tab
         $('#collection-details-nav li:first a').tab('show');
     }
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    $('.collection_detail_datatable').DataTable()
+    .columns.adjust().draw();
 }
 
 
@@ -44,11 +47,7 @@ function update_details_table(collection_name, html){
 
     reload_collection_details_tabs();
     bind_context_menu();
-    
-    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
-    $('#collection-detail-' + collection_name)
-    .find('.collection_detail_datatable').DataTable()
-    .columns.adjust().draw();
+
 }
 
 function delete_dataset(dataset_id){
@@ -581,8 +580,6 @@ $('#collection-details-nav').find('a[data-toggle="tab"]').on('shown.bs.tab', fun
 bind_context_menu();
 
 reload_collection_details_tabs();
-
-$('.collection_detail_datatable').DataTable();
 
 });
 
