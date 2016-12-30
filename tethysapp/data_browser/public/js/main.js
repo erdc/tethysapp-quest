@@ -44,6 +44,7 @@ function update_details_table(collection_name, html){
 
     reload_collection_details_tabs();
     bind_context_menu();
+    
     //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
     $('#collection-detail-' + collection_name)
     .find('.collection_detail_datatable').DataTable()
@@ -570,7 +571,12 @@ $('#collections-list').on('click', '.collection-details-menu-item', function(){
     show_table_layout();
 });
 
-
+// resize DataTable on tab change
+$('#collection-details-nav').find('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+  var shown_tab_id = $(e.target).attr("href");
+  $(shown_tab_id).find('.collection_detail_datatable').DataTable()
+  .columns.adjust().draw();
+});
 
 bind_context_menu();
 
