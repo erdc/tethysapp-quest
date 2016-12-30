@@ -98,7 +98,7 @@ def home(request):
 
     return render(request, 'data_browser/home.html', context)
 
-
+import cufflinks as cf
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
 from django.template.loader import render_to_string
@@ -496,19 +496,17 @@ def visualize_dataset_workflow(request):
     time series data in a plot
     '''
     dataset = request.GET['dataset']
-    data = dsl.api.open_dataset(dataset, fmt='dict')
-    metadata = data['metadata']
-    parameter = metadata['parameter']
-    dates, values = zip(*data['data'].values()[0])
-
+    # load data
+    df = dsl.api.open_dataset(dataset, fmt='dataframe')
+    parameter = df.metadata['parameter']
+    units = df.metadata['units']
+    # create plotly plot
     scatter_series = go.Scatter(
-        x=[datetime.strptime(date, utilities.ISO_DATETIME_FORMAT)
-           for date in dates],
-        y=values,
+        x=df.index,
+        y=df[parameter],
         name=dataset,
         fill='tozeroy'
     )
-
     plotly_layout = go.Layout(
         showlegend=True,
         height=350,
@@ -523,16 +521,16 @@ def visualize_dataset_workflow(request):
             orientation='h',
         ),
         yaxis=dict(
-            title="{0} ({1})".format(parameter, metadata['units']),
+            title="{0} ({1})".format(parameter, units),
         ),
     )
-
+    # create plotly gizmo
     plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
                                              layout=plotly_layout),
                                    height='100%',
                                    attributes={'id': 'plot-content', },
                                    )
-
+                                   
     context = {'plot_view_options': plot_view_options, }
 
     html = render(request, 'data_browser/visualize.html', context).content
