@@ -8,6 +8,16 @@
   {% import_gizmo_dependency select_input %}
 {% endblock %}
 
+{% block global_scripts %}
+  {{ block.super }}
+   <script type="text/javascript" language="javascript" src="https://cdn.datatables.net/colreorder/1.3.2/js/dataTables.colReorder.min.js"></script>
+{% endblock %}
+
+{% block styles %}
+  {{ block.super }}
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/colreorder/1.3.2/css/colReorder.dataTables.min.css">
+{% endblock %}
+
 {% block app_content %}
   <div id="layout"></div>
 
