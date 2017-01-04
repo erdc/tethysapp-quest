@@ -1,7 +1,6 @@
 // mapping of datasets to their feature id
 var datasets_by_feature = {};
 
-
 function update_datasets_by_feature(collection){
     collection.features[1].forEach(function(feature){
         datasets_by_feature[feature.id] = [];
@@ -18,8 +17,55 @@ collections.forEach(update_datasets_by_feature);
  *                        FUNCTIONS
  *
  *******************************************************************************/
+function initialize_datatable(selector)
+{
+  selector.DataTable({
+        destroy: true,
+        columnDefs: [
+          { orderable: false, targets: 7 }
+        ],
+        initComplete: function () {
+            this.api().columns().every( function () {
+                var column = this;
+                if($(column.header()).text()!="Action")
+                {
+                  var select = $('<select class="form-control right"><option value=""></option></select>')
+                      .on( 'change', function () {
+                          var val = $.fn.dataTable.util.escapeRegex(
+                              $(this).val()
+                          );
 
-function reload_collection_details_tabs(select_index){
+                          column
+                              .search( val ? '^'+val+'$' : '', true, false )
+                              .draw();
+                      } );
+                  $(column.header()).append(select);
+                  select.select2({
+                                  dropdownCssClass : 'bigdrop',
+                                  containerCssClass: 'datatable-filters',
+                                  width: '15px',
+                                });
+                  column.data().unique().sort().each( function ( d, j ) {
+                      select.append( '<option value="'+d+'">'+d+'</option>' )
+                  });
+                }
+            });
+        }
+  });
+
+  //prevent select 2 click from calling the column sort
+  $('#collection-details-container').find('.datatable-filters').on("click", function(event){
+    event.stopPropagation();
+  });
+  // modify icon to be filter
+  $('#collection-details-container').find('.datatable-filters')
+                                    .find('.select2-selection__arrow')
+                                    .replaceWith('<span class="glyphicon glyphicon-filter" aria-hidden="true"></span>');
+  resize_table();
+}
+
+
+function reload_collection_details_tabs(selector){
     var active_tab = $('#collection-details-nav li.active');
     // remove active state so tab can be reset
     active_tab.removeClass('active');
@@ -34,18 +80,18 @@ function reload_collection_details_tabs(select_index){
         // activate the first tab
         $('#collection-details-nav li:first a').tab('show');
     }
+    initialize_datatable(selector);
     //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
-    $('.collection_detail_datatable').DataTable()
+    selector.DataTable()
     .columns.adjust().draw();
 }
 
 
 function update_details_table(collection_name, html){
-    $('#collection-detail-' + collection_name).replaceWith(html);
-    $('#collection-detail-' + collection_name)
-    .find('.collection_detail_datatable').DataTable();
-
-    reload_collection_details_tabs();
+    var detail_table_div = $('#collection-detail-' + collection_name);
+    detail_table_div.replaceWith(html);
+    reload_collection_details_tabs(detail_table_div
+                                   .find('.collection_detail_datatable'));
     bind_context_menu();
 
 }
@@ -146,7 +192,7 @@ function resize_plot() {
 
 function resize_table() {
     var layout_table_div = $("#collection-details-container");
-    layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-165+"px");
+    layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-185+"px");
 }
 
 function populate_options_form(event){
@@ -293,7 +339,8 @@ function new_collection(event){
             // add details table
             $('#collection-details-nav ul').append(result.details_table_tab_html);
             $('#collection-details-content').append(result.details_table_html);
-            reload_collection_details_tabs();
+            reload_collection_details_tabs($('#collection-detail-' + result.collection.name)
+                                           .find('.collection_detail_datatable'));
         }
     })
     .fail(function() {
@@ -314,7 +361,8 @@ function delete_collection(event){
     .done(function(result){
         if(result.success){
             $(collection_elements).remove();
-            reload_collection_details_tabs();
+            reload_collection_details_tabs($('#collection-detail-' + collection_name)
+                                           .find('.collection_detail_datatable'));
             // if there are no more collections display the placeholder div
             if(!$('#collection-details-nav li').length){
                 $('#table-placeholder').css('display', 'block');
@@ -579,10 +627,9 @@ $('#collection-details-nav').find('a[data-toggle="tab"]').on('shown.bs.tab', fun
 
 bind_context_menu();
 
-reload_collection_details_tabs();
+reload_collection_details_tabs($('.collection_detail_datatable'));
 
 });
-
 
 /*******************************************************************************
  *

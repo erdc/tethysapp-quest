@@ -173,6 +173,24 @@ h1.title{
     right: 5px;
 }
 
+.bigdrop {
+    width: 600px !important;
+}
+
+#collection-details-container
+.select2-selection__rendered {
+    display: none !important;
+}
+
+#collection-details-container
+.select2-selection {
+  border: none !important;
+}
+
+#collection-details-container
+.select2 {
+  float: right !important;
+}
 
 /*
 #collection-details-content thead,tbody{
