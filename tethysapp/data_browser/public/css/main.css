@@ -174,7 +174,8 @@ h1.title{
 }
 
 .bigdrop {
-    width: 600px !important;
+    width: 300px !important;
+    margin-left: -290px;
 }
 
 #collection-details-container

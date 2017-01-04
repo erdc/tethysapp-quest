@@ -60,7 +60,7 @@ function initialize_datatable(selector)
   // modify icon to be filter
   $('#collection-details-container').find('.datatable-filters')
                                     .find('.select2-selection__arrow')
-                                    .replaceWith('<span class="glyphicon glyphicon-filter" aria-hidden="true"></span>');
+                                    .replaceWith('<span class="glyphicon glyphicon-filter select2-selection__arrow" aria-hidden="true"></span>');
   resize_table();
 }
 
