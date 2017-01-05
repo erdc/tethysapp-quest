@@ -85,6 +85,10 @@ def home(request):
                                             options=[(collection['display_name'], collection['name']) for collection in collections],
                                             )
 
+    new_collection_text_options = TextInput(display_text='Add to New Collection',
+                                            name='new_collection',
+                                            )
+
     context = {'collections': collections,
                'collections_json': json.dumps(collections),
                'services': services,
@@ -94,6 +98,7 @@ def home(request):
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
                'collection_select_options': collection_select_options,
+               'new_collection_text_options': new_collection_text_options,
                }
 
     return render(request, 'data_browser/home.html', context)
@@ -120,15 +125,9 @@ def new_collection_workflow(request):
     html = None
 
     collection_name = request.POST.get('collection_name')
-    code_name = utilities.codify(collection_name)
-    color = utilities.get_random_color()
-    description = request.POST['description']
-    dsl.api.new_collection(code_name,
-                           display_name=collection_name,
-                           description=description,
-                           metadata={'color': color})
-
-    collection = utilities.get_collection_with_metadata(code_name)
+    collection_description = request.POST.get('description') or ""
+    collection = utilities.generate_new_collection(collection_name,
+                                                   collection_description)
 
     context = {'collection': collection}
 
@@ -150,30 +149,50 @@ def new_collection_workflow(request):
 @login_required()
 @activate_user_settings
 def add_features_workflow(request):
-    collection = request.GET['collection']
+    collection_name = request.GET.get('collection')
     features = request.GET['features']
     parameter = request.GET['parameter']
+    context = {}
+
+    # add new colleciton if needed
+    new_collection_added = False
+    new_collection_name = request.GET.get('new_collection')
+    if new_collection_name:
+        collection_name = new_collection_name
+        # create new colleciton
+        utilities.generate_new_collection(new_collection_name,
+                                          new_collection_name)
+        new_collection_added = True
 
     success = False
     try:
-        features = dsl.api.add_features(collection, features)
+        features = dsl.api.add_features(collection_name, features)
         for feature in features:
             dataset = dsl.api.new_dataset(feature, dataset_type='download')
-            dsl.api.stage_for_download(dataset, download_options={'parameter': parameter})
+            dsl.api.stage_for_download(dataset,
+                                       download_options={
+                                           'parameter': parameter
+                                       })
+
         success = True
-        collection = utilities.get_collection_with_metadata(collection)
+        collection = utilities.get_collection_with_metadata(collection_name)
     except:
         pass
 
     context = {'collection': collection}
+    result = {'collection': collection}
+    result['details_table_html'] = \
+        render(request, 'data_browser/details_table.html', context).content
 
-    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    if new_collection_added:
+        result['collection_html'] = \
+            render(request, 'data_browser/collection.html', context).content
+        result['details_table_tab_html'] = \
+            render(request, 'data_browser/details_table_tab.html',
+                   context).content
 
-    result = {'success': success,
-              'collection': collection,
-              'details_table_html': details_table_html,
-              }
-
+    result['success'] = success
+    print(context)
     return JsonResponse(result)
 
 
@@ -225,7 +244,6 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
 @login_required()
 @activate_user_settings
 def get_download_options_workflow(request):
-    print(request.GET)
     dataset = request.GET['dataset']
     success = False
     # try:
@@ -530,7 +548,7 @@ def visualize_dataset_workflow(request):
                                    height='100%',
                                    attributes={'id': 'plot-content', },
                                    )
-                                   
+
     context = {'plot_view_options': plot_view_options, }
 
     html = render(request, 'data_browser/visualize.html', context).content
@@ -635,17 +653,14 @@ def get_settings(request):
 def new_collection(request):
     if request.POST:
         collection_name = request.POST.get('collection_name')
-        if collection_name:
-            code_name = utilities.codify(collection_name)
-            color = utilities.get_random_color()
-            description = request.POST.get('description')
-            collection = dsl.api.new_collection(code_name,
-                                                display_name=collection_name,
-                                                description=description,
-                                                metadata={'color': color})
+        collection_description = request.POST.get('description') or ""
+        collection = utilities.generate_new_collection(collection_name,
+                                                       collection_description,
+                                                       metadata=False)
 
 
-    return JsonResponse({'collection': collection})
+        return JsonResponse({'collection': collection})
+    return JsonResponse({'error': 'Invalid request ...'})
 
 
 @login_required()
@@ -732,8 +747,8 @@ def get_features(request):
 @login_required()
 @activate_user_settings
 def add_features(request):
-    collection = request.GET['collection']
-    features = request.GET['features']
+    collection = request.GET.get('collection')
+    features = request.GET.get('features')
 
     success = False
     try:

@@ -1,7 +1,6 @@
 import random
 import json
 import os
-import urllib
 
 import dsl
 from tethys_gizmos.gizmo_options import TableView
@@ -11,13 +10,14 @@ from app import DataBrowser as app
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
+
 def get_random_color():
-    r = lambda: random.randint(0,255)
-    return '#%02X%02X%02X' % (r(),r(),r())
+    def r(): return random.randint(0, 255)
+    return '#%02X%02X%02X' % (r(), r(), r())
 
 
 def get_rgba_color_from_hex(hex, a):
-    i = lambda x: int(x, 16)
+    def i(x): return int(x, 16)
     r = i(hex[1:3])
     g = i(hex[3:5])
     b = i(hex[5:7])
@@ -26,8 +26,6 @@ def get_rgba_color_from_hex(hex, a):
 
 def codify(name):
     name = name.lower().replace(' ', '_')
-    # name = urllib.quote_plus(name)
-    # name = name.lower()
     return name
 
 
@@ -75,7 +73,8 @@ def get_hierarchical_provider_list():
     for provider in providers:
         provider_tree = CheckboxTree(provider['display_name'], None)
         for service in provider['services']:
-            service_tree = CheckboxTree(service['display_name'], service['name'])
+            service_tree = CheckboxTree(service['display_name'],
+                                        service['name'])
             # for parameter in service['parameters']:
             #     service_tree.sub_options.append(CheckboxTree(parameter))
             provider_tree.append(service_tree)
@@ -105,11 +104,14 @@ def get_dataset_parameter(dataset):
 
 
 def get_dataset_columns():
-    return ('Name', 'Location', 'Source', 'Source Type', 'Parameter', 'Data Type', 'Status')
+    return ('Name', 'Location', 'Source', 'Source Type',
+            'Parameter', 'Data Type', 'Status')
 
 
 def get_dataset_status(dataset):
-    download_btn = '< button type = "button" class ="btn btn-primary btn-lg" data-toggle="modal" data-target="#myModal" >Download< / button >'
+    download_btn = ('<button type="button" class ="btn btn-primary btn-lg" '
+                    'data-toggle="modal" data-target="#myModal">'
+                    'Download</button>')
     status_switch = {'staged for download': download_btn}
 
     status = dataset['download_status']
@@ -126,7 +128,8 @@ def get_dataset_rows(datasets):
         parameter = get_dataset_parameter(dataset)
         data_type = None
         status = dataset['download_status']
-        rows.append((name, location, source, source_type, parameter, data_type, status))
+        rows.append((dataset['feature'], name, location, source,
+                     source_type, parameter, data_type, status))
 
     return rows
 
@@ -141,17 +144,44 @@ def get_datasets_table_options(collection):
                      )
 
 
+def add_metadata_to_collection(collection):
+    collection['features'] = \
+        list(dsl.api.get_features(metadata=True,
+                                  collections=collection['name'],
+                                  ).values())
+    collection['datasets'] = \
+        list(dsl.api.get_datasets(metadata=True,
+                                  filters={'collection': collection['name']},
+                                  ).values())
+    collection['table_view_options'] = get_datasets_table_options(collection)
+
+
+def generate_new_collection(collection_name, collection_description,
+                            metadata=True):
+    code_name = codify(collection_name)
+    color = get_random_color()
+    collection = dsl.api.new_collection(code_name,
+                                        display_name=collection_name,
+                                        description=collection_description,
+                                        metadata={'color': color})
+
+    if metadata:
+        collection = get_collection_with_metadata(collection_name)
+        # add_metadata_to_collection(collection)
+
+    return collection
+
+
 def get_collections_with_metadata(collection_names=None):
     collections = dsl.api.get_collections(metadata=True)
     if collection_names:
-        collections = [metadata for name, metadata in collections.items() if name in collection_names]
+        collections = [metadata for name, metadata in collections.items()
+                       if name in collection_names]
     else:
         collections = list(collections.values())
 
     for collection in collections:
-        collection['features'] = list(dsl.api.get_features(metadata=True, collections=collection['name']).values())
-        collection['datasets'] = list(dsl.api.get_datasets(metadata=True, filters={'collection': collection['name']}).values())
-        collection['table_view_options'] = get_datasets_table_options(collection)
+        add_metadata_to_collection(collection)
 
     return collections
 
@@ -159,18 +189,20 @@ def get_collections_with_metadata(collection_names=None):
 def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
 
-#TODO this is just a temporary workaround because filtering for the DSL get_filters function seems to be broken
+
+# TODO this is just a temporary workaround because filtering for the DSL
+# get_filters function seems to be broken
 def get_filters(dataset):
-    #TODO filter list of filters by datatype instead of having it hardcoded for ts-filters
-    filters = {f: m for f, m in dsl.api.get_filters(metadata=True) if f.startswith('ts')}
+    # TODO filter list of filters by datatype instead of
+    # having it hardcoded for ts-filters
+    filters = {f: m for f, m in dsl.api.get_filters(metadata=True)
+               if f.startswith('ts')}
     return filters
 
 
-
-
 def update_dsl_cache():
-    dsl.api.update_settings({'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
-                             })
+    cache_dir = os.path.join(app.get_app_workspace().path, 'cache')
+    dsl.api.update_settings({'CACHE_DIR': cache_dir, })
     services = dsl.api.get_services()
     for service in services:
         try:

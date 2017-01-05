@@ -17,6 +17,7 @@ $.fn.serializeObject = function()
 
 var map,
     search_select_interaction,
+    table_select_interaction,
     SEARCH_LAYER_NAME = 'search-layer';
 
 
@@ -59,6 +60,19 @@ function remove_search_layer(){
     remove_layer(SEARCH_LAYER_NAME);
     map.removeInteraction(search_select_interaction);
 //    search_select_interaction.getFeatures().clear();
+}
+
+function toggle_feature_selection_by_id(feature_id, collection_name, show)
+{
+  var collection_vector_layer = get_layer_by_name(collection_name);
+  var feature = collection_vector_layer.getSource().getFeatureById(feature_id);
+
+  if(show) {
+    table_select_interaction.getFeatures().push(feature);
+  }
+  else {
+    table_select_interaction.getFeatures().remove(feature);
+  }
 }
 
 var load_map_layer = function(name, source_url, selectable, color, legend, callback){
@@ -237,8 +251,6 @@ var dragBox = new ol.interaction.DragBox({
 
 map.addInteraction(dragBox);
 
-var selection_interaction = TETHYS_MAP_VIEW.getSelectInteraction();
-
 dragBox.on('boxend', function() {
   // features that intersect the box are added to the collection of
   // selected features, and their names are displayed in the "info"
@@ -250,6 +262,35 @@ dragBox.on('boxend', function() {
   vector_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
     search_select_interaction.getFeatures().push(feature);
   });
+});
+
+
+// a vector layer to render the source
+var table_layer = new ol.layer.Vector({ source: new ol.source.Vector({})});
+
+// add vector layer to the map
+map.addLayer(table_layer);
+
+table_select_interaction = new ol.interaction.Select({
+    layers: [table_layer]
+});
+
+map.addInteraction(table_select_interaction);
+
+// use the features Collection to detect when a feature is selected,
+// the collection will emit the add event
+var selected_table_features = table_select_interaction.getFeatures();
+selected_table_features.on('add', function(event) {
+  var feature = event.target.item(0);
+  //$("tbody[data-collection_id='" + feature.get('collection') + "'] tr[data-feature_id='" + feature.get('name') + "']")
+  //.addClass('selected');
+});
+
+// when a feature is removed, clear the photo-info div
+selected_table_features.on('remove', function(event) {
+  var feature = event.element;
+  $("tbody[data-collection_id='" + feature.get('collection') + "'] tr[data-feature_id='" + feature.get('name') + "']")
+  .removeClass('selected');
 });
 
 }); //end of script

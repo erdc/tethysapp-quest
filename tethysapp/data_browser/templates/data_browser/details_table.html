@@ -13,10 +13,10 @@
             <th>Action</th>
           </tr>
       </thead>
-      <tbody>
+      <tbody data-collection_id="{{ collection.name }}">
         {% for row in rows %}
-        <tr>
-          {% for entry in row %}
+        <tr data-feature_id="{{ row.0 }}" data-dataset_id="{{ row.1 }}">
+          {% for entry in row|slice:"1:" %}
           <td>{{ entry }}</td>
           {% endfor %}
           <td class="status">

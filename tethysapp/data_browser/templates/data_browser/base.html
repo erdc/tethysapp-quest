@@ -20,7 +20,7 @@
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
 {% block app_navigation_items %}
-  {% include 'data_browser/navigation.html' with collections=collections parameters=parameters checkbox_tree=checkbox_tree geom_types=geom_types collection_select_options=collection_select_options %}
+  {% include 'data_browser/navigation.html' with collections=collections parameters=parameters checkbox_tree=checkbox_tree geom_types=geom_types collection_select_options=collection_select_options new_collection_text_options=new_collection_text_options %}
 {% endblock %}
 
 {% block app_content %}
