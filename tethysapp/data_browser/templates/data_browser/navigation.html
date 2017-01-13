@@ -140,9 +140,11 @@
           {% csrf_token %}
           {% if collection_select_options.options %}
             {% gizmo select_input collection_select_options %}
-            <p>Or</p>
+            <h4>Add Feaures to New Collection</h4>
+            <hr>
           {% endif %}
-          {% gizmo new_collection_text_options %}
+          {% gizmo new_collection_name_text_options %}
+          {% gizmo new_collection_description_text_options %}
         </form>
       </div>
       <div class="modal-footer">

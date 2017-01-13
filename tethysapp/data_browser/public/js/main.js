@@ -65,14 +65,20 @@ function initialize_datatable(selector)
 }
 
 
-function reload_collection_details_tabs(selector){
+function reload_collection_details_tabs(selector, collection_name){
+    collection_name = collection_name || false;
+
     var active_tab = $('#collection-details-nav li.active');
     // remove active state so tab can be reset
     active_tab.removeClass('active');
     // activate all tabs
     $('#collection-details-nav li a').tab('show');
 
-    if(active_tab.length){
+    if(collection_name) {
+        //activate specific tab
+        $('#collection-details-nav .' + collection_name + '-collection a').tab('show');
+    }
+    else if(active_tab.length) {
         // reactivate active tab
         active_tab.children('a').tab('show');
     }
@@ -81,17 +87,21 @@ function reload_collection_details_tabs(selector){
         $('#collection-details-nav li:first a').tab('show');
     }
     initialize_datatable(selector);
-    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
-    selector.DataTable()
-    .columns.adjust().draw();
+
+    bind_table_tab_change();
 }
 
 
 function update_details_table(collection_name, html){
-    var detail_table_div = $('#collection-detail-' + collection_name);
-    detail_table_div.replaceWith(html);
-    reload_collection_details_tabs(detail_table_div
-                                   .find('.collection_detail_datatable'));
+    html = html || false;
+
+    if(html)
+    {
+      $('#collection-detail-' + collection_name).replaceWith(html);
+    }
+    reload_collection_details_tabs($('#collection-detail-' + collection_name)
+                                   .find('.collection_detail_datatable'),
+                                   collection_name);
     bind_context_menu();
 
 }
@@ -188,6 +198,10 @@ function resize_plot() {
 function resize_table() {
     var layout_table_div = $("#collection-details-container");
     layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-185+"px");
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    $('.collection_detail_datatable').DataTable()
+    .columns.adjust().draw();
+
 }
 
 function populate_options_form(event){
@@ -327,8 +341,7 @@ function new_collection_html_update(result){
       // add details table
       $('#collection-details-nav ul').append(result.details_table_tab_html);
       $('#collection-details-content').append(result.details_table_html);
-      reload_collection_details_tabs($('#collection-detail-' + result.collection.name)
-                                     .find('.collection_detail_datatable'));
+      update_details_table(result.collection.name);
   }
 }
 
@@ -359,8 +372,7 @@ function delete_collection(event){
     .done(function(result){
         if(result.success){
             $(collection_elements).remove();
-            reload_collection_details_tabs($('#collection-detail-' + collection_name)
-                                           .find('.collection_detail_datatable'));
+            update_details_table(collection_name);
             // if there are no more collections display the placeholder div
             if(!$('#collection-details-nav li').length){
                 $('#table-placeholder').css('display', 'block');
@@ -503,6 +515,17 @@ function bind_context_menu(){
 //            option(dataset_id);
 //        }
     });
+
+}
+
+function bind_table_tab_change() {
+    // resize DataTable on tab change
+    $('#collection-details-nav').find('a[data-toggle="tab"]').off('shown.bs.tab').on('shown.bs.tab', function (e) {
+      var shown_tab_id = $(e.target).attr("href");
+      $(shown_tab_id).find('.collection_detail_datatable').DataTable()
+      .columns.adjust().draw();
+    });
+
 }
 
 $(function() { //wait for page to load
@@ -584,6 +607,18 @@ $(function() { //wait for page to load
       });
   });
 
+  //cleanup modals on close
+  $('#new-collection-modal').on('hidden.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#collection_name').val("");
+      modal.find('#description').val("");
+  });
+
+  $('#new-features-modal').on('hidden.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#new_collection_name').val("");
+      modal.find('#new_collection_description').val("");
+  });
 
   // Tabs
   $('#manage-tab').click(function(e){
@@ -622,16 +657,11 @@ $(function() { //wait for page to load
       show_table_layout();
   });
 
-  // resize DataTable on tab change
-  $('#collection-details-nav').find('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-    var shown_tab_id = $(e.target).attr("href");
-    $(shown_tab_id).find('.collection_detail_datatable').DataTable()
-    .columns.adjust().draw();
-  });
-
   bind_context_menu();
 
   reload_collection_details_tabs($('.collection_detail_datatable'));
+
+  bind_table_tab_change();
 
   // collection detail table selection
   $('#collection-details-content td:not(.status)').click(function(e){

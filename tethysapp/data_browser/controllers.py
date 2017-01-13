@@ -85,8 +85,11 @@ def home(request):
                                             options=[(collection['display_name'], collection['name']) for collection in collections],
                                             )
 
-    new_collection_text_options = TextInput(display_text='Add to New Collection',
-                                            name='new_collection',
+    new_collection_name_text_options = TextInput(display_text='New Collection Name',
+                                            name='new_collection_name',
+                                            )
+    new_collection_description_text_options = TextInput(display_text='New Collection Description',
+                                            name='new_collection_description',
                                             )
 
     context = {'collections': collections,
@@ -98,7 +101,8 @@ def home(request):
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
                'collection_select_options': collection_select_options,
-               'new_collection_text_options': new_collection_text_options,
+               'new_collection_name_text_options': new_collection_name_text_options,
+               'new_collection_description_text_options': new_collection_description_text_options,
                }
 
     return render(request, 'data_browser/home.html', context)
@@ -156,12 +160,13 @@ def add_features_workflow(request):
 
     # add new colleciton if needed
     new_collection_added = False
-    new_collection_name = request.GET.get('new_collection')
+    new_collection_name = request.GET.get('new_collection_name')
+    new_collection_description = request.GET.get('new_collection_description')
     if new_collection_name:
         collection_name = new_collection_name
         # create new colleciton
         utilities.generate_new_collection(new_collection_name,
-                                          new_collection_name)
+                                          new_collection_description)
         new_collection_added = True
 
     success = False
@@ -192,7 +197,7 @@ def add_features_workflow(request):
                    context).content
 
     result['success'] = success
-    print(context)
+
     return JsonResponse(result)
 
 
