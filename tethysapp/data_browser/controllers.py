@@ -658,13 +658,13 @@ def get_settings(request):
 def new_collection(request):
     if request.POST:
         collection_name = request.POST.get('collection_name')
-        collection_description = request.POST.get('description') or ""
-        collection = utilities.generate_new_collection(collection_name,
-                                                       collection_description,
-                                                       metadata=False)
+        if collection_name:
+            collection_description = request.POST.get('description') or ""
+            collection = utilities.generate_new_collection(collection_name,
+                                                           collection_description,
+                                                           metadata=False)
 
-
-        return JsonResponse({'collection': collection})
+            return JsonResponse({'collection': collection})
     return JsonResponse({'error': 'Invalid request ...'})
 
 
