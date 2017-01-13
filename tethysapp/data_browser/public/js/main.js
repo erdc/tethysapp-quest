@@ -631,7 +631,7 @@ $(function() { //wait for page to load
   $('#collection-details-content').on('click', '.get-options', populate_options_form);
 
   // Export Dataset Button
-  $('#collection-details-content').on('click', '.export-dataset', function(){export_dataset($(this).attr('data-dataset-id'))});
+  $('#collection-details-content').on('click', '.export-dataset', function(){ export_dataset($(this).attr('data-dataset-id'))});
 
   // Retrieve Button
   $('#options-content').on('click', '.options-submit', submit_options);
@@ -654,7 +654,7 @@ $(function() { //wait for page to load
   reload_collection_details_tabs($('.collection_detail_datatable'));
 
   // adjust DataTable headers on tab change
-  $('#collection-details-nav').on('shown.bs.tab', 'a[data-toggle="tab"]',function (e) {
+  $('#collection-details-nav').on('shown.bs.tab', 'a[data-toggle="tab"]',function () {
     var shown_tab_id = $(e.target).attr("href");
     //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
     $(shown_tab_id).find('.collection_detail_datatable').DataTable()
@@ -662,7 +662,7 @@ $(function() { //wait for page to load
   });
 
   // collection detail table selection
-  $('#collection-details-content').on('click', 'td:not(.status)', function(e){
+  $('#collection-details-content').on('click', 'td:not(.status)', function(){
      var row = $(this).parent();
      row.toggleClass('selected');
 
