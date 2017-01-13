@@ -1,7 +1,6 @@
 // mapping of datasets to their feature id
 var datasets_by_feature = {};
 
-
 function update_datasets_by_feature(collection){
     collection.features.forEach(function(feature){
         datasets_by_feature[feature.name] = [];
@@ -18,15 +17,68 @@ collections.forEach(update_datasets_by_feature);
  *                        FUNCTIONS
  *
  *******************************************************************************/
+function initialize_datatable(selector)
+{
+  selector.DataTable({
+        destroy: true,
+        columnDefs: [
+          { orderable: false, targets: 7 }
+        ],
+        initComplete: function () {
+            this.api().columns().every( function () {
+                var column = this;
+                if($(column.header()).text()!="Action")
+                {
+                  var select = $('<select class="form-control right"><option value=""></option></select>')
+                      .on( 'change', function () {
+                          var val = $.fn.dataTable.util.escapeRegex(
+                              $(this).val()
+                          );
 
-function reload_collection_details_tabs(select_index){
+                          column
+                              .search( val ? '^'+val+'$' : '', true, false )
+                              .draw();
+                      } );
+                  $(column.header()).append(select);
+                  select.select2({
+                                  dropdownCssClass : 'bigdrop',
+                                  containerCssClass: 'datatable-filters',
+                                  width: '15px',
+                                });
+                  column.data().unique().sort().each( function ( d, j ) {
+                      select.append( '<option value="'+d+'">'+d+'</option>' )
+                  });
+                }
+            });
+        }
+  });
+
+  //prevent select 2 click from calling the column sort
+  $('#collection-details-container').find('.datatable-filters').on("click", function(event){
+    event.stopPropagation();
+  });
+  // modify icon to be filter
+  $('#collection-details-container').find('.datatable-filters')
+                                    .find('.select2-selection__arrow')
+                                    .replaceWith('<span class="glyphicon glyphicon-filter select2-selection__arrow" aria-hidden="true"></span>');
+  resize_table();
+}
+
+
+function reload_collection_details_tabs(selector, collection_name){
+    collection_name = collection_name || false;
+
     var active_tab = $('#collection-details-nav li.active');
     // remove active state so tab can be reset
     active_tab.removeClass('active');
     // activate all tabs
     $('#collection-details-nav li a').tab('show');
 
-    if(active_tab.length){
+    if(collection_name) {
+        //activate specific tab
+        $('#collection-details-nav .' + collection_name + '-collection a').tab('show');
+    }
+    else if(active_tab.length) {
         // reactivate active tab
         active_tab.children('a').tab('show');
     }
@@ -34,13 +86,24 @@ function reload_collection_details_tabs(select_index){
         // activate the first tab
         $('#collection-details-nav li:first a').tab('show');
     }
+    initialize_datatable(selector);
+
+    bind_table_tab_change();
 }
 
 
 function update_details_table(collection_name, html){
-    $('#collection-detail-' + collection_name).replaceWith(html);
-    reload_collection_details_tabs();
+    html = html || false;
+
+    if(html)
+    {
+      $('#collection-detail-' + collection_name).replaceWith(html);
+    }
+    reload_collection_details_tabs($('#collection-detail-' + collection_name)
+                                   .find('.collection_detail_datatable'),
+                                   collection_name);
     bind_context_menu();
+
 }
 
 function delete_dataset(dataset_id){
@@ -49,7 +112,8 @@ function delete_dataset(dataset_id){
     var data = {dataset: dataset_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
@@ -57,9 +121,6 @@ function delete_dataset(dataset_id){
         else{
             console.log(result);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -75,7 +136,8 @@ function delete_feature(feature_id){
     var data = {feature: feature_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             // delete feature on map
             var layer = get_layer_by_name(result.collection.name);
@@ -85,9 +147,6 @@ function delete_feature(feature_id){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -103,19 +162,19 @@ function add_data(feature_id){
     var data = {feature: feature_id,
                 csrfmiddlewaretoken: csrftoken};
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
+                $('#options-content').find('.select2').select2();
             }
             else{
                 update_details_table(result.collection_name, result.details_table_html);
             }
         }
-    })
-    .done(function() {
-        $('.select2').select2();
+
     })
     .fail(function() {
         console.log( "error" );
@@ -125,9 +184,27 @@ function add_data(feature_id){
     });
 }
 
-function get_dataset_id_from_details_table_row(row){
-    var dataset_id = row.children('td').first().text();
-    return dataset_id;
+function resize_plot() {
+    var layout_plot_div = $("#plot-container");
+    var plot_id = layout_plot_div.find('.plotly-graph-div').attr('id');
+    if (typeof plot_id != 'undefined')
+    {
+        var resize_info =  {
+                             width  : layout_plot_div.width(),
+                             height : layout_plot_div.height()-20
+                           };
+
+        Plotly.relayout(plot_id, resize_info);
+    }
+}
+
+function resize_table() {
+    var layout_table_div = $("#collection-details-container");
+    layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-185+"px");
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    $('.collection_detail_datatable').DataTable()
+    .columns.adjust().draw();
+
 }
 
 function populate_options_form(event){
@@ -145,12 +222,14 @@ function populate_options_form_for_dataset(dataset, type){
 //    $('#options-content').load(url, $.param(data), function(e){
 //        $('.select2').select2();
 //    });
-    $.get(url, data, function(result){
+    $.get(url, data)
+    .done(function(result) {
         if(result.success){
             var options = function(){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
+                    $('#options-content').find('.select2').select2();
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
@@ -158,10 +237,11 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
-               $('#plot-container').html(result.html);
+               $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
                setTimeout(function(){
-                    TETHYS_PLOT_VIEW.initHighChartsPlot($('.d3-plot, .highcharts-plot'));
-               }, 500);
+                   $('#plot-content').replaceWith(result.html);
+                   resize_plot();
+               }, 100);
 
             };
             var func = {retrieve: options,
@@ -172,9 +252,7 @@ function populate_options_form_for_dataset(dataset, type){
              func[type]();
 
         }
-    })
-    .done(function() {
-        $('.select2').select2();
+
     })
     .fail(function() {
         console.log( "error" );
@@ -188,14 +266,12 @@ function show_metadata(uri){
     var data = {'uri': uri};
     var url = show_metadata_url;
 
-    $.get(url, data, function(result){
+    $.get(url, data)
+    .done(function(result) {
         if(result.success){
             show_metadata_layout();
             $('#metadata-content').html(result.html);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -228,16 +304,14 @@ function submit_options(event){
 
     change_status_to_loading(dataset_id);
 
-    $.post(url, data, function(result){
+    $.post(url, data)
+    .done(function(result) {
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
         }
         else{
             console.log(result);
         }
-    })
-    .done(function() {
-
     })
     .fail(function() {
         console.log( "error" );
@@ -259,28 +333,29 @@ function add_collection_details(collection_name, collection_display_name, detail
     $('#collection-details-content').append(details_html);
 }
 
+function new_collection_html_update(result){
+  if(result.success){
+      $('#table-placeholder').css('display', 'none');
+      $('#collections-list').append(result.collection_html);
+      $('#new-collection-modal').modal('hide')
+      // update collection select
+      $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
+      $('#collection').trigger('change');
+      // add details table
+      $('#collection-details-nav ul').append(result.details_table_tab_html);
+      $('#collection-details-content').append(result.details_table_html);
+      update_details_table(result.collection.name);
+  }
+}
 
 function new_collection(event){
     event.preventDefault();
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 
-    $.post(url, data, function(result){
-        if(result.success){
-            $('#table-placeholder').css('display', 'none');
-            $('#collections-list').append(result.collection_html);
-            $('#new-collection-modal').modal('hide')
-            // update collection select
-            $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
-            $('#collection').trigger('change');
-            // add details table
-            $('#collection-details-nav ul').append(result.details_table_tab_html);
-            $('#collection-details-content').append(result.details_table_html);
-            reload_collection_details_tabs();
-        }
-    })
-    .done(function() {
-
+    $.post(url, data)
+    .done(function(result){
+      new_collection_html_update(result)
     })
     .fail(function() {
         console.log( "error" );
@@ -296,10 +371,11 @@ function delete_collection(event){
     var collection_name = $(this).attr('data-collection-name');
     var collection_elements = $('.' + collection_name + '-collection');
 
-    $.get(url, function(result){
+    $.get(url)
+    .done(function(result){
         if(result.success){
             $(collection_elements).remove();
-            reload_collection_details_tabs();
+            update_details_table(collection_name);
             // if there are no more collections display the placeholder div
             if(!$('#collection-details-nav li').length){
                 $('#table-placeholder').css('display', 'block');
@@ -442,221 +518,260 @@ function bind_context_menu(){
 //            option(dataset_id);
 //        }
     });
+
 }
 
-$('#add-to-collection-button').click(function(e){
-    var selected_features = search_select_interaction.getFeatures();
-    $('#number-of-selected-features').text(selected_features.array_.length + ' features are selected.');
-
-});
-
-$('#search-form').submit(function(e){
-    e.preventDefault();
-    remove_search_layer();
-    $('#search-button').hide();
-    $('#loading-gif-search').show();
-    $('#add-to-collection-button').hide();
-
-    var url = $(this).attr('action');
-    var data = $(this).serializeArray();
-    data.push({'name': 'bbox',
-               'value': get_map_extents()});
-
-    url = get_source_url(data);
-    load_map_layer(SEARCH_LAYER_NAME, url, true, null, null, function(){
-        $('#search-button').show();
-        $('#loading-gif-search').hide();
-        $('#add-to-collection-button').show();
+function bind_table_tab_change() {
+    // resize DataTable on tab change
+    $('#collection-details-nav').find('a[data-toggle="tab"]').off('shown.bs.tab').on('shown.bs.tab', function (e) {
+      var shown_tab_id = $(e.target).attr("href");
+      $(shown_tab_id).find('.collection_detail_datatable').DataTable()
+      .columns.adjust().draw();
     });
 
-
-});
-
-$('#add-features-form').submit(function(e){
-    e.preventDefault();
-    $('#add-to-collection-button').hide();
-    var url = $(this).attr('action');
-    var data = $(this).serializeArray();
-//    var collection_name = $(this).serializeObject().collection;
-    var parameter = $('input[name="parameter"]:checked').val();
-    var selected_features = search_select_interaction.getFeatures();
-    var features = selected_features.array_.map(function(feature){
-        return feature.id_;
-    });
-
-    data.push({'name': 'features',
-               'value': features},
-              {'name': 'parameter',
-               'value': parameter}
-              );
-
-    $.get(url, data, function(result){
-        if(result.success){
-            remove_search_layer();
-            update_datasets_by_feature(result.collection);
-            update_collection_layer(result.collection);
-
-            // update details table
-            update_details_table(result.collection.name, result.details_table_html);
-
-        }
-    })
-    .done(function() {
-        $('#add-features-modal').modal('hide');
-        $('#manage-tab').click()
-    })
-    .fail(function() {
-        console.log( "error" );
-    })
-    .always(function() {
-
-    });
-});
-
-
-// Tabs
-$('#manage-tab').click(function(e){
-    remove_search_layer();
-    $('#search-button').show();
-    $('#loading-gif-search').hide();
-    $('#add-to-collection-button').hide();
-
-});
-
-
-/*******************************************************************************
- *
- *                        BUTTON HANDLERS
- *
- *******************************************************************************/
+}
 
 $(function() { //wait for page to load
 
-// Retrieve/Visualize Options Button
-$('#collection-details-content').on('click', '.get-options', populate_options_form);
 
-// Export Dataset Button
-$('#collection-details-content').on('click', '.export-dataset', function(){export_dataset($(this).attr('data-dataset-id'))});
+  $('#add-to-collection-button').click(function(e){
+      var selected_features = search_select_interaction.getFeatures();
+      $('#number-of-selected-features').text(selected_features.array_.length + ' features are selected.');
 
-// Retrieve Button
-$('#options-content').on('click', '.options-submit', submit_options);
-
-// New Collection Button
-$('#new-collection-form').on('submit', new_collection);
-
-// Delete Collection Link
-$('#collections-list').on('click', '.delete-collection', delete_collection);
-
-// Show Collection Details
-$('#collections-list').on('click', '.collection-details-menu-item', function(){
-    var collection_name = $(this).attr('data-collection-name');
-    $('#collection-details-nav li.' + collection_name + '-collection a').click();
-    show_table_layout();
-});
-
-
-
-bind_context_menu();
-
-reload_collection_details_tabs();
-
-});
-
-
-/*******************************************************************************
- *
- *                        DYNAMIC STYLES
- *
- *******************************************************************************/
-
-// Nav Active Style
-//$('.nav-tab').click(function(){
-//    $('.nav-tab').each(function(){
-//        this.toggleClass('active');
-//    });
-//});
-
- // collection detail table selection
-$('#collection-details-content td:not(.status)').click(function(e){
-    $(this).parent().toggleClass('selected')
-});
-
-// automate service selection based on parameter selection
-$('input[name="parameter"]').change(function(e){
-    var selected_value = $('input[name="parameter"]:checked').val();
-    for(i=0, len=services.length; i<len; i++){
-        var service = services[i];
-        var service_checkbox = $('input[value="' + service.name + '"]');
-        if($.inArray(selected_value, service.parameters) > -1){
-            $(service_checkbox).prop('disabled', false);
-            $(service_checkbox).prop('checked', true).change();
-        }
-        else{
-            $(service_checkbox).prop('checked', false).change();
-            $(service_checkbox).prop('disabled', true);
-        };
-    };
-});
-
-
-/*******************************************************************************
- *
- *                        CHECKBOX TREE
- *
- *******************************************************************************/
-
-
-// code adapted from https://css-tricks.com/indeterminate-checkboxes/
-// checkbox tree processing
-$('.checkbox-tree input[type="checkbox"]').change(function(e) {
-
-  var checked = $(this).prop("checked"),
-      container = $(this).parent().parent().parent();
-
-  // set all child elements checked property to be the same as the parent
-  container.find('input[type="checkbox"]').prop({
-    indeterminate: false,
-    checked: checked
   });
 
-  // set indeterminate state for parents if necessary
-  function checkSiblings(el) {
+  $('#search-form').submit(function(e){
+      e.preventDefault();
+      remove_search_layer();
+      $('#search-button').hide();
+      $('#loading-gif-search').show();
+      $('#add-to-collection-button').hide();
 
-    var parent = el.parent().parent(),
-        all = true;
+      var url = $(this).attr('action');
+      var data = $(this).serializeArray();
+      data.push({'name': 'bbox',
+                 'value': get_map_extents()});
 
-    el.siblings().each(function() {
-      return all = ($(this).children('div').children('label').children('input[type="checkbox"]').prop("checked") === checked);
+      url = get_source_url(data);
+      load_map_layer(SEARCH_LAYER_NAME, url, true, null, null, function(){
+          $('#search-button').show();
+          $('#loading-gif-search').hide();
+          $('#add-to-collection-button').show();
+      });
+
+
+  });
+
+  $('#add-features-form').submit(function(e){
+      e.preventDefault();
+      $('#add-to-collection-button').hide();
+      var url = $(this).attr('action');
+      var data = $(this).serializeArray();
+  //    var collection_name = $(this).serializeObject().collection;
+      var parameter = $('input[name="parameter"]:checked').val();
+      var selected_features = search_select_interaction.getFeatures();
+      var features = selected_features.array_.map(function(feature){
+          return feature.id_;
+      });
+
+      data.push({'name': 'features',
+                 'value': features},
+                {'name': 'parameter',
+                 'value': parameter}
+                );
+
+      $.get(url, data)
+      .done(function(result) {
+          if(result.success){
+              remove_search_layer();
+              update_datasets_by_feature(result.collection);
+              update_collection_layer(result.collection);
+
+              if(result.collection_html)
+              {
+                //add new colleciton and assicated info
+                new_collection_html_update(result);
+              }
+              else {
+                // update details table
+                update_details_table(result.collection.name, result.details_table_html);
+              }
+
+          }
+
+          $('#add-features-modal').modal('hide');
+          $('#manage-tab').click()
+      })
+      .fail(function() {
+          console.log( "error" );
+      })
+      .always(function() {
+
+      });
+  });
+
+  //cleanup modals on close
+  $('#new-collection-modal').on('hidden.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#collection_name').val("");
+      modal.find('#description').val("");
+  });
+
+  $('#new-features-modal').on('hidden.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#new_collection_name').val("");
+      modal.find('#new_collection_description').val("");
+  });
+
+  // Tabs
+  $('#manage-tab').click(function(e){
+      remove_search_layer();
+      $('#search-button').show();
+      $('#loading-gif-search').hide();
+      $('#add-to-collection-button').hide();
+  });
+
+
+  /*******************************************************************************
+   *
+   *                        BUTTON HANDLERS
+   *
+   *******************************************************************************/
+
+  // Retrieve/Visualize Options Button
+  $('#collection-details-content').on('click', '.get-options', populate_options_form);
+
+  // Export Dataset Button
+  $('#collection-details-content').on('click', '.export-dataset', function(){export_dataset($(this).attr('data-dataset-id'))});
+
+  // Retrieve Button
+  $('#options-content').on('click', '.options-submit', submit_options);
+
+  // New Collection Button
+  $('#new-collection-form').on('submit', new_collection);
+
+  // Delete Collection Link
+  $('#collections-list').on('click', '.delete-collection', delete_collection);
+
+  // Show Collection Details
+  $('#collections-list').on('click', '.collection-details-menu-item', function(){
+      var collection_name = $(this).data('collection-name');
+      $('#collection-details-nav li.' + collection_name + '-collection a').click();
+      show_table_layout();
+  });
+
+  bind_context_menu();
+
+  reload_collection_details_tabs($('.collection_detail_datatable'));
+
+  bind_table_tab_change();
+
+  // collection detail table selection
+  $('#collection-details-content td:not(.status)').click(function(e){
+     var row = $(this).parent();
+     row.toggleClass('selected');
+
+     var feature_id = row.data('feature_id');
+     var collection_name = row.parent().data('collection_id');
+
+     toggle_feature_selection_by_id(feature_id, collection_name, row.hasClass('selected'));
+  });
+
+
+  /*******************************************************************************
+   *
+   *                        DYNAMIC STYLES
+   *
+   *******************************************************************************/
+
+  // Nav Active Style
+  //$('.nav-tab').click(function(){
+  //    $('.nav-tab').each(function(){
+  //        this.toggleClass('active');
+  //    });
+  //});
+
+
+
+  // automate service selection based on parameter selection
+  $('input[name="parameter"]').change(function(e){
+      var selected_value = $('input[name="parameter"]:checked').val();
+      for(i=0, len=services.length; i<len; i++){
+          var service = services[i];
+          var service_checkbox = $('input[value="' + service.name + '"]');
+          if($.inArray(selected_value, service.parameters) > -1){
+              $(service_checkbox).prop('disabled', false);
+              $(service_checkbox).prop('checked', true).change();
+          }
+          else{
+              $(service_checkbox).prop('checked', false).change();
+              $(service_checkbox).prop('disabled', true);
+          };
+      };
+  });
+
+
+  /*******************************************************************************
+   *
+   *                        CHECKBOX TREE
+   *
+   *******************************************************************************/
+
+
+  // code adapted from https://css-tricks.com/indeterminate-checkboxes/
+  // checkbox tree processing
+  $('.checkbox-tree input[type="checkbox"]').change(function(e) {
+
+    var checked = $(this).prop("checked"),
+        container = $(this).parent().parent().parent();
+
+    // set all child elements checked property to be the same as the parent
+    container.find('input[type="checkbox"]').prop({
+      indeterminate: false,
+      checked: checked
     });
 
-    if (all && checked) {
+    // set indeterminate state for parents if necessary
+    function checkSiblings(el) {
 
-      parent.children('div').children('label').children('input[type="checkbox"]').prop({
-        indeterminate: false,
-        checked: checked
+      var parent = el.parent().parent(),
+          all = true;
+
+      el.siblings().each(function() {
+        return all = ($(this).children('div').children('label').children('input[type="checkbox"]').prop("checked") === checked);
       });
 
-      checkSiblings(parent);
+      if (all && checked) {
 
-    } else if (all && !checked) {
+        parent.children('div').children('label').children('input[type="checkbox"]').prop({
+          indeterminate: false,
+          checked: checked
+        });
 
-      parent.children('div').children('label').children('input[type="checkbox"]').prop("checked", checked);
-      parent.children('div').children('label').children('input[type="checkbox"]').prop("indeterminate", (parent.find('input[type="checkbox"]:checked').length > 0));
-      checkSiblings(parent);
+        checkSiblings(parent);
 
-    } else {
+      } else if (all && !checked) {
 
-      el.parents("li").children('div').children('label').children('input[type="checkbox"]').prop({
-        indeterminate: true,
-        checked: false
-      });
+        parent.children('div').children('label').children('input[type="checkbox"]').prop("checked", checked);
+        parent.children('div').children('label').children('input[type="checkbox"]').prop("indeterminate", (parent.find('input[type="checkbox"]:checked').length > 0));
+        checkSiblings(parent);
+
+      } else {
+
+        el.parents("li").children('div').children('label').children('input[type="checkbox"]').prop({
+          indeterminate: true,
+          checked: false
+        });
+
+      }
 
     }
 
-  }
+    checkSiblings(container);
+  });
 
-  checkSiblings(container);
-});
+
+}); //wait for page to load
 
 /*****************************************************************************
  *
@@ -702,7 +817,7 @@ $.ajaxSetup({
  *******************************************************************************/
 
 function get_contextmenu_items(target){
-    var dataset_id = get_dataset_id_from_details_table_row(target.parent());
+    var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
     dataset = {name: dataset_id,
                download_status: download_status}

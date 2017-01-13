@@ -2,6 +2,7 @@ from datetime import datetime
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
+import plotly.graph_objs as go
 
 from tethys_sdk.gizmos import (MapView,
                                MVDraw,
@@ -11,8 +12,8 @@ from tethys_sdk.gizmos import (MapView,
                                SelectInput,
                                TableView,
                                DatePicker,
+                               PlotlyView,
                                TextInput,
-                               TimeSeries,
                                ToggleSwitch,
                                )
 
@@ -52,7 +53,7 @@ def home(request):
     """
     Controller for the app home page.
     """
-    print(dsl.api.get_settings())
+
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
     providers = utilities.get_dsl_providers_with_services()
@@ -86,24 +87,12 @@ def home(request):
                                             options=[(collection['display_name'], collection['name']) for collection in collections],
                                             )
 
-    select_mode_toggle = ToggleSwitch(display_text='Select Mode',
-                                      name='select_mode',
-                                      on_label='Locations',
-                                      off_label='Datasets',
-                                      on_style='success',
-                                      off_style='danger',
-                                      initial=True,
-                                      size='large',
-                                      classes='map-toggle-control')
-
-    plot_view_options = TimeSeries(height='100%',
-                                   width='100%',
-                                   title=' ',
-                                   engine='highcharts',
-                                   y_axis_title='',
-                                   y_axis_units='',
-                                   series=[]
-                                   )
+    new_collection_name_text_options = TextInput(display_text='New Collection Name',
+                                            name='new_collection_name',
+                                            )
+    new_collection_description_text_options = TextInput(display_text='New Collection Description',
+                                            name='new_collection_description',
+                                            )
 
     context = {'collections': collections,
                'collections_json': json.dumps(collections, default=utilities.pre_jsonify),
@@ -113,13 +102,12 @@ def home(request):
                'checkbox_tree': checkbox_tree,
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
-               'plot_view_options': plot_view_options,
                'collection_select_options': collection_select_options,
-               'select_mode_toggle': select_mode_toggle,
+               'new_collection_name_text_options': new_collection_name_text_options,
+               'new_collection_description_text_options': new_collection_description_text_options,
                }
 
     return render(request, 'data_browser/home.html', context)
-
 
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect
@@ -142,15 +130,9 @@ def new_collection_workflow(request):
     html = None
 
     collection_name = request.POST.get('collection_name')
-    code_name = utilities.codify(collection_name)
-    color = utilities.get_random_color()
-    description = request.POST['description']
-    dsl.api.new_collection(code_name,
-                           display_name=collection_name,
-                           description=description,
-                           metadata={'color': color})
-
-    collection = utilities.get_collection_with_metadata(code_name)
+    collection_description = request.POST.get('description') or ""
+    collection = utilities.generate_new_collection(collection_name,
+                                                   collection_description)
 
     context = {'collection': collection}
 
@@ -172,29 +154,50 @@ def new_collection_workflow(request):
 @login_required()
 @activate_user_settings
 def add_features_workflow(request):
-    collection = request.GET['collection']
+    collection_name = request.GET.get('collection')
     features = request.GET['features']
     parameter = request.GET['parameter']
+    context = {}
+
+    # add new colleciton if needed
+    new_collection_added = False
+    new_collection_name = request.GET.get('new_collection_name')
+    new_collection_description = request.GET.get('new_collection_description')
+    if new_collection_name:
+        collection_name = new_collection_name
+        # create new colleciton
+        utilities.generate_new_collection(new_collection_name,
+                                          new_collection_description)
+        new_collection_added = True
 
     success = False
     try:
-        features = dsl.api.add_features(collection, features)
+        features = dsl.api.add_features(collection_name, features)
         for feature in features:
             dataset = dsl.api.new_dataset(feature, dataset_type='download')
-            dsl.api.stage_for_download(dataset, download_options={'parameter': parameter})
+            dsl.api.stage_for_download(dataset,
+                                       download_options={
+                                           'parameter': parameter
+                                       })
+
         success = True
-        collection = utilities.get_collection_with_metadata(collection)
+        collection = utilities.get_collection_with_metadata(collection_name)
     except:
         pass
 
     context = {'collection': collection}
+    result = {'collection': collection}
+    result['details_table_html'] = \
+        render(request, 'data_browser/details_table.html', context).content
 
-    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    if new_collection_added:
+        result['collection_html'] = \
+            render(request, 'data_browser/collection.html', context).content
+        result['details_table_tab_html'] = \
+            render(request, 'data_browser/details_table_tab.html',
+                   context).content
 
-    result = {'success': success,
-              'collection': collection,
-              'details_table_html': details_table_html,
-              }
+    result['success'] = success
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -512,41 +515,51 @@ def apply_filter_workflow(request):
 @login_required()
 @activate_user_settings
 def visualize_dataset_workflow(request):
+    '''
+    This controler is for visualizing
+    time series data in a plot
+    '''
     dataset = request.GET['dataset']
-    data = dsl.api.open_dataset(dataset, fmt='dict')
-    metadata = data['metadata']
-    parameter = metadata['parameter']
-    # timeseries = data['data'][parameter]
-    timeseries = data['data'].values()[0]
-    timeseries = [(datetime.strptime(date, utilities.ISO_DATETIME_FORMAT), value) for date, value in timeseries]
-    title = 'Plot View'
-    success = True
-    '''
-    engine = 'd3'
-    '''
-    engine = 'highcharts'
-    # '''
-
-    plot_view_options = TimeSeries(
-        height='100%',
-        width='100%',
-        title=' ',
-        engine=engine,
-        y_axis_title=parameter,
-        y_axis_units=metadata['units'],
-        series=[{
-            'name': dataset,
-            'data': timeseries,
-        }]
+    # load data
+    df = dsl.api.open_dataset(dataset, fmt='dataframe')
+    parameter = df.metadata['parameter']
+    units = df.metadata['units']
+    # create plotly plot
+    scatter_series = go.Scatter(
+        x=df.index,
+        y=df[parameter],
+        name=dataset,
+        fill='tozeroy'
     )
+    plotly_layout = go.Layout(
+        showlegend=True,
+        height=350,
+        margin=go.Margin(
+            l=50,
+            r=0,
+            b=30,
+            t=0,
+            pad=4
+        ),
+        legend=dict(
+            orientation='h',
+        ),
+        yaxis=dict(
+            title="{0} ({1})".format(parameter, units),
+        ),
+    )
+    # create plotly gizmo
+    plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
+                                             layout=plotly_layout),
+                                   height='100%',
+                                   attributes={'id': 'plot-content', },
+                                   )
 
-    context = {'title': title,
-              'plot_view_options': plot_view_options,
-               }
+    context = {'plot_view_options': plot_view_options, }
 
     html = render(request, 'data_browser/visualize.html', context).content
 
-    result = {'success': success,
+    result = {'success': True,
               'html': html,
               }
 
@@ -647,16 +660,13 @@ def new_collection(request):
     if request.POST:
         collection_name = request.POST.get('collection_name')
         if collection_name:
-            code_name = utilities.codify(collection_name)
-            color = utilities.get_random_color()
-            description = request.POST.get('description')
-            collection = dsl.api.new_collection(code_name,
-                                                display_name=collection_name,
-                                                description=description,
-                                                metadata={'color': color})
+            collection_description = request.POST.get('description') or ""
+            collection = utilities.generate_new_collection(collection_name,
+                                                           collection_description,
+                                                           metadata=False)
 
-
-    return JsonResponse({'collection': collection})
+            return JsonResponse({'collection': collection})
+    return JsonResponse({'error': 'Invalid request ...'})
 
 
 @login_required()
@@ -721,8 +731,8 @@ def get_features(request):
 @login_required()
 @activate_user_settings
 def add_features(request):
-    collection = request.GET['collection']
-    features = request.GET['features']
+    collection = request.GET.get('collection')
+    features = request.GET.get('features')
 
     success = False
     try:

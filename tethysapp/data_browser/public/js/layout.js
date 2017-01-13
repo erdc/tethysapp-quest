@@ -13,13 +13,30 @@ var row = {
           type: 'column',
           id: 'col',
           isClosable: false,
-          content: [{
-              type:'component',
+          content: [
+            {
+              type: 'stack',
+              id: 'stack',
               isClosable: false,
-              id: 'map',
-              componentName: 'map',
-              componentState: { text: 'Map' }
-          }]
+              activeItemIndex:0,
+              content: [
+                {
+                  type:'component',
+                  isClosable: false,
+                  id: 'map',
+                  componentName: 'map',
+                  componentState: { text: 'Map' }
+               },
+               {
+                 type:'component',
+                 isClosable: false,
+                 id: 'plot',
+                 componentName: 'plot',
+                 componentState: { text: 'plot' }
+              },
+            ],
+          },
+        ]
         }]
     }
 
@@ -28,7 +45,7 @@ var row = {
 
 var config = {
     settings: {
-        hasHeaders: false,
+        hasHeaders: true,
         constrainDragToContainer: false,
         reorderEnabled: true,
         selectionEnabled: false,
@@ -37,7 +54,8 @@ var config = {
         closePopoutsOnUnload: true,
         showPopoutIcon: false,
         showMaximiseIcon: false,
-        showCloseIcon: true
+        showCloseIcon: false,
+        isClosable: false,
     },
     content: [row]
 };
@@ -94,13 +112,17 @@ function add_layout_item( id, parent_id, index){
         componentName: id,
         componentState: { text: id }
     };
-
     myLayout.root.getItemsById(parent_id)[0].addChild( newItemConfig, index );
-
 }
 
 function show_layout_item(id, parent_id, index){
     add_layout_item(id, parent_id, index);
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    if(id == 'table')
+    {
+        $('.collection_detail_datatable').DataTable()
+        .columns.adjust().draw();
+    }
 }
 
 function hide_layout_item(item, id){
@@ -120,21 +142,11 @@ function toggle_layout_item( toggle_control, id, parent_id, index){
     {
         show_layout_item(id, parent_id, index);
     }
-
-    TETHYS_PLOT_VIEW.initHighChartsPlot($('.d3-plot, .highcharts-plot'));
 }
 
 function show_plot_layout(){
-    var id = 'plot', parent_id = 'col', index = 1;
-    $('#plot-toggle').addClass('active');
-    var item = myLayout.root.getItemsById(id);
-    if(item.length > 0){
-        // plot is already visible
-    }
-    else
-    {
-        show_layout_item(id, parent_id, index);
-    }
+    var item = myLayout.root.getItemsById('plot')[0];
+    myLayout.root.getItemsById('stack')[0].setActiveContentItem(item);
 }
 
 function show_table_layout(){
@@ -142,7 +154,7 @@ function show_table_layout(){
     $('#table-toggle').addClass('active');
     var item = myLayout.root.getItemsById(id);
     if(item.length > 0){
-        // plot is already visible
+        // table is already visible
     }
     else
     {
@@ -155,7 +167,7 @@ function show_metadata_layout(){
 
     var item = myLayout.root.getItemsById(id);
     if(item.length > 0){
-        // plot is already visible
+        // metadata is already visible
     }
     else
     {
@@ -166,19 +178,21 @@ function show_metadata_layout(){
     }
 }
 
-$('#close-metadata-btn').click(function(){
-    var item = myLayout.root.getItemsById('metadata');
+// handle close events for close buttons
+['table', 'metadata'].forEach(function(elem){
+  $('#close-' + elem + '-btn').click(function(){
+      var item = myLayout.root.getItemsById(elem);
 
-    if(item.length > 0){
-        hide_layout_item(item[0], 'metadata');
-    }
-});
-
-$('#plot-toggle').click(function(){
-    toggle_layout_item(this, 'plot', 'col', 1)
+      if(item.length > 0){
+          hide_layout_item(item[0], elem);
+      }
+  });
 });
 
 $('#table-toggle').click(function(){
-    toggle_layout_item(this, 'table', 'col')
+    toggle_layout_item(this, 'table', 'col');
 });
 
+
+$(LAYOUT_DIV_MAPPING['plot']).changeSize(resize_plot);
+$(LAYOUT_DIV_MAPPING['table']).changeSize(resize_table);

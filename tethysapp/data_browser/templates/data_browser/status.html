@@ -11,7 +11,7 @@
       Export
     </button>
   </span>
-{% elif status == 'staged for download' or status == 'download failed' %}
+{% elif status == 'staged for download' or status == 'failed download' %}
   <button type="button" class="btn btn-primary btn-sm get-options" id="retrieve-dataset-options-btn-{{ dataset }}" data-options-type="retrieve" data-dataset-id="{{ dataset }}">
     Retrieve
   </button>

@@ -138,7 +138,13 @@
         <form id="add-features-form" action="{% url 'data_browser:add_features_workflow' %}" method="post">
           <div id="number-of-selected-features"></div>
           {% csrf_token %}
-          {% gizmo select_input collection_select_options %}
+          {% if collection_select_options.options %}
+            {% gizmo select_input collection_select_options %}
+            <h4>Add Feaures to New Collection</h4>
+            <hr>
+          {% endif %}
+          {% gizmo new_collection_name_text_options %}
+          {% gizmo new_collection_description_text_options %}
         </form>
       </div>
       <div class="modal-footer">
