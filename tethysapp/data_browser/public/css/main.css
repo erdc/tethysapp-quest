@@ -193,28 +193,6 @@ h1.title{
   float: right !important;
 }
 
-/*
-#collection-details-content thead,tbody{
-    display: inline-block;
-}
-
-#collection-details-content tbody{
-    max-height: 150px;
-    overflow-y: auto;
-}
-*/
-#collection-details-content td{
-    vertical-align: middle;
-}
-
-#collection-details-content tr.selected td{
-    background: rgb(26, 51, 76);
-    color: white;
-}
-#collection-details-content table tr.selected:hover td{
-    background: rgba(26, 51, 76, 0.8);
-}
-
 #collection-details-nav{
     width: 50%;
     margin: auto;
