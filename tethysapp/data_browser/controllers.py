@@ -23,15 +23,17 @@ import dsl
 import json
 import os
 
+
 def activate_user_settings(func):
 
     def wrapper(request, *args, **kwargs):
 
-        settings = dsl.api.get_settings()
-
+        # change settings to point at users worksapce
         dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                                  'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                                  })
+
+        # read in any saved settings for user
         settings_file = dsl.util.config._default_config_file()
         if os.path.exists(settings_file):
             dsl.api.update_settings_from_file(settings_file)
@@ -50,12 +52,12 @@ def home(request):
     """
     Controller for the app home page.
     """
-
+    print(dsl.api.get_settings())
     collections = utilities.get_collections_with_metadata()
     parameters = dsl.api.get_mapped_parameters()
     providers = utilities.get_dsl_providers_with_services()
     checkbox_tree = utilities.get_hierarchical_provider_list()
-    services = json.dumps(list(dsl.api.get_services(metadata=True).values()))
+    services = json.dumps(list(dsl.api.get_services(expand=True).values()))
 
     # Define view options
     view_options = MVView(
@@ -103,9 +105,8 @@ def home(request):
                                    series=[]
                                    )
 
-
     context = {'collections': collections,
-               'collections_json': json.dumps(collections),
+               'collections_json': json.dumps(collections, default=utilities.pre_jsonify),
                'services': services,
                'parameters': parameters,
                'providers': providers,
@@ -195,7 +196,7 @@ def add_features_workflow(request):
               'details_table_html': details_table_html,
               }
 
-    return JsonResponse(result)
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 def get_options_html(request, uri, options, set_options, options_type, submit_controller_name, submit_btn_text):
@@ -246,7 +247,6 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
 @login_required()
 @activate_user_settings
 def get_download_options_workflow(request):
-    print(request.GET)
     dataset = request.GET['dataset']
     success = False
     # try:
@@ -262,7 +262,7 @@ def get_download_options_workflow(request):
     if 'properties' not in options:
         return retrieve_dataset(request, dataset)
 
-    options_metadata_name = '_download_options'
+    options_metadata_name = 'options'
     set_options = {}
     metadata = dsl.api.get_metadata(dataset)[dataset]
     if options_metadata_name in metadata:
@@ -324,7 +324,7 @@ def get_filter_list_workflow(request):
 @activate_user_settings
 def get_filter_options_workflow(request):
     dataset_id = request.GET['dataset']
-    options_metadata_name = '_apply_filter_options',
+    options_metadata_name = 'options',
     options_type = 'filter',
     submit_controller_name = 'apply_filter_workflow',
     submit_btn_text = 'Apply Filter'
@@ -370,7 +370,7 @@ def get_visualize_options_workflow(request):
     dataset_id = request.GET['dataset']
     options_type = 'visualize'
     get_options_function = dsl.api.visualize_dataset_options
-    options_metadata_name = '_visualize_options'
+    options_metadata_name = 'visualize_options'
     submit_controller_name = 'visualize_dataset_workflow'
     submit_btn_text = 'Visualize'
 
@@ -462,7 +462,7 @@ def retrieve_dataset(request, uri, options=None):
 
         dsl.api.stage_for_download(dataset_id, download_options=options)
         response = dsl.api.download_datasets(dataset_id)
-        collection = dsl.api.get_datasets(metadata=True)[dataset_id]['collection']
+        collection = dsl.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         success = True
@@ -495,7 +495,7 @@ def apply_filter_workflow(request):
     filter = request.POST.get('filter')
     try:
         # get the name of the collection before deleting feature
-        collection = dsl.api.get_datasets(metadata=True)[dataset_id]['collection']
+        collection = dsl.api.get_datasets(expand=True)[dataset_id]['collection']
 
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
@@ -561,9 +561,9 @@ def show_metadata_workflow(request):
     title = 'Metadata'
 
     if uri.startswith('f'):
-        metadata = dsl.api.get_features(features=uri, metadata=True)['features'][0]['properties']
+        metadata = dsl.api.get_features(features=uri, expand=True)['features'][0]['properties']
     elif uri.startswith('d'):
-        metadata = dsl.api.get_datasets(metadata=True)[uri]
+        metadata = dsl.api.get_datasets(expand=True)[uri]
     rows = [(k, v) for k, v in metadata.items()]
 
     table_view_options = TableView(column_names=('Property', 'Value'),
@@ -592,7 +592,7 @@ def delete_dataset_workflow(request):
     dataset = request.POST['dataset']
     try:
         # get the name of the collection before deleting dataset
-        collection = dsl.api.get_datasets(metadata=True)[dataset]['collection']
+        collection = dsl.api.get_datasets(expand=True)[dataset]['collection']
 
         dsl.api.delete(dataset)
 
@@ -605,7 +605,7 @@ def delete_dataset_workflow(request):
         result['success'] = False
         result['error_message'] = str(e)
 
-    return JsonResponse(result)
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 @login_required()
 @activate_user_settings
@@ -614,7 +614,7 @@ def delete_feature_workflow(request):
     feature = request.POST['feature']
     try:
         # get the name of the collection before deleting feature
-        collection = dsl.api.get_features(features=feature, metadata=True)['features'][0]['properties']['collection']
+        collection = dsl.api.get_metadata(feature)[feature]['collection']
 
         dsl.api.delete(feature)
 
@@ -627,7 +627,7 @@ def delete_feature_workflow(request):
         result['success'] = False
         result['error_message'] = str(e)
 
-    return JsonResponse(result)
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 ############################################################################
 
@@ -664,7 +664,7 @@ def new_collection(request):
 def get_collection(request, name):
     success = False
     collection = None
-    collections = dsl.api.get_collections(metadata=True)
+    collections = dsl.api.get_collections(expand=True)
     if name in collections.keys():
         try:
             collection = collections[name]
@@ -700,42 +700,20 @@ def delete_collection(request, name):
 @login_required()
 @activate_user_settings
 def get_features(request):
+
     services = request.GET.get('services')
     collections = request.GET.get('collections')
     filters = {}
-    bbox2 = None
-    bbox = request.GET.get('bbox')
-    if bbox:
-        bbox = [float(i) for i in bbox.split(",")]
-        xmin, ymin, xmax, ymax = bbox
-        if xmax > 180:
-            bbox2 = [-180, ymin, xmax-360, ymax]
-            bbox =  [xmin, ymin, 180, ymax]
-        elif xmin < -180:
-            bbox2 = [xmin + 360, ymin, 180, ymax]
-            bbox = [-180, ymin, xmax, ymax]
-
-        filters['bbox'] = bbox
-    for filter in ['geom_type', 'parameter']:
-        value = request.GET.get(filter)
+    for filter_name in ['geom_type', 'parameter', 'bbox']:
+        value = request.GET.get(filter_name)
         if value is not None:
-            filters[filter] = request.GET.get(filter)
+            filters[filter_name] = value
 
     try:
-        features = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
+        features = dsl.api.get_features(services=services, collections=collections, filters=filters, as_geojson=True)
+
     except Exception as e:
         features = {'error_message': str(e)}
-
-    if bbox2 is not None:
-        try:
-            filters['bbox'] = bbox2
-            features2 = dsl.api.get_features(services=services, collections=collections, filters=filters, metadata=True)
-            features["features"] += features2["features"]
-        except Exception as e:
-            if 'error_message' in features.keys():
-                features['error_message'] += " {0}".format(e)
-            else:
-                features = {'error_message': str(e)}
 
     return JsonResponse(features)
 
@@ -785,10 +763,10 @@ def export_dataset(request):
 
     from django.utils.encoding import smart_str
 
-    file_path = metadata['_save_path']
+    file_path = metadata['file_path']
 
     # hack to get around how DSL is saving time series files
-    if metadata['_file_format'] == 'timeseries-hdf5':
+    if metadata['file_format'] == 'timeseries-hdf5':
         file_path = '{0}.h5'.format(file_path)
     file_name = os.path.basename(file_path)
     f = open(file_path, 'rb')

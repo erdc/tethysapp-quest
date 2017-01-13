@@ -2,14 +2,19 @@ import random
 import json
 import os
 import urllib
+import datetime
+import geojson
 
 import dsl
+from shapely.geometry.base import BaseGeometry
 from tethys_gizmos.gizmo_options import TableView
+
 
 from app import DataBrowser as app
 
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+
 
 def get_random_color():
     r = lambda: random.randint(0,255)
@@ -32,11 +37,11 @@ def codify(name):
 
 
 def get_dsl_providers_with_services():
-    providers = dsl.api.get_providers(metadata=True)
+    providers = dsl.api.get_providers(expand=True)
     for provider in providers.values():
         provider['services'] = list()
 
-    services = dsl.api.get_services(metadata=True)
+    services = dsl.api.get_services(expand=True)
 
     for name, service in services.items():
         provider_name = name.split(':')[1].strip('//')
@@ -86,9 +91,9 @@ def get_hierarchical_provider_list():
 
 def get_feature_source(feature):
     metadata = dsl.api.get_metadata(feature)
-    location = metadata[feature]['_display_name']
-    service = metadata[feature]['_service']
-    service_metadata = dsl.api.get_services(metadata=True)[service]
+    location = metadata[feature]['display_name']
+    service = metadata[feature]['service']
+    service_metadata = dsl.api.get_services(expand=True)[service]
     source = service_metadata['display_name']
     return location, source
 
@@ -96,7 +101,7 @@ def get_feature_source(feature):
 def get_dataset_parameter(dataset):
     parameter = dataset.get('parameter')
     if not parameter:
-        download_options = dataset.get('download_options')
+        download_options = dataset.get('options')
         download_options = json.loads(download_options)
         if download_options:
             parameter = download_options.get('parameter')
@@ -122,10 +127,10 @@ def get_dataset_rows(datasets):
     for dataset in datasets:
         name = dataset['display_name'] or dataset['name']
         location, source = get_feature_source(dataset['feature'])
-        source_type = dataset['dataset_type']
+        source_type = dataset['datatype']
         parameter = get_dataset_parameter(dataset)
         data_type = None
-        status = dataset['download_status']
+        status = dataset['status']
         rows.append((name, location, source, source_type, parameter, data_type, status))
 
     return rows
@@ -141,16 +146,23 @@ def get_datasets_table_options(collection):
                      )
 
 
+def pre_jsonify(obj):
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    elif isinstance(obj, BaseGeometry):
+        return geojson.Feature(geometry=obj, properties={})
+
+
 def get_collections_with_metadata(collection_names=None):
-    collections = dsl.api.get_collections(metadata=True)
+    collections = dsl.api.get_collections(expand=True)
     if collection_names:
         collections = [metadata for name, metadata in collections.items() if name in collection_names]
     else:
         collections = list(collections.values())
 
     for collection in collections:
-        collection['features'] = list(dsl.api.get_features(metadata=True, collections=collection['name']).values())
-        collection['datasets'] = list(dsl.api.get_datasets(metadata=True, filters={'collection': collection['name']}).values())
+        collection['features'] = list(dsl.api.get_features(collections=collection['name'], expand=True).values())
+        collection['datasets'] = list(dsl.api.get_datasets(expand=True, filters={'collection': collection['name']}).values())
         collection['table_view_options'] = get_datasets_table_options(collection)
 
     return collections
@@ -162,7 +174,7 @@ def get_collection_with_metadata(collection_name):
 #TODO this is just a temporary workaround because filtering for the DSL get_filters function seems to be broken
 def get_filters(dataset):
     #TODO filter list of filters by datatype instead of having it hardcoded for ts-filters
-    filters = {f: m for f, m in dsl.api.get_filters(metadata=True) if f.startswith('ts')}
+    filters = {f: m for f, m in dsl.api.get_filters(expand=True) if f.startswith('ts')}
     return filters
 
 

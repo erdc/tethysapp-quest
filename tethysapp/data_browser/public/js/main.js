@@ -3,8 +3,8 @@ var datasets_by_feature = {};
 
 
 function update_datasets_by_feature(collection){
-    collection.features[1].forEach(function(feature){
-        datasets_by_feature[feature.id] = [];
+    collection.features.forEach(function(feature){
+        datasets_by_feature[feature.name] = [];
     });
     collection.datasets.forEach(function(dataset){
         datasets_by_feature[dataset.feature].push(dataset);
@@ -53,6 +53,9 @@ function delete_dataset(dataset_id){
         if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
+        }
+        else{
+            console.log(result);
         }
     })
     .done(function() {
