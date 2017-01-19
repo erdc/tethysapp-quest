@@ -406,7 +406,7 @@ function get_dataset_context_menu_items(dataset){
         }
     ];
 
-    if(dataset.download_status == 'downloaded'){
+    if(dataset.status == 'downloaded'){
         dataset_contextmenu_items.push(
             {
                 text: 'Visualize',
@@ -832,7 +832,7 @@ function get_contextmenu_items(target){
     var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
     dataset = {name: dataset_id,
-               download_status: download_status}
+               status: download_status}
     return get_dataset_context_menu_items(dataset);
 }
 
