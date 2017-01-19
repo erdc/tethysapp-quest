@@ -119,6 +119,7 @@ function delete_dataset(dataset_id){
         if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
+            reset_plot(dataset_id);
         }
         else{
             console.log(result);
@@ -200,6 +201,17 @@ function resize_plot() {
     }
 }
 
+function reset_plot(dataset_id)
+{
+    var plot_dataset_id = $('#plot-content').data('dataset_id');
+    if (dataset_id == plot_dataset_id && plot_dataset_id != 'undefined')
+    {
+        //reset plot
+        $('#plot-content').replaceWith('<div id="plot-content"></div>');
+        $('#plot-content-placeholder').removeClass('hidden');
+    }
+}
+
 function resize_table() {
     var layout_table_div = $("#collection-details-container");
     layout_table_div.find('.dataTables_scrollBody').height(layout_table_div.height()-185+"px");
@@ -239,6 +251,7 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
+               $('#plot-content-placeholder').addClass('hidden');
                $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
                setTimeout(function(){
                    $('#plot-content').replaceWith(result.html);
