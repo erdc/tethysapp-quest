@@ -520,6 +520,13 @@ function bind_context_menu(){
 
 }
 
+function reset_search() {
+    remove_search_layer();
+    $('#search-button').show();
+    $('#loading-gif-search').hide();
+    $('#add-to-collection-button').hide();
+}
+
 $(function() { //wait for page to load
 
 
@@ -614,10 +621,7 @@ $(function() { //wait for page to load
 
   // Tabs
   $('#manage-tab').click(function(e){
-      remove_search_layer();
-      $('#search-button').show();
-      $('#loading-gif-search').hide();
-      $('#add-to-collection-button').hide();
+      reset_search();
   });
 
 
@@ -690,6 +694,9 @@ $(function() { //wait for page to load
 
   // automate service selection based on parameter selection
   $('input[name="parameter"]').change(function(e){
+      //clear map search layer & hide add to collection button
+      reset_search();
+      //update data services tree
       var selected_value = $('input[name="parameter"]:checked').val();
       for(i=0, len=services.length; i<len; i++){
           var service = services[i];
@@ -703,6 +710,8 @@ $(function() { //wait for page to load
               $(service_checkbox).prop('disabled', true);
           };
       };
+      //enable search buttons
+      $('#search-button').attr('disabled', false);
   });
 
 
