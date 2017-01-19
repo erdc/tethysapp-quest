@@ -553,7 +553,8 @@ def visualize_dataset_workflow(request):
     plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
                                              layout=plotly_layout),
                                    height='100%',
-                                   attributes={'id': 'plot-content', },
+                                   attributes={'id': 'plot-content',
+                                               'data-dataset_id': dataset},
                                    )
 
     context = {'plot_view_options': plot_view_options, }
