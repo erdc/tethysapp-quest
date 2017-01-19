@@ -470,7 +470,7 @@ def retrieve_dataset(request, uri, options=None):
         result['collection_name'] = collection
         success = True
     except Exception as e:
-        result['error_message'] = str(e)
+        result['error'] = str(e)
 
     result['success'] = success
 
@@ -618,7 +618,7 @@ def delete_dataset_workflow(request):
         result['success'] = True
     except Exception as e:
         result['success'] = False
-        result['error_message'] = str(e)
+        result['error'] = str(e)
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -640,7 +640,7 @@ def delete_feature_workflow(request):
         result['success'] = True
     except Exception as e:
         result['success'] = False
-        result['error_message'] = str(e)
+        result['error'] = str(e)
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -725,7 +725,7 @@ def get_features(request):
         features = dsl.api.get_features(services=services, collections=collections, filters=filters, as_geojson=True)
 
     except Exception as e:
-        features = {'error_message': str(e)}
+        features = {'error': str(e)}
 
     return JsonResponse(features)
 

@@ -79,12 +79,33 @@ var load_map_layer = function(name, source_url, selectable, color, legend, callb
 
     var layer_options = {'name': name};
 
-    // create a vector source that loads a url that returns GeoJSON
-    //TODO: NEED TO CHECK IF ANYTHING RETURNED
+    var geoJSONFormat = new ol.format.GeoJSON();
     var layer_source = new ol.source.Vector({
-        url: source_url,
-        format: new ol.format.GeoJSON(),
-        projection: 'EPSG:3857',
+        loader: function(extent, resolution, projection) {
+            $.ajax({
+                url: source_url,
+                dataType: 'json'
+            })
+            .done(function(response) {
+                if ('error' in response) {
+                    console.log("Layer load error: " + response.error);
+                    reset_search();
+                }
+                else if (response.features.length <= 0) {
+                    console.log("No features found ...");
+                    reset_search();
+                }
+                else {
+                    var features = geoJSONFormat.readFeatures(response, {featureProjection: 'EPSG:3857'});
+                    layer_source.addFeatures(features);
+                }
+            })
+            .fail(function(){
+                console.log("Layer load error ...");
+                reset_search();
+            });
+        },
+        format: geoJSONFormat,
     });
 
     layer_options.source = layer_source;
