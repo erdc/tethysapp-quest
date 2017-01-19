@@ -46,11 +46,6 @@ function initialize_datatable(selector)
                                   width: '15px',
                                 });
                   column.data().unique().sort().each( function ( d, j ) {
-                      //remove any html tags from string
-                      var tmp = document.createElement("DIV");
-                      tmp.innerHTML = d;
-                      d = tmp.textContent || tmp.innerText || "";
-                      //add string to options
                       select.append( '<option value="'+d+'">'+d+'</option>' )
                   });
                 }
