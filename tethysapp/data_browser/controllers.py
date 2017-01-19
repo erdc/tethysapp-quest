@@ -523,7 +523,8 @@ def visualize_dataset_workflow(request):
     # load data
     df = dsl.api.open_dataset(dataset, fmt='dataframe')
     parameter = df.metadata['parameter']
-    units = df.metadata['units']
+    units = df.metadata.get('unit')
+
     # create plotly plot
     scatter_series = go.Scatter(
         x=df.index,
@@ -545,7 +546,7 @@ def visualize_dataset_workflow(request):
             orientation='h',
         ),
         yaxis=dict(
-            title="{0} ({1})".format(parameter, units),
+            title="{0}{1}".format(parameter, " ({0})".format(units) if units else ''),
         ),
     )
     # create plotly gizmo
