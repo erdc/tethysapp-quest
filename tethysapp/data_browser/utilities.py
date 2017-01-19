@@ -132,8 +132,11 @@ def get_dataset_rows(datasets):
         parameter = get_dataset_parameter(dataset)
         data_type = None
         status = dataset['status']
-        rows.append((dataset['feature'], name, location, source,
-                     source_type, parameter, data_type, status))
+        feature = dataset['feature']
+        message = dataset['message']
+        rows.append((feature, name, location, source,
+                     source_type, parameter, data_type,
+                     status, message))
 
     return rows
 
