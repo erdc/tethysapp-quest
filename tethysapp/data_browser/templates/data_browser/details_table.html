@@ -16,11 +16,14 @@
       <tbody data-collection_id="{{ collection.name }}">
         {% for row in rows %}
         <tr data-feature_id="{{ row.0 }}" data-dataset_id="{{ row.1 }}">
-          {% for entry in row|slice:"1:" %}
+          {% for entry in row|slice:"1:-2" %}
           <td>{{ entry }}</td>
           {% endfor %}
+          <td>
+            {% include 'data_browser/status.html' with dataset=row.0 status=row.7 message=row.8 %}
+          </td>
           <td class="status">
-            {% include 'data_browser/status.html' with dataset=row.1 status=row|last %}
+            {% include 'data_browser/status.html' with dataset=row.1 status=status=row.7 %}
           </td>
         </tr>
         {% endfor %}

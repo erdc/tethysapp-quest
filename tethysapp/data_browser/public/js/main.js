@@ -46,6 +46,11 @@ function initialize_datatable(selector)
                                   width: '15px',
                                 });
                   column.data().unique().sort().each( function ( d, j ) {
+                      //remove any html tags from string
+                      var tmp = document.createElement("DIV");
+                      tmp.innerHTML = d;
+                      d = tmp.textContent || tmp.innerText || "";
+                      //add string to options
                       select.append( '<option value="'+d+'">'+d+'</option>' )
                   });
                 }
@@ -62,6 +67,9 @@ function initialize_datatable(selector)
                                     .find('.select2-selection__arrow')
                                     .replaceWith('<span class="glyphicon glyphicon-filter select2-selection__arrow" aria-hidden="true"></span>');
   resize_table();
+
+  //initilize popovers
+  selector.find('[data-toggle="popover"]').popover();
 }
 
 
@@ -613,6 +621,11 @@ $(function() { //wait for page to load
       modal.find('#description').val("");
   });
 
+  $('#new-collection-modal').on('shown.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#collection_name').focus();
+  });
+
   $('#new-features-modal').on('hidden.bs.modal', function () {
       var modal = $(this);
       modal.find('#new_collection_name').val("");
@@ -658,7 +671,7 @@ $(function() { //wait for page to load
   reload_collection_details_tabs($('.collection_detail_datatable'));
 
   // adjust DataTable headers on tab change
-  $('#collection-details-nav').on('shown.bs.tab', 'a[data-toggle="tab"]',function () {
+  $('#collection-details-nav').on('shown.bs.tab', 'a[data-toggle="tab"]',function(e) {
     var shown_tab_id = $(e.target).attr("href");
     //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
     $(shown_tab_id).find('.collection_detail_datatable').DataTable()
