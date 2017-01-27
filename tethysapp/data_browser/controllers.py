@@ -130,7 +130,7 @@ def new_collection_workflow(request):
     html = None
 
     collection_name = request.POST.get('collection_name')
-    collection_description = request.POST.get('description') or ""
+    collection_description = request.POST.get('description', "")
     collection = utilities.generate_new_collection(collection_name,
                                                    collection_description)
 
@@ -164,11 +164,15 @@ def add_features_workflow(request):
     new_collection_name = request.GET.get('new_collection_name')
     new_collection_description = request.GET.get('new_collection_description')
     if new_collection_name:
-        collection_name = new_collection_name
         # create new colleciton
-        utilities.generate_new_collection(new_collection_name,
-                                          new_collection_description)
+        collection = utilities.generate_new_collection(new_collection_name,
+                                                       new_collection_description)
+
+        collection_name = collection['name']
         new_collection_added = True
+
+    else:
+        collection = utilities.get_collection_with_metadata(collection_name)
 
     success = False
     try:
@@ -181,7 +185,6 @@ def add_features_workflow(request):
                                        })
 
         success = True
-        collection = utilities.get_collection_with_metadata(collection_name)
     except:
         pass
 

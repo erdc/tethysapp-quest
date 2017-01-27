@@ -108,8 +108,8 @@ def get_dataset_parameter(dataset):
 
 
 def get_dataset_columns():
-    return ('Name', 'Location', 'Source', 'Source Type',
-            'Parameter', 'Data Type', 'Status')
+    return ('Name', 'Parameter', 'Location', 'Source',
+            'Data Type', 'Status')
 
 
 def get_dataset_status(dataset):
@@ -128,12 +128,11 @@ def get_dataset_rows(datasets):
     for dataset in datasets:
         name = dataset['display_name'] or dataset['name']
         location, source = get_feature_source(dataset['feature'])
-        source_type = dataset['datatype']
         parameter = get_dataset_parameter(dataset)
-        data_type = None
+        data_type = dataset['datatype']
         status = dataset['status']
-        rows.append((dataset['feature'], name, location, source,
-                     source_type, parameter, data_type, status))
+        rows.append((dataset['feature'], name, parameter, location, source,
+                     data_type, status))
 
     return rows
 
@@ -177,8 +176,7 @@ def generate_new_collection(collection_name, collection_description,
                                         metadata={'color': color})
 
     if metadata:
-        collection = get_collection_with_metadata(collection_name)
-        # add_metadata_to_collection(collection)
+        add_metadata_to_collection(collection)
 
     return collection
 

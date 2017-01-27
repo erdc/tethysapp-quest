@@ -22,7 +22,7 @@ function initialize_datatable(selector)
   selector.DataTable({
         destroy: true,
         columnDefs: [
-          { orderable: false, targets: 7 }
+          { orderable: false, targets: 6 }
         ],
         initComplete: function () {
             this.api().columns().every( function () {
