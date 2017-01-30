@@ -1,4 +1,3 @@
-from datetime import datetime
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -18,7 +17,6 @@ from tethys_sdk.gizmos import (MapView,
                                )
 
 from app import DataBrowser as app
-import utilities
 
 import dsl
 import json
@@ -88,11 +86,11 @@ def home(request):
                                             )
 
     new_collection_name_text_options = TextInput(display_text='New Collection Name',
-                                            name='new_collection_name',
-                                            )
+                                                 name='new_collection_name',
+                                                 )
     new_collection_description_text_options = TextInput(display_text='New Collection Description',
-                                            name='new_collection_description',
-                                            )
+                                                        name='new_collection_description',
+                                                        )
 
     context = {'collections': collections,
                'collections_json': json.dumps(collections, default=utilities.pre_jsonify),
@@ -110,8 +108,6 @@ def home(request):
     return render(request, 'data_browser/home.html', context)
 
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import redirect
-from django.template.loader import render_to_string
 from django.core.urlresolvers import reverse
 
 import utilities
@@ -178,9 +174,9 @@ def add_features_workflow(request):
     try:
         features = dsl.api.add_features(collection_name, features)
         for feature in features:
-            dataset = dsl.api.new_dataset(feature, dataset_type='download')
+            dataset = dsl.api.new_dataset(feature, source='download')
             dsl.api.stage_for_download(dataset,
-                                       download_options={
+                                       options={
                                            'parameter': parameter
                                        })
 
@@ -255,15 +251,14 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
 def get_download_options_workflow(request):
     dataset = request.GET['dataset']
     success = False
-    # try:
-    if True:
+    try:
         options = dsl.api.download_options(dataset)
         if dataset in options:
             options = options[dataset]
 
         success = True
-    # except Exception as e:
-        # raise(e)
+    except Exception as e:
+        raise(e)
 
     if 'properties' not in options:
         return retrieve_dataset(request, dataset)
@@ -290,6 +285,7 @@ def get_download_options_workflow(request):
 
     return JsonResponse(result)
 
+
 @login_required()
 @activate_user_settings
 def get_filter_list_workflow(request):
@@ -308,7 +304,7 @@ def get_filter_list_workflow(request):
 
         success = True
     except Exception as e:
-        raise(e)
+        raise e
 
     html = get_options_html(request,
                             uri=dataset_id,
@@ -317,7 +313,6 @@ def get_filter_list_workflow(request):
                             options_type=options_type,
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
-
 
     result = {'success': success,
               'html': html,
@@ -362,7 +357,6 @@ def get_filter_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-
     result = {'success': success,
               'html': html,
               }
@@ -405,7 +399,6 @@ def get_visualize_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-
     result = {'success': success,
               'html': html,
               }
@@ -429,7 +422,6 @@ def add_data_workflow(request):
 
     if 'properties' not in options:
         return retrieve_dataset(request, feature)
-
 
     html = get_options_html(request,
                             uri=feature,
@@ -459,16 +451,9 @@ def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        if uri.startswith('f'):
-            dataset_id = dsl.api.new_dataset(uri, dataset_type='download')
-        elif uri.startswith('d'):
-            dataset_id = uri
-        else:
-            dataset_id = None
-
-        dsl.api.stage_for_download(dataset_id, download_options=options)
+        dataset_id = dsl.api.stage_for_download(uri, options=options)
         response = dsl.api.download_datasets(dataset_id)
-        collection = dsl.api.get_datasets(expand=True)[dataset_id]['collection']
+        collection = dsl.api.get_datasets(expand=True)[dataset_id[0]]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         success = True
