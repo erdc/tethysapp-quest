@@ -131,7 +131,8 @@ def get_dataset_rows(datasets):
         parameter = get_dataset_parameter(dataset)
         data_type = dataset['datatype']
         status = dataset['status']
-        rows.append((dataset['feature'], name, parameter, location, source,
+        auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'feature', 'message', 'status'}}
+        rows.append((auxiliary, name, parameter, location, source,
                      data_type, status))
 
     return rows

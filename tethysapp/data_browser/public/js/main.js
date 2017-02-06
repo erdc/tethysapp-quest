@@ -22,7 +22,7 @@ function initialize_datatable(selector)
   selector.DataTable({
         destroy: true,
         columnDefs: [
-          { orderable: false, targets: 6 }
+          { orderable: false, targets: $(selector[0]).find('thead').find('th').length - 1 }
         ],
         initComplete: function () {
             this.api().columns().every( function () {
@@ -61,7 +61,7 @@ function initialize_datatable(selector)
   $('#collection-details-container').find('.datatable-filters')
                                     .find('.select2-selection__arrow')
                                     .replaceWith('<span class="glyphicon glyphicon-filter select2-selection__arrow" aria-hidden="true"></span>');
-  resize_table();
+//  resize_table();
 
   //initilize popovers
   selector.find('[data-toggle="popover"]').popover();
@@ -537,7 +537,7 @@ function bind_context_menu(){
 }
 
 function reset_search() {
-    remove_search_layer();
+    deactivate_search_layer();
     $('#search-button').show();
     $('#loading-gif-search').hide();
     $('#add-to-collection-button').hide();
@@ -554,7 +554,7 @@ $(function() { //wait for page to load
 
   $('#search-form').submit(function(e){
       e.preventDefault();
-      remove_search_layer();
+      deactivate_search_layer();
       $('#search-button').hide();
       $('#loading-gif-search').show();
       $('#add-to-collection-button').hide();
@@ -565,7 +565,7 @@ $(function() { //wait for page to load
                  'value': get_map_extents()});
 
       url = get_source_url(data);
-      load_map_layer(SEARCH_LAYER_NAME, url, true, null, null, function(){
+      load_map_layer(SEARCH_LAYER_NAME, url, null, null, function(){
           $('#search-button').show();
           $('#loading-gif-search').hide();
           $('#add-to-collection-button').show();
@@ -595,7 +595,7 @@ $(function() { //wait for page to load
       $.get(url, data)
       .done(function(result) {
           if(result.success){
-              remove_search_layer();
+              deactivate_search_layer();
               update_datasets_by_feature(result.collection);
               update_collection_layer(result.collection);
 
@@ -608,11 +608,16 @@ $(function() { //wait for page to load
                 // update details table
                 update_details_table(result.collection.name, result.details_table_html);
               }
-
+              $('#new_collection_name').val('');
+              $('#new_collection_description').val('');
+              $('#add-features-modal').modal('hide');
+              $('#manage-tab').click();
+          }
+          else{
+            console.log('error');
+            console.log(result);
           }
 
-          $('#add-features-modal').modal('hide');
-          $('#manage-tab').click()
       })
       .fail(function() {
           console.log( "error" );
@@ -643,8 +648,14 @@ $(function() { //wait for page to load
   // Tabs
   $('#manage-tab').click(function(e){
       reset_search();
+      // activate collection interaction
+      activate_collection_interaction();
   });
 
+  $('#search-tab').click(function(e){
+      // deactivate collection interaction
+      deactivate_collection_interaction();
+  });
 
   /*******************************************************************************
    *

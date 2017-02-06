@@ -33,11 +33,11 @@ def activate_user_settings(func):
                                  })
 
         # read in any saved settings for user
-        settings_file = dsl.util.config._default_config_file()
-        if os.path.exists(settings_file):
-            dsl.api.update_settings_from_file(settings_file)
-        else:
-            dsl.api.save_settings(settings_file)
+        # settings_file = dsl.util.config._default_config_file()
+        # if os.path.exists(settings_file):
+        #     dsl.api.update_settings_from_file(settings_file)
+        # else:
+        #     dsl.api.save_settings(settings_file)
 
         return func(request, *args, **kwargs)
 
@@ -161,14 +161,11 @@ def add_features_workflow(request):
     new_collection_description = request.GET.get('new_collection_description')
     if new_collection_name:
         # create new colleciton
-        collection = utilities.generate_new_collection(new_collection_name,
+        new_collection = utilities.generate_new_collection(new_collection_name,
                                                        new_collection_description)
 
-        collection_name = collection['name']
+        collection_name = new_collection['name']
         new_collection_added = True
-
-    else:
-        collection = utilities.get_collection_with_metadata(collection_name)
 
     success = False
     try:
@@ -179,22 +176,23 @@ def add_features_workflow(request):
                                        options={
                                            'parameter': parameter
                                        })
+            collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
     except:
         pass
 
-    context = {'collection': collection}
+    # context = {'collection': collection}
     result = {'collection': collection}
     result['details_table_html'] = \
-        render(request, 'data_browser/details_table.html', context).content
+        render(request, 'data_browser/details_table.html', result).content
 
     if new_collection_added:
         result['collection_html'] = \
-            render(request, 'data_browser/collection.html', context).content
+            render(request, 'data_browser/collection.html', result).content
         result['details_table_tab_html'] = \
             render(request, 'data_browser/details_table_tab.html',
-                   context).content
+                   result).content
 
     result['success'] = success
 
