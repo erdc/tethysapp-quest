@@ -171,9 +171,9 @@ def add_features_workflow(request):
     try:
         features = dsl.api.add_features(collection_name, features)
         for feature in features:
-            dataset = dsl.api.new_dataset(feature, source='download')
+            dataset = dsl.api.new_dataset(feature, dataset_type='download')
             dsl.api.stage_for_download(dataset,
-                                       options={
+                                       download_options={
                                            'parameter': parameter
                                        })
             collection = utilities.get_collection_with_metadata(collection_name)
@@ -449,7 +449,7 @@ def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        dataset_id = dsl.api.stage_for_download(uri, options=options)
+        dataset_id = dsl.api.stage_for_download(uri, download_options=options)
         response = dsl.api.download_datasets(dataset_id)
         collection = dsl.api.get_datasets(expand=True)[dataset_id[0]]['collection']
         result['details_table_html'] = get_details_table(request, collection)
