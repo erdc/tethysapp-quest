@@ -48,6 +48,11 @@ function add_collection_layer(collection){
 function remove_layer(layer_name){
     var layer = get_layer_by_name(layer_name);
     map.removeLayer(layer);
+    //remove collection layer from list
+    if (layer_name != SEARCH_LAYER_NAME)
+    {
+        delete collection_layers[layer_name]
+    }
 }
 
 function update_collection_layer(collection){
