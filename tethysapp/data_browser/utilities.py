@@ -132,8 +132,7 @@ def get_dataset_rows(datasets):
         data_type = dataset['datatype']
         status = dataset['status']
         auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'feature', 'message', 'status'}}
-        rows.append((auxiliary, name, parameter, location, source,
-                     data_type, status))
+        rows.append((auxiliary, name, parameter, location, source, data_type, status))
 
     return rows
 
@@ -149,7 +148,6 @@ def get_datasets_table_options(collection):
 
 
 def pre_jsonify(obj):
-    print(obj)
     if hasattr(obj, 'isoformat'):
         return obj.isoformat()
     elif isinstance(obj, BaseGeometry):
