@@ -18,7 +18,7 @@ from tethys_sdk.gizmos import (MapView,
 
 from app import DataBrowser as app
 
-import dsl
+import quest
 import json
 import os
 
@@ -28,16 +28,16 @@ def activate_user_settings(func):
     def wrapper(request, *args, **kwargs):
 
         # change settings to point at users worksapce
-        dsl.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
+        quest.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                                  'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                                  })
 
         # read in any saved settings for user
-        # settings_file = dsl.util.config._default_config_file()
-        # if os.path.exists(settings_file):
-        #     dsl.api.update_settings_from_file(settings_file)
-        # else:
-        #     dsl.api.save_settings(settings_file)
+        settings_file = quest.util.config._default_config_file()
+        if os.path.exists(settings_file):
+            quest.api.update_settings_from_file(settings_file)
+        else:
+            quest.api.save_settings(settings_file)
 
         return func(request, *args, **kwargs)
 
@@ -53,10 +53,10 @@ def home(request):
     """
 
     collections = utilities.get_collections_with_metadata()
-    parameters = dsl.api.get_mapped_parameters()
-    providers = utilities.get_dsl_providers_with_services()
+    parameters = quest.api.get_mapped_parameters()
+    providers = utilities.get_quest_providers_with_services()
     checkbox_tree = utilities.get_hierarchical_provider_list()
-    services = json.dumps(list(dsl.api.get_services(expand=True).values()))
+    services = json.dumps(list(quest.api.get_services(expand=True).values()))
 
     # Define view options
     view_options = MVView(
@@ -169,17 +169,15 @@ def add_features_workflow(request):
 
     success = False
     try:
-        features = dsl.api.add_features(collection_name, features)
+        features = quest.api.add_features(collection_name, features)
         for feature in features:
-            dataset = dsl.api.new_dataset(feature, dataset_type='download')
-            dsl.api.stage_for_download(dataset,
-                                       download_options={
-                                           'parameter': parameter
-                                       })
+            dataset = quest.api.new_dataset(feature, source='download')
+            quest.api.stage_for_download(dataset, options={'parameter': parameter})
             collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
-    except:
+    except Exception as e:
+        print('Ignoring Exception: {0}'.format(str(e)))
         pass
 
     # context = {'collection': collection}
@@ -250,7 +248,7 @@ def get_download_options_workflow(request):
     dataset = request.GET['dataset']
     success = False
     try:
-        options = dsl.api.download_options(dataset)
+        options = quest.api.download_options(dataset)
         if dataset in options:
             options = options[dataset]
 
@@ -263,7 +261,7 @@ def get_download_options_workflow(request):
 
     options_metadata_name = 'options'
     set_options = {}
-    metadata = dsl.api.get_metadata(dataset)[dataset]
+    metadata = quest.api.get_metadata(dataset)[dataset]
     if options_metadata_name in metadata:
         set_options = json.loads(metadata[options_metadata_name])
         if not set_options:
@@ -296,7 +294,7 @@ def get_filter_list_workflow(request):
 
     success = False
     try:
-        # filters = dsl.api.get_filters(filters={'dataset': dataset_id})
+        # filters = quest.api.get_filters(filters={'dataset': dataset_id})
         filters = utilities.get_filters(dataset_id)
         options['properties'] = filters
 
@@ -328,7 +326,7 @@ def get_filter_options_workflow(request):
     submit_controller_name = 'apply_filter_workflow',
     submit_btn_text = 'Apply Filter'
 
-    get_options_function = dsl.api.apply_filter_options
+    get_options_function = quest.api.apply_filter_options
 
     success = False
     try:
@@ -341,7 +339,7 @@ def get_filter_options_workflow(request):
         raise(e)
 
     set_options = {}
-    metadata = dsl.api.get_metadata(dataset_id)[dataset_id]
+    metadata = quest.api.get_metadata(dataset_id)[dataset_id]
     if options_metadata_name in metadata:
         set_options = json.loads(metadata[options_metadata_name])
         if not set_options:
@@ -367,7 +365,7 @@ def get_filter_options_workflow(request):
 def get_visualize_options_workflow(request):
     dataset_id = request.GET['dataset']
     options_type = 'visualize'
-    get_options_function = dsl.api.visualize_dataset_options
+    get_options_function = quest.api.visualize_dataset_options
     options_metadata_name = 'visualize_options'
     submit_controller_name = 'visualize_dataset_workflow'
     submit_btn_text = 'Visualize'
@@ -383,7 +381,7 @@ def get_visualize_options_workflow(request):
         raise(e)
 
     set_options = {}
-    metadata = dsl.api.get_metadata(dataset_id)[dataset_id]
+    metadata = quest.api.get_metadata(dataset_id)[dataset_id]
     if options_metadata_name in metadata:
         set_options = json.loads(metadata[options_metadata_name])
         if not set_options:
@@ -411,7 +409,7 @@ def add_data_workflow(request):
 
     success = False
     try:
-        options = dsl.api.download_options(feature)
+        options = quest.api.download_options(feature)
         options = options[feature]
 
         success = True
@@ -449,9 +447,9 @@ def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        dataset_id = dsl.api.stage_for_download(uri, download_options=options)
-        response = dsl.api.download_datasets(dataset_id)
-        collection = dsl.api.get_datasets(expand=True)[dataset_id[0]]['collection']
+        dataset_id = quest.api.stage_for_download(uri, options=options)
+        response = quest.api.download_datasets(dataset_id)
+        collection = quest.api.get_datasets(expand=True)[dataset_id[0]]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         success = True
@@ -484,7 +482,7 @@ def apply_filter_workflow(request):
     filter = request.POST.get('filter')
     try:
         # get the name of the collection before deleting feature
-        collection = dsl.api.get_datasets(expand=True)[dataset_id]['collection']
+        collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
 
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
@@ -507,7 +505,7 @@ def visualize_dataset_workflow(request):
     '''
     dataset = request.GET['dataset']
     # load data
-    df = dsl.api.open_dataset(dataset, fmt='dataframe')
+    df = quest.api.open_dataset(dataset, fmt='dataframe')
     parameter = df.metadata['parameter']
     units = df.metadata.get('unit')
 
@@ -562,9 +560,9 @@ def show_metadata_workflow(request):
     title = 'Metadata'
 
     if uri.startswith('f'):
-        metadata = dsl.api.get_features(features=uri, expand=True)['features'][0]['properties']
+        metadata = quest.api.get_features(uri, expand=True)['features'][0]['properties']
     elif uri.startswith('d'):
-        metadata = dsl.api.get_datasets(expand=True)[uri]
+        metadata = quest.api.get_datasets(expand=True)[uri]
     rows = [(k, v) for k, v in metadata.items()]
 
     table_view_options = TableView(column_names=('Property', 'Value'),
@@ -593,9 +591,9 @@ def delete_dataset_workflow(request):
     dataset = request.POST['dataset']
     try:
         # get the name of the collection before deleting dataset
-        collection = dsl.api.get_datasets(expand=True)[dataset]['collection']
+        collection = quest.api.get_datasets(expand=True)[dataset]['collection']
 
-        dsl.api.delete(dataset)
+        quest.api.delete(dataset)
 
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
@@ -615,9 +613,9 @@ def delete_feature_workflow(request):
     feature = request.POST['feature']
     try:
         # get the name of the collection before deleting feature
-        collection = dsl.api.get_metadata(feature)[feature]['collection']
+        collection = quest.api.get_metadata(feature)[feature]['collection']
 
-        dsl.api.delete(feature)
+        quest.api.delete(feature)
 
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
@@ -639,7 +637,7 @@ def delete_feature_workflow(request):
 @login_required()
 # @activate_user_settings
 def get_settings(request):
-    return JsonResponse(dsl.api.get_settings())
+    return JsonResponse(quest.api.get_settings())
 
 
 @login_required()
@@ -662,7 +660,7 @@ def new_collection(request):
 def get_collection(request, name):
     success = False
     collection = None
-    collections = dsl.api.get_collections(expand=True)
+    collections = quest.api.get_collections(expand=True)
     if name in collections.keys():
         try:
             collection = collections[name]
@@ -682,10 +680,10 @@ def update_collection(request, name):
 @activate_user_settings
 def delete_collection(request, name):
     success = False
-    collections = dsl.api.get_collections()
+    collections = quest.api.get_collections()
     if name in collections:
         try:
-            dsl.api.delete(name)
+            quest.api.delete(name)
             success = True
         except:
             pass
@@ -699,8 +697,9 @@ def delete_collection(request, name):
 @activate_user_settings
 def get_features(request):
 
+    uris = request.GET.get('uris')
     services = request.GET.get('services')
-    collections = request.GET.get('collections')
+    uris = utilities.listify(uris, services)
     filters = {}
     for filter_name in ['geom_type', 'parameter', 'bbox']:
         value = request.GET.get(filter_name)
@@ -708,12 +707,12 @@ def get_features(request):
             filters[filter_name] = value
 
     try:
-        features = dsl.api.get_features(services=services, collections=collections, filters=filters, as_geojson=True)
+        features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
 
     except Exception as e:
         features = {'error': str(e)}
 
-    return JsonResponse(features)
+    return JsonResponse(features, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 @login_required()
@@ -724,7 +723,7 @@ def add_features(request):
 
     success = False
     try:
-        dsl.api.add_features(collection, features)
+        quest.api.add_features(collection, features)
         success = True
     except:
         pass
@@ -739,7 +738,7 @@ def retrieve_datasets(request):
     dataset = request.GET['dataset']
     success = False
     try:
-        dsl.api.download_datasets(dataset)
+        quest.api.download_datasets(dataset)
         success = True
     except:
         pass
@@ -754,7 +753,7 @@ def export_dataset(request):
     dataset = request.GET['dataset']
     success = False
     try:
-        metadata = dsl.api.get_metadata(dataset)[dataset]
+        metadata = quest.api.get_metadata(dataset)[dataset]
         success = True
     except:
         pass
@@ -763,7 +762,7 @@ def export_dataset(request):
 
     file_path = metadata['file_path']
 
-    # hack to get around how DSL is saving time series files
+    # hack to get around how quest is saving time series files
     if metadata['file_format'] == 'timeseries-hdf5':
         file_path = '{0}.h5'.format(file_path)
     file_name = os.path.basename(file_path)
