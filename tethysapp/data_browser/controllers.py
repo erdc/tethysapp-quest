@@ -712,7 +712,7 @@ def get_features(request):
     except Exception as e:
         features = {'error': str(e)}
 
-    return JsonResponse(features, json_dumps_params={'default': utilities.pre_jsonify})
+    return JsonResponse(features)
 
 
 @login_required()
