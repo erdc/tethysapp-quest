@@ -29,8 +29,8 @@ def activate_user_settings(func):
 
         # change settings to point at users worksapce
         quest.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
-                                 'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
-                                 })
+                                   'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+                                   })
 
         # read in any saved settings for user
         settings_file = quest.util.config._default_config_file()
@@ -508,11 +508,12 @@ def visualize_dataset_workflow(request):
     df = quest.api.open_dataset(dataset, fmt='dataframe')
     parameter = df.metadata['parameter']
     units = df.metadata.get('unit')
+    data_col = df.columns[0]  # TODO fix this in quest
 
     # create plotly plot
     scatter_series = go.Scatter(
         x=df.index,
-        y=df[parameter],
+        y=df[data_col],
         name=dataset,
         fill='tozeroy'
     )
@@ -530,7 +531,7 @@ def visualize_dataset_workflow(request):
             orientation='h',
         ),
         yaxis=dict(
-            title="{0}{1}".format(parameter, " ({0})".format(units) if units else ''),
+            title="{0}{1}".format(data_col, " ({0})".format(units) if units else ''),
         ),
     )
     # create plotly gizmo
