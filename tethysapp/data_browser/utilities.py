@@ -197,16 +197,6 @@ def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
 
 
-# TODO this is just a temporary workaround because filtering for the quest
-# get_filters function seems to be broken
-def get_filters(dataset):
-    # TODO filter list of filters by datatype instead of
-    # having it hardcoded for ts-filters
-    filters = {f: m for f, m in quest.api.get_filters(expand=True)
-               if f.startswith('ts')}
-    return filters
-
-
 def update_quest_cache():
     cache_dir = os.path.join(app.get_app_workspace().path, 'cache')
     quest.api.update_settings({'CACHE_DIR': cache_dir, })

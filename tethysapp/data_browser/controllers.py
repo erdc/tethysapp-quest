@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 import plotly.graph_objs as go
+import pandas as pd
 
 from tethys_sdk.gizmos import (MapView,
                                MVDraw,
@@ -21,6 +22,8 @@ from app import DataBrowser as app
 import quest
 import json
 import os
+
+from pprint import pprint  # for debugging
 
 
 def activate_user_settings(func):
@@ -197,9 +200,63 @@ def add_features_workflow(request):
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
+def get_option_options(property, property_options, set_options):
+    if property_options['type'] == 'conditional':
+        input_type = 'conditional'
+        input_options = dict()
+        input_options['select_options'] = SelectInput(name=property,
+                                                      display_text=property_options['description'],
+                                                      multiple=False,
+                                                      options=[(option, option) for option in property_options['options'].keys()],
+                                                      initial=set_options.get(property, ''),
+                                                      select2_options={'placeholder': 'Select a ' + property_options['description'], 'allowClear': True},
+                                                      )
+        conditions_options = dict()
+        for condition, condition_options in property_options['options'].items():
+            condition_input_options_list = list()
+            for condition_property, condition_property_options in condition_options['properties'].items():
+                condition_input_type, condition_input_options = get_option_options(condition_property, condition_property_options, set_options)
+                condition_input_options_list.append(condition_input_options)
+            conditions_options[condition] = condition_input_options_list
+        input_options['conditions_options'] = conditions_options
+
+    elif 'enum' in property_options or isinstance(property_options['type'], dict):
+        input_type = 'select'
+        if isinstance(property_options['type'], dict):
+            options = property_options['type']['enum']
+            set_options.setdefault(property, property_options['type'].get('default'))
+        else:
+            options = property_options['enum']
+        input_options = SelectInput(name=property,
+                                    display_text=property_options['description'],
+                                    multiple=False,
+                                    options=[(option, option,) for option in options],
+                                    initial=set_options.get(property, ''),
+                                    )
+
+    elif 'date' in property_options['description']:
+        input_type = 'date'
+        input_options = DatePicker(name=property,
+                                   display_text=property_options['description'],
+                                   autoclose=True,
+                                   format='m/d/yyyy',
+                                   today_button=True,
+                                   initial=set_options.get(property, '')
+                                   )
+    else:
+        input_type = 'text'
+        input_options = TextInput(name=property,
+                                  display_text=property_options['description'],
+                                  placeholder='',
+                                  initial=set_options.get(property, '')
+                                  )
+
+    return input_type, input_options
+
+
 def get_options_html(request, uri, options, set_options, options_type, submit_controller_name, submit_btn_text):
     context = {'options_type': options_type,
-               'action': reverse('data_browser:{}'.format(submit_controller_name)),
+               'action': reverse('data_browser:{0}'.format(submit_controller_name)),
                'uri': uri,
                'submit_btn_text': submit_btn_text,
                'properties': options.get('properties', None),
@@ -207,31 +264,7 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
                }
 
     for property, property_options in context['properties'].items():
-        if 'enum' in property_options:
-            input_type = 'select'
-            input_options = SelectInput(display_text=property_options['description'],
-                                        name=property_options['description'],
-                                        multiple=False,
-                                        options=[(option, option,) for option in property_options['enum']],
-                                        initial=set_options.get(property, ''),
-                                        )
-
-        elif 'date' in property_options['description']:
-            input_type = 'date'
-            input_options = DatePicker(name=property_options['description'],
-                                       display_text=property_options['description'],
-                                       autoclose=True,
-                                       format='m/d/yyyy',
-                                       today_button=True,
-                                       initial=set_options.get(property, '')
-                                       )
-        else:
-            input_type = 'text'
-            input_options = TextInput(display_text=property_options['description'],
-                                      name=property_options['description'],
-                                      placeholder='',
-                                      initial=set_options.get(property, '')
-                                      )
+        input_type, input_options = get_option_options(property, property_options, set_options)
 
         context['properties'][property]['input_type'] = input_type
         context['properties'][property]['input_options'] = input_options
@@ -286,17 +319,18 @@ def get_download_options_workflow(request):
 @activate_user_settings
 def get_filter_list_workflow(request):
     dataset_id = request.GET['dataset']
-    options_type = 'filter',
-    submit_controller_name = 'apply_filter_workflow',
+    options_type = 'filter'
+    submit_controller_name = 'apply_filter_workflow'
     submit_btn_text = 'Apply Filter'
-    options = {'title': 'Apply Filter',
-               }
+    options = {'title': 'Apply Filter'}
 
     success = False
     try:
-        # filters = quest.api.get_filters(filters={'dataset': dataset_id})
-        filters = utilities.get_filters(dataset_id)
-        options['properties'] = filters
+        filters = quest.api.get_filters(filters={'dataset': dataset_id})
+        filter_options = {f: quest.api.apply_filter_options(f) for f in filters}
+        options['properties'] = {'filter': {'options': filter_options,
+                                            'description': 'filter',
+                                            'type': 'conditional'}}
 
         success = True
     except Exception as e:
@@ -320,19 +354,18 @@ def get_filter_list_workflow(request):
 @login_required()
 @activate_user_settings
 def get_filter_options_workflow(request):
-    dataset_id = request.GET['dataset']
-    options_metadata_name = 'options',
-    options_type = 'filter',
-    submit_controller_name = 'apply_filter_workflow',
+    dataset_id = request.POST.get('uri')
+    filter = request.POST.get('filter')
+    options_metadata_name = 'options'
+    options_type = 'filter'
+    submit_controller_name = 'apply_filter_workflow'
     submit_btn_text = 'Apply Filter'
 
     get_options_function = quest.api.apply_filter_options
 
     success = False
     try:
-        options = get_options_function(dataset_id)
-        if dataset_id in options:
-            options = options[dataset_id]
+        options = get_options_function(filter)
 
         success = True
     except Exception as e:
@@ -448,7 +481,7 @@ def retrieve_dataset(request, uri, options=None):
     result = {}
     try:
         dataset_id = quest.api.stage_for_download(uri, options=options)
-        response = quest.api.download_datasets(dataset_id)
+        quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id[0]]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
@@ -480,20 +513,19 @@ def apply_filter_workflow(request):
     result = {'success': False}
     dataset_id = request.POST['uri']
     filter = request.POST.get('filter')
+    options = dict(request.POST.items())
     try:
-        # get the name of the collection before deleting feature
-        collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
-
+        quest.api.apply_filter(filter, dataset_id, options=options)
+        collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
+        result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
-
-        # get the updated collection details after the feature has been deleted
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
     except Exception as e:
         result['success'] = False
         result['error_message'] = str(e)
 
-    return JsonResponse(result)
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 @login_required()
@@ -508,11 +540,15 @@ def visualize_dataset_workflow(request):
     df = quest.api.open_dataset(dataset, fmt='dataframe')
     parameter = df.metadata['parameter']
     units = df.metadata.get('unit')
-    data_col = df.columns[0]  # TODO fix this in quest
+    data_col = parameter if parameter in df.columns else df.columns[0]  # TODO fix this in quest
+
+    x = df.index
+    if hasattr(x, 'to_timestamp'):
+        x = x.to_timestamp()
 
     # create plotly plot
     scatter_series = go.Scatter(
-        x=df.index,
+        x=x,
         y=df[data_col],
         name=dataset,
         fill='tozeroy'
@@ -707,11 +743,11 @@ def get_features(request):
         if value is not None:
             filters[filter_name] = value
 
-    try:
-        features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
+    # try:
+    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
 
-    except Exception as e:
-        features = {'error': str(e)}
+    # except Exception as e:
+    #     features = {'error': str(e)}
 
     return JsonResponse(features)
 

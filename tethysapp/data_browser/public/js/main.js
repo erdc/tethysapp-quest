@@ -35,10 +35,19 @@ function initialize_datatable(selector)
                               $(this).val()
                           );
 
+                          // update the style of the filter icon
+                          if(val == ''){
+                            $(this).parent().removeClass('filtered')
+                          }
+                          else{
+                            $(this).parent().addClass('filtered')
+                          }
+
                           column
                               .search( val ? '^'+val+'$' : '', true, false )
                               .draw();
                       } );
+
                   $(column.header()).append(select);
                   select.select2({
                                   dropdownCssClass : 'bigdrop',
@@ -47,6 +56,11 @@ function initialize_datatable(selector)
                                 });
                   column.data().unique().sort().each( function ( d, j ) {
                       select.append( '<option value="'+d+'">'+d+'</option>' )
+                  });
+                  select.on('select2:open', function(){
+                    setTimeout(function(){
+                        $('.select2-results__option').first().html('All');
+                    }, 10);
                   });
                 }
             });
@@ -90,7 +104,7 @@ function reload_collection_details_tabs(selector, collection_name){
         $('#collection-details-nav li:first a').tab('show');
     }
     initialize_datatable(selector);
-
+    resize_table();
 }
 
 
@@ -171,7 +185,7 @@ function add_data(feature_id){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
-                $('#options-content').find('.select2').select2();
+                TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
             }
             else{
                 update_details_table(result.collection_name, result.details_table_html);
@@ -243,7 +257,7 @@ function populate_options_form_for_dataset(dataset, type){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
-                    $('#options-content').find('.select2').select2();
+                    TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
@@ -354,7 +368,8 @@ function new_collection_html_update(result){
       $('#collections-list').append(result.collection_html);
       $('#new-collection-modal').modal('hide')
       // update collection select
-      $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
+      $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }],
+                                placeholder: 'Select a collection'});
       $('#collection').trigger('change');
       // add details table
       $('#collection-details-nav ul').append(result.details_table_tab_html);

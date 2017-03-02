@@ -188,9 +188,21 @@ h1.title{
   border: none !important;
 }
 
+span.glyphicon.glyphicon-filter.select2-selection__arrow{
+    top: 8px !important;
+    right: -5px;
+    opacity: .25;
+}
+
+.filtered
+span.glyphicon.glyphicon-filter.select2-selection__arrow{
+    color: #7a80dd;
+    opacity: 1;
+}
+
 #collection-details-container
 .select2 {
-  float: right !important;
+  float: right;
 }
 
 #collection-details-nav{
