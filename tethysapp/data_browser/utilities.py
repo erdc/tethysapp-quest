@@ -88,12 +88,28 @@ def get_hierarchical_provider_list():
 
 
 def get_feature_source(feature):
-    metadata = quest.api.get_metadata(feature)
-    location = metadata[feature]['display_name']
-    service = metadata[feature]['service']
+    metadata = quest.api.get_metadata(feature)[feature]
+    location = metadata['display_name']
+    service = metadata['service']
     service_metadata = quest.api.get_services(expand=True)[service]
     source = service_metadata['display_name']
     return location, source
+
+
+def get_display_name(feature, parameter):
+    metadata = quest.api.get_metadata(feature)[feature]
+    service = metadata['service']
+    provider = quest.util.parse_service_uri(service)[0]
+    parameter = parameter.split(':')[0]
+    display_name = '{0}|{1}'.format(provider.upper(), parameter.title())
+    return display_name
+
+
+def add_dataset(feature, options):
+    dataset_id = quest.api.stage_for_download(feature, options)
+    parameter = options['parameter']
+    quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
+    return dataset_id
 
 
 def get_dataset_parameter(dataset):
@@ -108,7 +124,7 @@ def get_dataset_parameter(dataset):
 
 
 def get_dataset_columns():
-    return ('Name', 'Parameter', 'Location', 'Source',
+    return ('Name', 'Created At', 'Parameter', 'Location', 'Source',
             'Data Type', 'Status')
 
 
@@ -131,8 +147,9 @@ def get_dataset_rows(datasets):
         parameter = get_dataset_parameter(dataset)
         data_type = dataset['datatype']
         status = dataset['status']
+        created_time = dataset['created_at']
         auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'feature', 'message', 'status'}}
-        rows.append((auxiliary, name, parameter, location, source, data_type, status))
+        rows.append((auxiliary, name, created_time, parameter, location, source, data_type, status))
 
     return rows
 

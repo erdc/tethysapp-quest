@@ -173,9 +173,9 @@ def add_features_workflow(request):
     success = False
     try:
         features = quest.api.add_features(collection_name, features)
+        options = {'parameter': parameter}
         for feature in features:
-            dataset = quest.api.new_dataset(feature, source='download')
-            quest.api.stage_for_download(dataset, options={'parameter': parameter})
+            dataset = utilities.add_dataset(feature, options)
             collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
@@ -480,7 +480,7 @@ def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        dataset_id = quest.api.stage_for_download(uri, options=options)
+        dataset_id = utilities.add_dataset(uri, options=options)
         quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id[0]]['collection']
         result['details_table_html'] = get_details_table(request, collection)
@@ -596,10 +596,7 @@ def show_metadata_workflow(request):
 
     title = 'Metadata'
 
-    if uri.startswith('f'):
-        metadata = quest.api.get_features(uri, expand=True)['features'][0]['properties']
-    elif uri.startswith('d'):
-        metadata = quest.api.get_datasets(expand=True)[uri]
+    metadata = quest.api.get_metadata(uri)[uri]
     rows = [(k, v) for k, v in metadata.items()]
 
     table_view_options = TableView(column_names=('Property', 'Value'),
@@ -620,6 +617,7 @@ def show_metadata_workflow(request):
               }
 
     return JsonResponse(result)
+
 
 @login_required()
 @activate_user_settings
@@ -642,6 +640,7 @@ def delete_dataset_workflow(request):
         result['error'] = str(e)
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+
 
 @login_required()
 @activate_user_settings
@@ -670,6 +669,7 @@ def delete_feature_workflow(request):
 #        REST CONTROLLERS
 
 ############################################################################
+
 
 @login_required()
 # @activate_user_settings
@@ -769,6 +769,7 @@ def add_features(request):
 
     return JsonResponse(result)
 
+
 @login_required()
 @activate_user_settings
 def retrieve_datasets(request):
@@ -783,6 +784,7 @@ def retrieve_datasets(request):
     result = {'success': success}
 
     return JsonResponse(result)
+
 
 @login_required()
 @activate_user_settings
