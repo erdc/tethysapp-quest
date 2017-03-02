@@ -15,14 +15,16 @@
       </thead>
       <tbody data-collection_id="{{ collection.name }}">
         {% for row in rows %}
-        <tr data-feature_id="{{ row.0 }}" data-dataset_id="{{ row.1 }}">
-          {% for entry in row|slice:"1:" %}
-          <td>{{ entry }}</td>
-          {% endfor %}
-          <td class="status">
-            {% include 'data_browser/status.html' with dataset=row.1 status=row|last %}
-          </td>
-        </tr>
+          {% with auxiliary_data=row.0 row=row|slice:"1:" %}
+          <tr data-feature_id="{{ auxiliary_data.feature }}" data-dataset_id="{{ auxiliary_data.name }}">
+            {% for entry in row %}
+            <td>{{ entry }}</td>
+            {% endfor %}
+            <td class="status">
+              {% include 'data_browser/status.html' with dataset=auxiliary_data.name status=auxiliary_data.status message=auxiliary_data.message %}
+            </td>
+          </tr>
+          {% endwith %}
         {% endfor %}
       </tbody>
   </table>

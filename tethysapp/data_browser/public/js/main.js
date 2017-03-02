@@ -22,7 +22,7 @@ function initialize_datatable(selector)
   selector.DataTable({
         destroy: true,
         columnDefs: [
-          { orderable: false, targets: 7 }
+          { orderable: false, targets: $(selector[0]).find('thead').find('th').length - 1 }
         ],
         initComplete: function () {
             this.api().columns().every( function () {
@@ -35,10 +35,19 @@ function initialize_datatable(selector)
                               $(this).val()
                           );
 
+                          // update the style of the filter icon
+                          if(val == ''){
+                            $(this).parent().removeClass('filtered')
+                          }
+                          else{
+                            $(this).parent().addClass('filtered')
+                          }
+
                           column
                               .search( val ? '^'+val+'$' : '', true, false )
                               .draw();
                       } );
+
                   $(column.header()).append(select);
                   select.select2({
                                   dropdownCssClass : 'bigdrop',
@@ -47,6 +56,11 @@ function initialize_datatable(selector)
                                 });
                   column.data().unique().sort().each( function ( d, j ) {
                       select.append( '<option value="'+d+'">'+d+'</option>' )
+                  });
+                  select.on('select2:open', function(){
+                    setTimeout(function(){
+                        $('.select2-results__option').first().html('All');
+                    }, 10);
                   });
                 }
             });
@@ -61,7 +75,10 @@ function initialize_datatable(selector)
   $('#collection-details-container').find('.datatable-filters')
                                     .find('.select2-selection__arrow')
                                     .replaceWith('<span class="glyphicon glyphicon-filter select2-selection__arrow" aria-hidden="true"></span>');
-  resize_table();
+//  resize_table();
+
+  //initilize popovers
+  selector.find('[data-toggle="popover"]').popover();
 }
 
 
@@ -87,8 +104,7 @@ function reload_collection_details_tabs(selector, collection_name){
         $('#collection-details-nav li:first a').tab('show');
     }
     initialize_datatable(selector);
-
-    bind_table_tab_change();
+    resize_table();
 }
 
 
@@ -117,6 +133,7 @@ function delete_dataset(dataset_id){
         if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
+            reset_plot(dataset_id);
         }
         else{
             console.log(result);
@@ -168,7 +185,7 @@ function add_data(feature_id){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
-                $('#options-content').find('.select2').select2();
+                TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
             }
             else{
                 update_details_table(result.collection_name, result.details_table_html);
@@ -195,6 +212,17 @@ function resize_plot() {
                            };
 
         Plotly.relayout(plot_id, resize_info);
+    }
+}
+
+function reset_plot(dataset_id)
+{
+    var plot_dataset_id = $('#plot-content').data('dataset_id');
+    if (dataset_id == plot_dataset_id && plot_dataset_id != 'undefined')
+    {
+        //reset plot
+        $('#plot-content').replaceWith('<div id="plot-content"></div>');
+        $('#plot-content-placeholder').removeClass('hidden');
     }
 }
 
@@ -229,7 +257,7 @@ function populate_options_form_for_dataset(dataset, type){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
-                    $('#options-content').find('.select2').select2();
+                    TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
@@ -237,6 +265,7 @@ function populate_options_form_for_dataset(dataset, type){
             };
             var visualize = function(){
                show_plot_layout();
+               $('#plot-content-placeholder').addClass('hidden');
                $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
                setTimeout(function(){
                    $('#plot-content').replaceWith(result.html);
@@ -339,7 +368,8 @@ function new_collection_html_update(result){
       $('#collections-list').append(result.collection_html);
       $('#new-collection-modal').modal('hide')
       // update collection select
-      $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }]});
+      $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }],
+                                placeholder: 'Select a collection'});
       $('#collection').trigger('change');
       // add details table
       $('#collection-details-nav ul').append(result.details_table_tab_html);
@@ -350,12 +380,17 @@ function new_collection_html_update(result){
 
 function new_collection(event){
     event.preventDefault();
+    $('#new-collection-submit').hide();
+    $('#new-collection-loading-gif').show();
+
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 
     $.post(url, data)
     .done(function(result){
-      new_collection_html_update(result)
+      new_collection_html_update(result);
+      $('#new-collection-submit').show();
+      $('#new-collection-loading-gif').hide();
     })
     .fail(function() {
         console.log( "error" );
@@ -404,7 +439,7 @@ function get_dataset_context_menu_items(dataset){
         }
     ];
 
-    if(dataset.download_status == 'downloaded'){
+    if(dataset.status == 'downloaded' || dataset.status == 'filter applied'){
         dataset_contextmenu_items.push(
             {
                 text: 'Visualize',
@@ -444,63 +479,6 @@ function get_dataset_context_menu_items(dataset){
     return dataset_contextmenu_items;
 }
 
-function get_menu_items(feature){
-    var feature_id = feature.id_;
-    if(feature_id.startsWith('svc')){
-        return [{
-            text: 'Add To Collection',
-            callback: function(){
-                //select feature
-                search_select_interaction.getFeatures().push(feature);
-                // open add to collection modal
-                $('#add-to-collection-button').click();
-            }
-        }]
-    }else if(feature_id.startsWith('f')){
-        var datasets = datasets_by_feature[feature_id];
-        var location_contextmenu_items = [
-            {
-                text: 'Location',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-            {
-              text: 'Add Data',
-              callback: function(){
-                add_data(feature_id);
-              },
-            },
-            {
-              text: 'Show Metadata',
-              callback: function(){
-                show_metadata(feature_id);
-              },
-            },
-    //        '-', // this is a separator
-            {
-              text: 'Delete',
-              callback: function(){
-                    delete_feature(feature_id);
-              }
-            },
-            {
-                text: 'Datasets',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-          ];
-
-        datasets.forEach(function(dataset){
-            location_contextmenu_items.push({
-                text: dataset.name,
-                items: get_dataset_context_menu_items(dataset),
-            });
-        });
-
-        return location_contextmenu_items;
-    };
-}
-
 function bind_context_menu(){
     $("#collection-details-container td").contextMenu({
         menuSelector: "#details-context-menu",
@@ -521,14 +499,11 @@ function bind_context_menu(){
 
 }
 
-function bind_table_tab_change() {
-    // resize DataTable on tab change
-    $('#collection-details-nav').find('a[data-toggle="tab"]').off('shown.bs.tab').on('shown.bs.tab', function (e) {
-      var shown_tab_id = $(e.target).attr("href");
-      $(shown_tab_id).find('.collection_detail_datatable').DataTable()
-      .columns.adjust().draw();
-    });
-
+function reset_search() {
+    deactivate_search_layer();
+    $('#search-button').show();
+    $('#loading-gif-search').hide();
+    $('#add-to-collection-button').hide();
 }
 
 $(function() { //wait for page to load
@@ -542,7 +517,7 @@ $(function() { //wait for page to load
 
   $('#search-form').submit(function(e){
       e.preventDefault();
-      remove_search_layer();
+      deactivate_search_layer();
       $('#search-button').hide();
       $('#loading-gif-search').show();
       $('#add-to-collection-button').hide();
@@ -553,7 +528,7 @@ $(function() { //wait for page to load
                  'value': get_map_extents()});
 
       url = get_source_url(data);
-      load_map_layer(SEARCH_LAYER_NAME, url, true, null, null, function(){
+      load_map_layer(SEARCH_LAYER_NAME, url, null, null, function(){
           $('#search-button').show();
           $('#loading-gif-search').hide();
           $('#add-to-collection-button').show();
@@ -564,6 +539,8 @@ $(function() { //wait for page to load
 
   $('#add-features-form').submit(function(e){
       e.preventDefault();
+      $('#add-features-submit').hide();
+      $('#add-features-loading-gif').show();
       $('#add-to-collection-button').hide();
       var url = $(this).attr('action');
       var data = $(this).serializeArray();
@@ -583,7 +560,7 @@ $(function() { //wait for page to load
       $.get(url, data)
       .done(function(result) {
           if(result.success){
-              remove_search_layer();
+              deactivate_search_layer();
               update_datasets_by_feature(result.collection);
               update_collection_layer(result.collection);
 
@@ -596,11 +573,18 @@ $(function() { //wait for page to load
                 // update details table
                 update_details_table(result.collection.name, result.details_table_html);
               }
-
+              $('#new_collection_name').val('');
+              $('#new_collection_description').val('');
+              $('#add-features-submit').show();
+              $('#add-features-loading-gif').hide();
+              $('#add-features-modal').modal('hide');
+              $('#manage-tab').click();
+          }
+          else{
+            console.log('error');
+            console.log(result);
           }
 
-          $('#add-features-modal').modal('hide');
-          $('#manage-tab').click()
       })
       .fail(function() {
           console.log( "error" );
@@ -617,6 +601,11 @@ $(function() { //wait for page to load
       modal.find('#description').val("");
   });
 
+  $('#new-collection-modal').on('shown.bs.modal', function () {
+      var modal = $(this);
+      modal.find('#collection_name').focus();
+  });
+
   $('#new-features-modal').on('hidden.bs.modal', function () {
       var modal = $(this);
       modal.find('#new_collection_name').val("");
@@ -625,12 +614,15 @@ $(function() { //wait for page to load
 
   // Tabs
   $('#manage-tab').click(function(e){
-      remove_search_layer();
-      $('#search-button').show();
-      $('#loading-gif-search').hide();
-      $('#add-to-collection-button').hide();
+      reset_search();
+      // activate collection interaction
+      activate_collection_interaction();
   });
 
+  $('#search-tab').click(function(e){
+      // deactivate collection interaction
+      deactivate_collection_interaction();
+  });
 
   /*******************************************************************************
    *
@@ -642,7 +634,7 @@ $(function() { //wait for page to load
   $('#collection-details-content').on('click', '.get-options', populate_options_form);
 
   // Export Dataset Button
-  $('#collection-details-content').on('click', '.export-dataset', function(){export_dataset($(this).attr('data-dataset-id'))});
+  $('#collection-details-content').on('click', '.export-dataset', function(){ export_dataset($(this).attr('data-dataset-id'))});
 
   // Retrieve Button
   $('#options-content').on('click', '.options-submit', submit_options);
@@ -664,10 +656,16 @@ $(function() { //wait for page to load
 
   reload_collection_details_tabs($('.collection_detail_datatable'));
 
-  bind_table_tab_change();
+  // adjust DataTable headers on tab change
+  $('#collection-details-nav').on('shown.bs.tab', 'a[data-toggle="tab"]',function(e) {
+    var shown_tab_id = $(e.target).attr("href");
+    //https://datatables.net/forums/discussion/24424/column-header-element-is-not-sized-correctly-when-scrolly-is-set-in-the-table-setup
+    $(shown_tab_id).find('.collection_detail_datatable').DataTable()
+    .columns.adjust().draw();
+  });
 
   // collection detail table selection
-  $('#collection-details-content td:not(.status)').click(function(e){
+  $('#collection-details-content').on('click', 'td:not(.status)', function(){
      var row = $(this).parent();
      row.toggleClass('selected');
 
@@ -695,6 +693,9 @@ $(function() { //wait for page to load
 
   // automate service selection based on parameter selection
   $('input[name="parameter"]').change(function(e){
+      //clear map search layer & hide add to collection button
+      reset_search();
+      //update data services tree
       var selected_value = $('input[name="parameter"]:checked').val();
       for(i=0, len=services.length; i<len; i++){
           var service = services[i];
@@ -708,6 +709,8 @@ $(function() { //wait for page to load
               $(service_checkbox).prop('disabled', true);
           };
       };
+      //enable search buttons
+      $('#search-button').attr('disabled', false);
   });
 
 
@@ -820,7 +823,7 @@ function get_contextmenu_items(target){
     var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
     dataset = {name: dataset_id,
-               download_status: download_status}
+               status: download_status}
     return get_dataset_context_menu_items(dataset);
 }
 

@@ -9,7 +9,9 @@
     {% csrf_token %}
       <input type="hidden" name="uri" value="{{ uri }}">
     {% for property, property_options in properties.items %}
-      {% if property_options.input_type == 'select' %}
+      {% if property_options.input_type == 'conditional' %}
+        {% include 'data_browser/conditional_input.html' with options=property_options.input_options %}
+      {% elif property_options.input_type == 'select' %}
         {% gizmo select_input property_options.input_options %}
       {% elif property_options.input_type == 'date' %}
         {% gizmo date_picker property_options.input_options %}

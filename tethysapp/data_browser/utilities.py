@@ -4,7 +4,7 @@ import os
 import datetime
 import geojson
 
-import dsl
+import quest
 from shapely.geometry.base import BaseGeometry
 from tethys_gizmos.gizmo_options import TableView
 
@@ -33,12 +33,12 @@ def codify(name):
     return name
 
 
-def get_dsl_providers_with_services():
-    providers = dsl.api.get_providers(expand=True)
+def get_quest_providers_with_services():
+    providers = quest.api.get_providers(expand=True)
     for provider in providers.values():
         provider['services'] = list()
 
-    services = dsl.api.get_services(expand=True)
+    services = quest.api.get_services(expand=True)
 
     for name, service in services.items():
         provider_name = name.split(':')[1].strip('//')
@@ -70,7 +70,7 @@ class CheckboxTree(object):
 
 
 def get_hierarchical_provider_list():
-    providers = get_dsl_providers_with_services()
+    providers = get_quest_providers_with_services()
 
     providers_tree = CheckboxTree(name='services')
 
@@ -88,12 +88,32 @@ def get_hierarchical_provider_list():
 
 
 def get_feature_source(feature):
-    metadata = dsl.api.get_metadata(feature)
-    location = metadata[feature]['display_name']
-    service = metadata[feature]['service']
-    service_metadata = dsl.api.get_services(expand=True)[service]
+    metadata = quest.api.get_metadata(feature)[feature]
+    location = metadata['display_name']
+    service = metadata['service']
+    service_metadata = quest.api.get_services(expand=True)[service]
     source = service_metadata['display_name']
     return location, source
+
+
+def get_display_name(feature, parameter):
+    metadata = quest.api.get_metadata(feature)[feature]
+    service = metadata['service']
+    provider = quest.util.parse_service_uri(service)[0]
+    parameter = parameter.split(':')[0]
+    display_name = '{0}|{1}'.format(provider.upper(), parameter.title())
+    return display_name
+
+
+def stage_dataset_for_download(uri, options):
+    dataset_id = quest.api.stage_for_download(uri, options)[0]
+    parameter = options['parameter']
+    if uri.startswith('f'):
+        feature = uri
+    else:
+        feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
+    quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
+    return dataset_id
 
 
 def get_dataset_parameter(dataset):
@@ -108,8 +128,8 @@ def get_dataset_parameter(dataset):
 
 
 def get_dataset_columns():
-    return ('Name', 'Location', 'Source', 'Source Type',
-            'Parameter', 'Data Type', 'Status')
+    return ('Name', 'Created At', 'Parameter', 'Location', 'Source',
+            'Data Type', 'Status')
 
 
 def get_dataset_status(dataset):
@@ -128,12 +148,12 @@ def get_dataset_rows(datasets):
     for dataset in datasets:
         name = dataset['display_name'] or dataset['name']
         location, source = get_feature_source(dataset['feature'])
-        source_type = dataset['datatype']
         parameter = get_dataset_parameter(dataset)
-        data_type = None
+        data_type = dataset['datatype']
         status = dataset['status']
-        rows.append((dataset['feature'], name, location, source,
-                     source_type, parameter, data_type, status))
+        created_time = dataset['created_at']
+        auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'feature', 'message', 'status'}}
+        rows.append((auxiliary, name, created_time, parameter, location, source, data_type, status))
 
     return rows
 
@@ -157,13 +177,11 @@ def pre_jsonify(obj):
 
 def add_metadata_to_collection(collection):
     collection['features'] = \
-        list(dsl.api.get_features(expand=True,
-                                  collections=collection['name'],
-                                  ).values())
+        list(quest.api.get_features(collection['name'], expand=True).values())
     collection['datasets'] = \
-        list(dsl.api.get_datasets(expand=True,
-                                  filters={'collection': collection['name']},
-                                  ).values())
+        list(quest.api.get_datasets(expand=True,
+                                    filters={'collection': collection['name']},
+                                    ).values())
     collection['table_view_options'] = get_datasets_table_options(collection)
 
 
@@ -171,20 +189,19 @@ def generate_new_collection(collection_name, collection_description,
                             metadata=True):
     code_name = codify(collection_name)
     color = get_random_color()
-    collection = dsl.api.new_collection(code_name,
-                                        display_name=collection_name,
-                                        description=collection_description,
-                                        metadata={'color': color})
+    collection = quest.api.new_collection(code_name,
+                                          display_name=collection_name,
+                                          description=collection_description,
+                                          metadata={'color': color})
 
     if metadata:
-        collection = get_collection_with_metadata(collection_name)
-        # add_metadata_to_collection(collection)
+        add_metadata_to_collection(collection)
 
     return collection
 
 
 def get_collections_with_metadata(collection_names=None):
-    collections = dsl.api.get_collections(expand=True)
+    collections = quest.api.get_collections(expand=True)
     if collection_names:
         collections = [metadata for name, metadata in collections.items()
                        if name in collection_names]
@@ -201,22 +218,27 @@ def get_collection_with_metadata(collection_name):
     return get_collections_with_metadata([collection_name])[0]
 
 
-# TODO this is just a temporary workaround because filtering for the DSL
-# get_filters function seems to be broken
-def get_filters(dataset):
-    # TODO filter list of filters by datatype instead of
-    # having it hardcoded for ts-filters
-    filters = {f: m for f, m in dsl.api.get_filters(expand=True)
-               if f.startswith('ts')}
-    return filters
-
-
-def update_dsl_cache():
+def update_quest_cache():
     cache_dir = os.path.join(app.get_app_workspace().path, 'cache')
-    dsl.api.update_settings({'CACHE_DIR': cache_dir, })
-    services = dsl.api.get_services()
+    quest.api.update_settings({'CACHE_DIR': cache_dir, })
+    services = quest.api.get_services()
     for service in services:
         try:
-            dsl.api.get_features(services=service, update_cache=True)
+            quest.api.get_features(service, update_cache=True)
         except:
             print("Error with {0}".format(service))
+
+
+def listify(*args):
+    l = list()
+    for arg in args:
+        if arg is None:
+            pass
+        elif isinstance(arg, list) or isinstance(arg, tuple):
+            l.extend(arg)
+        elif isinstance(arg, basestring):
+            l.append(arg)
+        else:
+            raise ValueError('{0} is not listifyable.'.format(arg))
+
+    return l
