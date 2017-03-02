@@ -244,6 +244,14 @@ map.addInteraction(collection_select_interaction);
 // Load Collection Layers
 collections.forEach(add_collection_layer);
 
+
+
+//////////////////////////////////////////////
+//
+//      Selection Handling
+//
+//////////////////////////////////////////////
+
 // use the features Collection to detect when a feature is selected,
 // the collection will emit the add event
 collection_select_interaction.getFeatures().on('add', function(event) {
@@ -258,6 +266,114 @@ collection_select_interaction.getFeatures().on('remove', function(event) {
   $("tbody[data-collection_id='" + feature.get('collection') + "'] tr[data-feature_id='" + feature.get('name') + "']")
   .removeClass('selected');
 });
+
+// a DragBox interaction used to select features by drawing boxes
+var drag_box = new ol.interaction.DragBox({
+  condition: ol.events.condition.shiftKeyOnly,
+  style: new ol.style.Style({
+    stroke: new ol.style.Stroke({
+      color: [0, 0, 255, 1]
+    })
+  })
+});
+
+map.addInteraction(drag_box);
+
+function select_feature_if_not_selected(feature, selection_interaction){
+    var selected_features = selection_interaction.getFeatures();
+    if ($.inArray(feature, selected_features.getArray()) == -1)
+    {
+        selected_features.push(feature);
+    }
+}
+
+drag_box.on('boxend', function() {
+    // features that intersect the box are added to the collection of
+    // selected features, and their names are displayed in the "info"
+    // div
+    var extent = drag_box.getGeometry().getExtent();
+
+    if ($('#manage-tab').parent().hasClass('active')) {
+        $.each(collection_layers, function(layer_name, collection_layer) {
+            // Add the selected features to collection layer
+            collection_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
+                select_feature_if_not_selected(feature, collection_select_interaction);
+            });
+        });
+    }
+    else {
+        if(typeof search_layer != 'undefined')
+        {
+          // Add the selected features to search layer
+          search_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
+              select_feature_if_not_selected(feature, search_select_interaction);
+          });
+        }
+    }
+});
+
+//////////////////////////////////////////////
+//
+//      Context Menu
+//
+//////////////////////////////////////////////
+
+function get_menu_items(feature){
+    var feature_id = feature.id_;
+    if(feature_id.startsWith('svc')){
+        return [{
+            text: 'Add To Collection',
+            callback: function(){
+                //select feature
+                select_feature_if_not_selected(feature, search_select_interaction);
+                // open add to collection modal
+                $('#add-to-collection-button').click();
+            }
+        }]
+    }else if(feature_id.startsWith('f')){
+        var datasets = datasets_by_feature[feature_id];
+        var location_contextmenu_items = [
+            {
+                text: 'Location',
+                classname: 'context-menu-title ol-ctx-menu-separator',
+            },
+            '-',
+            {
+              text: 'Add Data',
+              callback: function(){
+                add_data(feature_id);
+              },
+            },
+            {
+              text: 'Show Metadata',
+              callback: function(){
+                show_metadata(feature_id);
+              },
+            },
+    //        '-', // this is a separator
+            {
+              text: 'Delete',
+              callback: function(){
+                    delete_feature(feature_id);
+              }
+            },
+            {
+                text: 'Datasets',
+                classname: 'context-menu-title ol-ctx-menu-separator',
+            },
+            '-',
+          ];
+
+        datasets.forEach(function(dataset){
+            location_contextmenu_items.push({
+                text: dataset.name,
+                items: get_dataset_context_menu_items(dataset),
+            });
+        });
+
+        return location_contextmenu_items;
+    };
+}
 
 // Bind events to controls
 var map_context_menu = new ContextMenu({
@@ -282,58 +398,6 @@ map_context_menu.on('beforeopen', function(evt){
 
 map.getViewport().addEventListener('contextmenu', function (evt) {
     evt.preventDefault();
-});
-
-// a DragBox interaction used to select features by drawing boxes
-var drag_box = new ol.interaction.DragBox({
-  condition: ol.events.condition.shiftKeyOnly,
-  style: new ol.style.Style({
-    stroke: new ol.style.Stroke({
-      color: [0, 0, 255, 1]
-    })
-  })
-});
-
-map.addInteraction(drag_box);
-
-drag_box.on('boxend', function() {
-  // features that intersect the box are added to the collection of
-  // selected features, and their names are displayed in the "info"
-  // div
-  var extent = drag_box.getGeometry().getExtent();
-
-  if ($('#manage-tab').parent().hasClass('active')) {
-
-      var feature_ids = [];
-      collection_select_interaction.getFeatures().forEach(function(selected_feature) {
-          feature_ids.push(selected_feature.getId());
-      });
-      $.each(collection_layers, function(layer_name, collection_layer) {
-          // Add the selected features to collection layer
-          collection_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
-                if ($.inArray(feature.getId(), feature_ids) == -1)
-                {
-                    collection_select_interaction.getFeatures().push(feature);
-                }
-          });
-      });
-  }
-  else {
-      if(typeof search_layer != 'undefined')
-      {
-          var feature_ids = [];
-          search_select_interaction.getFeatures().forEach(function(selected_feature) {
-              feature_ids.push(selected_feature.getId());
-          });
-          // Add the selected features to search layer
-          search_layer.getSource().forEachFeatureIntersectingExtent(extent, function(feature) {
-              if ($.inArray(feature.getId(), feature_ids) == -1)
-              {
-                  search_select_interaction.getFeatures().push(feature);
-              }
-          });
-      }
-  }
 });
 
 }); //end of script

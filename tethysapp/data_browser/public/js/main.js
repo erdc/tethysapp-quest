@@ -434,7 +434,7 @@ function get_dataset_context_menu_items(dataset){
         }
     ];
 
-    if(dataset.status == 'downloaded'){
+    if(dataset.status == 'downloaded' || dataset.status == 'filter applied'){
         dataset_contextmenu_items.push(
             {
                 text: 'Visualize',
@@ -472,63 +472,6 @@ function get_dataset_context_menu_items(dataset){
     );
 
     return dataset_contextmenu_items;
-}
-
-function get_menu_items(feature){
-    var feature_id = feature.id_;
-    if(feature_id.startsWith('svc')){
-        return [{
-            text: 'Add To Collection',
-            callback: function(){
-                //select feature
-                search_select_interaction.getFeatures().push(feature);
-                // open add to collection modal
-                $('#add-to-collection-button').click();
-            }
-        }]
-    }else if(feature_id.startsWith('f')){
-        var datasets = datasets_by_feature[feature_id];
-        var location_contextmenu_items = [
-            {
-                text: 'Location',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-            {
-              text: 'Add Data',
-              callback: function(){
-                add_data(feature_id);
-              },
-            },
-            {
-              text: 'Show Metadata',
-              callback: function(){
-                show_metadata(feature_id);
-              },
-            },
-    //        '-', // this is a separator
-            {
-              text: 'Delete',
-              callback: function(){
-                    delete_feature(feature_id);
-              }
-            },
-            {
-                text: 'Datasets',
-                classname: 'context-menu-title ol-ctx-menu-separator',
-            },
-            '-',
-          ];
-
-        datasets.forEach(function(dataset){
-            location_contextmenu_items.push({
-                text: dataset.name,
-                items: get_dataset_context_menu_items(dataset),
-            });
-        });
-
-        return location_contextmenu_items;
-    };
 }
 
 function bind_context_menu(){
