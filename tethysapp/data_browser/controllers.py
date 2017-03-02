@@ -175,7 +175,7 @@ def add_features_workflow(request):
         features = quest.api.add_features(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
-            dataset = utilities.add_dataset(feature, options)
+            dataset = utilities.stage_dataset_for_download(feature, options)
             collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
@@ -480,9 +480,9 @@ def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
     try:
-        dataset_id = utilities.add_dataset(uri, options=options)
+        dataset_id = utilities.stage_dataset_for_download(uri, options=options)
         quest.api.download_datasets(dataset_id, raise_on_error=False)
-        collection = quest.api.get_datasets(expand=True)[dataset_id[0]]['collection']
+        collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         success = True

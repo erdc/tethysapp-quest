@@ -380,12 +380,17 @@ function new_collection_html_update(result){
 
 function new_collection(event){
     event.preventDefault();
+    $('#new-collection-submit').hide();
+    $('#new-collection-loading-gif').show();
+
     var url = $(this).attr('action');
     var data = $(this).serializeArray();
 
     $.post(url, data)
     .done(function(result){
-      new_collection_html_update(result)
+      new_collection_html_update(result);
+      $('#new-collection-submit').show();
+      $('#new-collection-loading-gif').hide();
     })
     .fail(function() {
         console.log( "error" );
@@ -534,6 +539,8 @@ $(function() { //wait for page to load
 
   $('#add-features-form').submit(function(e){
       e.preventDefault();
+      $('#add-features-submit').hide();
+      $('#add-features-loading-gif').show();
       $('#add-to-collection-button').hide();
       var url = $(this).attr('action');
       var data = $(this).serializeArray();
@@ -568,6 +575,8 @@ $(function() { //wait for page to load
               }
               $('#new_collection_name').val('');
               $('#new_collection_description').val('');
+              $('#add-features-submit').show();
+              $('#add-features-loading-gif').hide();
               $('#add-features-modal').modal('hide');
               $('#manage-tab').click();
           }

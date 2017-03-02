@@ -105,9 +105,13 @@ def get_display_name(feature, parameter):
     return display_name
 
 
-def add_dataset(feature, options):
-    dataset_id = quest.api.stage_for_download(feature, options)
+def stage_dataset_for_download(uri, options):
+    dataset_id = quest.api.stage_for_download(uri, options)[0]
     parameter = options['parameter']
+    if uri.startswith('f'):
+        feature = uri
+    else:
+        feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
     quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
     return dataset_id
 
