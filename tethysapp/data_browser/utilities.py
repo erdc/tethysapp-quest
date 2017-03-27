@@ -107,7 +107,11 @@ def get_display_name(feature, parameter):
 
 def stage_dataset_for_download(uri, options):
     dataset_id = quest.api.stage_for_download(uri, options)[0]
-    parameter = options['parameter']
+    parameter = None
+    if options is not None:
+        parameter = options.get('parameter')
+    if parameter is None:
+        parameter = get_dataset_parameter(quest.api.get_metadata(dataset_id)[dataset_id])
     if uri.startswith('f'):
         feature = uri
     else:
@@ -123,6 +127,13 @@ def get_dataset_parameter(dataset):
         download_options = json.loads(download_options)
         if download_options:
             parameter = download_options.get('parameter')
+        else:
+            dataset_id = dataset.get('name')
+            feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
+            feature = quest.api.get_metadata(feature)[feature]
+            parameters = feature.get('parameters').split(',')
+            if len(parameters) == 1:
+                parameter = parameters[0]
 
     return parameter
 
