@@ -91,8 +91,11 @@ def get_feature_source(feature):
     metadata = quest.api.get_metadata(feature)[feature]
     location = metadata['display_name']
     service = metadata['service']
-    service_metadata = quest.api.get_services(expand=True)[service]
-    source = service_metadata['display_name']
+    if service:
+        service_metadata = quest.api.get_services(expand=True)[service]
+        source = service_metadata['display_name']
+    else:
+        source = None
     return location, source
 
 
@@ -124,7 +127,6 @@ def get_dataset_parameter(dataset):
     parameter = dataset.get('parameter')
     if not parameter:
         download_options = dataset.get('options')
-        download_options = json.loads(download_options)
         if download_options:
             parameter = download_options.get('parameter')
         else:

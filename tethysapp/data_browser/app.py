@@ -1,4 +1,5 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
+from tethys_sdk.app_settings import CustomSetting
 
 
 class DataBrowser(TethysAppBase):
@@ -117,3 +118,18 @@ class DataBrowser(TethysAppBase):
         )
 
         return url_maps
+
+    def custom_settings(self):
+        """
+        Example custom_settings method.
+        """
+        custom_settings = (
+            CustomSetting(
+                name='user_services',
+                type=CustomSetting.TYPE_STRING,
+                description='Comma separated list of user services urls.',
+                required=False
+            ),
+        )
+
+        return custom_settings

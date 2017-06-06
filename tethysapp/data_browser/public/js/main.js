@@ -371,6 +371,7 @@ function new_collection_html_update(result){
       $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }],
                                 placeholder: 'Select a collection'});
       $('#collection').trigger('change');
+      $('#add-features-collection-select-div').css('display', 'block');
       // add details table
       $('#collection-details-nav ul').append(result.details_table_tab_html);
       $('#collection-details-content').append(result.details_table_html);

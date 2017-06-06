@@ -18,6 +18,7 @@ from tethys_sdk.gizmos import (MapView,
                                )
 
 from app import DataBrowser as app
+import utilities
 
 import quest
 import json
@@ -25,6 +26,7 @@ import os
 
 from pprint import pprint  # for debugging
 
+# user_services = app.get_custom_setting('user_services').split(',')
 
 def activate_user_settings(func):
 
@@ -34,6 +36,8 @@ def activate_user_settings(func):
         quest.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                                    'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                                    })
+        # for service in user_services:
+        #     quest.api.add_provider(service)
 
         # read in any saved settings for user
         settings_file = quest.util.config._default_config_file()
@@ -54,7 +58,6 @@ def home(request):
     """
     Controller for the app home page.
     """
-
     collections = utilities.get_collections_with_metadata()
     parameters = quest.api.get_mapped_parameters()
     providers = utilities.get_quest_providers_with_services()
@@ -214,6 +217,7 @@ def get_option_options(property, property_options, set_options):
         conditions_options = dict()
         for condition, condition_options in property_options['options'].items():
             condition_input_options_list = list()
+
             for condition_property, condition_property_options in condition_options['properties'].items():
                 condition_input_type, condition_input_options = get_option_options(condition_property, condition_property_options, set_options)
                 condition_input_options_list.append(condition_input_options)
@@ -296,7 +300,7 @@ def get_download_options_workflow(request):
     set_options = {}
     metadata = quest.api.get_metadata(dataset)[dataset]
     if options_metadata_name in metadata:
-        set_options = json.loads(metadata[options_metadata_name])
+        set_options = metadata[options_metadata_name]
         if not set_options:
             set_options = {}
 
@@ -513,17 +517,23 @@ def apply_filter_workflow(request):
     result = {'success': False}
     dataset_id = request.POST['uri']
     filter = request.POST.get('filter')
+    filter_options = quest.api.apply_filter_options(filter)['properties'].keys()
     options = dict(request.POST.items())
+    for k in options.keys():
+        if k not in filter_options:
+            del options[k]
     try:
-        quest.api.apply_filter(filter, dataset_id, options=options)
+        quest.api.apply_filter(filter, datasets=dataset_id, options=options)
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
-    except Exception as e:
-        result['success'] = False
-        result['error_message'] = str(e)
+    # except Exception as e:
+    #     result['success'] = False
+    #     result['error_message'] = str(e)
+    finally:
+        pass
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 

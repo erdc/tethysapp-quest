@@ -127,11 +127,11 @@
             <form id="add-features-form" action="{% url 'data_browser:add_features_workflow' %}" method="post">
               <div id="number-of-selected-features"></div>
               {% csrf_token %}
-              {% if collection_select_options.options %}
+              <div id="add-features-collection-select-div"{% if not collection_select_options.options %}style="display: none;"{% endif %}>
                 {% gizmo select_input collection_select_options %}
                 <h4>Add Feaures to New Collection</h4>
                 <hr>
-              {% endif %}
+              </div>
               {% gizmo new_collection_name_text_options %}
               {% gizmo new_collection_description_text_options %}
             </form>
