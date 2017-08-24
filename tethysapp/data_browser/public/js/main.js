@@ -1,5 +1,6 @@
 // mapping of datasets to their feature id
 var datasets_by_feature = {};
+// var collections = Array();
 
 function update_datasets_by_feature(collection){
     collection.features.forEach(function(feature){
@@ -9,8 +10,6 @@ function update_datasets_by_feature(collection){
         datasets_by_feature[dataset.feature].push(dataset);
     });
 }
-
-collections.forEach(update_datasets_by_feature);
 
 /*******************************************************************************
  *
@@ -242,6 +241,7 @@ function populate_options_form(event){
 }
 
 function populate_options_form_for_dataset(dataset, type){
+    change_status_to_loading(dataset);
     var data = {'dataset': dataset};
     var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
@@ -264,6 +264,7 @@ function populate_options_form_for_dataset(dataset, type){
                 }
             };
             var visualize = function(){
+               change_status_from_loading(dataset, 'view');
                show_plot_layout();
                $('#plot-content-placeholder').addClass('hidden');
                $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
@@ -317,6 +318,16 @@ function change_status_to_loading(dataset_id){
     $('#loading-gif-' + dataset_id).show();
 }
 
+
+function change_status_from_loading(dataset_id, type){
+    if(type == 'view'){
+      $('#visualize-dataset-options-btn-' + dataset_id).show();
+    }
+    else{
+      $('#retrieve-dataset-options-btn-' + dataset_id).show();
+    }
+    $('#loading-gif-' + dataset_id).hide();
+}
 
 function submit_options(event){
     event.preventDefault();
@@ -507,8 +518,54 @@ function reset_search() {
     $('#add-to-collection-button').hide();
 }
 
+function update_collection(collection){
+
+
+  var loading_gif = $('#loading-gif-collections')
+    .clone()
+    .show()
+    .removeAttr('id')
+    .insertAfter('#loading-gif-collections');
+
+  $.get(get_collection_data_url, {'collection': collection})
+    .done(function(result) {
+      if(result.success){
+        update_datasets_by_feature(result.collection);
+        add_collection_layer(result.collection);
+        new_collection_html_update(result.html);
+        // collections.push(result.collection);
+      }
+    })
+    .fail(function() {
+
+      console.log( "error" );
+    })
+    .always(function() {
+      loading_gif.detach();
+    });
+}
+
+
 $(function() { //wait for page to load
 
+  //load collections
+  $.get(get_collections_url)
+    .done(function(result) {
+      if(result.success){
+        result.collections.forEach(update_collection);
+      }
+      else{
+        console.log('error');
+        console.log(result);
+      }
+
+    })
+    .fail(function() {
+      console.log( "error" );
+    })
+    .always(function() {
+      $('#loading-gif-collections').hide();
+    });
 
   $('#add-to-collection-button').click(function(e){
       var selected_features = search_select_interaction.getFeatures();
@@ -518,31 +575,37 @@ $(function() { //wait for page to load
 
   $('#search-form').submit(function(e){
       e.preventDefault();
+      show_map_layout();
       deactivate_search_layer();
       $('#search-button').hide();
       $('#loading-gif-search').show();
       $('#add-to-collection-button').hide();
 
-      var url = $(this).attr('action');
       var data = $(this).serializeArray();
-      data.push({'name': 'bbox',
-                 'value': get_map_extents()});
 
-      url = get_source_url(data);
-      load_map_layer(SEARCH_LAYER_NAME, url, null, null, function(){
-          $('#search-button').show();
-          $('#loading-gif-search').hide();
-          $('#add-to-collection-button').show();
-      });
+      setTimeout(function(){  // allow map time to load if it wasn't already showing
 
-
+        data.push({'name': 'bbox',
+                   'value': get_map_extents()});
+        var url = get_source_url(data);
+        load_map_layer(SEARCH_LAYER_NAME, url, null, null, function(){
+            show_map_layout();
+            $('#search-button').show();
+            $('#loading-gif-search').hide();
+            $('#add-to-collection-button').show();
+        });
+      }, 100);
   });
 
   $('#add-features-form').submit(function(e){
       e.preventDefault();
-      $('#add-features-submit').hide();
-      $('#add-features-loading-gif').show();
       $('#add-to-collection-button').hide();
+      $('#add-features-modal').modal('hide');
+      $('#manage-tab').click();
+      $('#new_collection_name').val('');
+      $('#new_collection_description').val('');
+      $('#pending-tasks').show();
+
       var url = $(this).attr('action');
       var data = $(this).serializeArray();
   //    var collection_name = $(this).serializeObject().collection;
@@ -574,12 +637,6 @@ $(function() { //wait for page to load
                 // update details table
                 update_details_table(result.collection.name, result.details_table_html);
               }
-              $('#new_collection_name').val('');
-              $('#new_collection_description').val('');
-              $('#add-features-submit').show();
-              $('#add-features-loading-gif').hide();
-              $('#add-features-modal').modal('hide');
-              $('#manage-tab').click();
           }
           else{
             console.log('error');
@@ -591,7 +648,7 @@ $(function() { //wait for page to load
           console.log( "error" );
       })
       .always(function() {
-
+        $('#pending-tasks').hide();
       });
   });
 
@@ -622,6 +679,7 @@ $(function() { //wait for page to load
 
   $('#search-tab').click(function(e){
       // deactivate collection interaction
+      show_map_layout();
       deactivate_collection_interaction();
   });
 
@@ -690,15 +748,17 @@ $(function() { //wait for page to load
   //    });
   //});
 
+  // undo app_base.js themeing
+  $('#app-navigation .nav li a').removeAttr("style");
 
 
   // automate service selection based on parameter selection
-  $('input[name="parameter"]').change(function(e){
+  $('#parameter').change(function(e){
       //clear map search layer & hide add to collection button
       reset_search();
       //update data services tree
-      var selected_value = $('input[name="parameter"]:checked').val();
-      for(i=0, len=services.length; i<len; i++){
+      var selected_value = $('#parameter').val();
+      for(var i=0, len=services.length; i<len; i++){
           var service = services[i];
           var service_checkbox = $('input[value="' + service.name + '"]');
           if($.inArray(selected_value, service.parameters) > -1){
@@ -710,6 +770,10 @@ $(function() { //wait for page to load
               $(service_checkbox).prop('disabled', true);
           };
       };
+      //expand services tab
+      if(!$('#collapse-services').hasClass('in')){
+        $('#collapse-services-btn').click();
+      }
       //enable search buttons
       $('#search-button').attr('disabled', false);
   });

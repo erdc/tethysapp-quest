@@ -241,11 +241,6 @@ collection_layers = {};
 collection_select_interaction = new ol.interaction.Select();
 map.addInteraction(collection_select_interaction);
 
-// Load Collection Layers
-collections.forEach(add_collection_layer);
-
-
-
 //////////////////////////////////////////////
 //
 //      Selection Handling

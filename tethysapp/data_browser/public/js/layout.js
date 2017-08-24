@@ -144,6 +144,11 @@ function toggle_layout_item( toggle_control, id, parent_id, index){
     }
 }
 
+function show_map_layout(){
+    var item = myLayout.root.getItemsById('map')[0];
+    myLayout.root.getItemsById('stack')[0].setActiveContentItem(item);
+}
+
 function show_plot_layout(){
     var item = myLayout.root.getItemsById('plot')[0];
     myLayout.root.getItemsById('stack')[0].setActiveContentItem(item);

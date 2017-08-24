@@ -24,9 +24,13 @@ import quest
 import json
 import os
 
+from time import time
+
 from pprint import pprint  # for debugging
 
-# user_services = app.get_custom_setting('user_services').split(',')
+
+user_services = app.get_custom_setting('user_services')
+
 
 def activate_user_settings(func):
 
@@ -36,8 +40,6 @@ def activate_user_settings(func):
         quest.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
                                    'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
                                    })
-        # for service in user_services:
-        #     quest.api.add_provider(service)
 
         # read in any saved settings for user
         settings_file = quest.util.config._default_config_file()
@@ -58,12 +60,6 @@ def home(request):
     """
     Controller for the app home page.
     """
-    collections = utilities.get_collections_with_metadata()
-    parameters = quest.api.get_mapped_parameters()
-    providers = utilities.get_quest_providers_with_services()
-    checkbox_tree = utilities.get_hierarchical_provider_list()
-    services = json.dumps(list(quest.api.get_services(expand=True).values()))
-
     # Define view options
     view_options = MVView(
         projection='EPSG:4326',
@@ -80,7 +76,7 @@ def home(request):
                                          {'ZoomToExtent': {'projection': 'EPSG:4326', 'extent': [-130, 22, -10, 54]}}
                                          ],
                                view=view_options,
-                               basemap='OpenStreetMap',
+                               basemap=['Stamen', 'OpenStreetMap', ],
                                draw=None,
                                legend=False
                                )
@@ -88,7 +84,7 @@ def home(request):
     collection_select_options = SelectInput(display_text='Select Collection',
                                             name='collection',
                                             multiple=False,
-                                            options=[(collection['display_name'], collection['name']) for collection in collections],
+                                            options=[],
                                             )
 
     new_collection_name_text_options = TextInput(display_text='New Collection Name',
@@ -98,11 +94,18 @@ def home(request):
                                                         name='new_collection_description',
                                                         )
 
-    context = {'collections': collections,
-               'collections_json': json.dumps(collections, default=utilities.pre_jsonify),
-               'services': services,
-               'parameters': parameters,
-               'providers': providers,
+    parameters_select_options = SelectInput(name='parameter',
+                                            display_text='',
+                                            options=[(p, p) for p in quest.api.get_mapped_parameters()],
+                                            select2_options={'placeholder': 'Select a parameter'},
+                                            )
+
+    services = json.dumps(list(quest.api.get_services(expand=True).values()))
+
+    checkbox_tree = utilities.get_hierarchical_provider_list()
+
+    context = {'services': services,
+               'parameters_select_options': parameters_select_options,
                'checkbox_tree': checkbox_tree,
                'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
                'map_view_options': map_view_options,
@@ -112,6 +115,7 @@ def home(request):
                }
 
     return render(request, 'data_browser/home.html', context)
+
 
 from django.http import JsonResponse, HttpResponse
 from django.core.urlresolvers import reverse
@@ -124,30 +128,14 @@ import utilities
 
 ############################################################################
 
-
 @login_required()
 @activate_user_settings
-def new_collection_workflow(request):
-    success = False
-    html = None
+def get_collections(request):
 
-    collection_name = request.POST.get('collection_name')
-    collection_description = request.POST.get('description', "")
-    collection = utilities.generate_new_collection(collection_name,
-                                                   collection_description)
+    collections = quest.api.get_collections()
 
-    context = {'collection': collection}
-
-    collection_html = render(request, 'data_browser/collection.html', context).content
-    details_table_html = render(request, 'data_browser/details_table.html', context).content
-    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content
-    success = True
-
-    result = {'success': success,
-              'collection_html': collection_html,
-              'details_table_html': details_table_html,
-              'details_table_tab_html': details_table_tab_html,
-              'collection': collection,
+    result = {'success': True,
+              'collections': collections,
               }
 
     return JsonResponse(result)
@@ -155,7 +143,54 @@ def new_collection_workflow(request):
 
 @login_required()
 @activate_user_settings
+def get_collection_data(request):
+    collection = request.GET.get('collection')
+
+    collection = utilities.get_collection_with_metadata(collection)
+
+    html = get_collection_html(request, collection)
+
+    result = {'success': True,
+              'collection': collection,
+              'html': html,
+              }
+
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+
+
+def get_collection_html(request, collection):
+
+    context = {'collection': collection}
+    collection_html = render(request, 'data_browser/collection.html', context).content
+    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content
+
+    result = {'success': True,
+              'collection_html': collection_html,
+              'details_table_html': details_table_html,
+              'details_table_tab_html': details_table_tab_html,
+              'collection': collection,
+              }
+    return result
+
+
+@login_required()
+@activate_user_settings
+def new_collection_workflow(request):
+    collection_name = request.POST.get('collection_name')
+    collection_description = request.POST.get('description', "")
+    collection = utilities.generate_new_collection(collection_name,
+                                                   collection_description)
+
+    result = get_collection_html(request, collection)
+
+    return JsonResponse(result)
+
+
+@login_required()
+@activate_user_settings
 def add_features_workflow(request):
+
     collection_name = request.GET.get('collection')
     features = request.GET['features']
     parameter = request.GET['parameter']
@@ -174,12 +209,14 @@ def add_features_workflow(request):
         new_collection_added = True
 
     success = False
+
     try:
         features = quest.api.add_features(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
-            dataset = utilities.stage_dataset_for_download(feature, options)
-            collection = utilities.get_collection_with_metadata(collection_name)
+            utilities.stage_dataset_for_download(feature, options)
+
+        collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
     except Exception as e:

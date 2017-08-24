@@ -13,6 +13,8 @@ class DataBrowser(TethysAppBase):
     package = 'data_browser'
     root_url = 'data-browser'
     color = '#1A334C'
+    enable_feedback = True
+    feedback_emails = ['scott.d.christensen@erdc.dren.mil']
         
     def url_maps(self):
         """
@@ -32,6 +34,12 @@ class DataBrowser(TethysAppBase):
 
                     #-----------------  Workflows  ---------------------
 
+                    UrlMap(name='get_collections',
+                           url='data-browser/rest/workflows/get_collections',
+                           controller='data_browser.controllers.get_collections'),
+                    UrlMap(name='get_collection_data',
+                           url='data-browser/rest/workflows/get_collection_data',
+                           controller='data_browser.controllers.get_collection_data'),
                     UrlMap(name='new_collection_workflow',
                            url='data-browser/rest/workflows/new-collection',
                            controller='data_browser.controllers.new_collection_workflow'),

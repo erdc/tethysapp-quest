@@ -31,20 +31,14 @@
       <button type="button" class="close" id="close-table-btn" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       <div id="collection-details-nav">
         <ul class="nav nav-pills nav-justified" role="tablist">
-          {% for collection in collections %}
-            {% include 'data_browser/details_table_tab.html' with collection=collection %}
-          {% endfor %}
         </ul>
       </div>
 
       <div id="collection-details-content" class="tab-content">
-        <div id="table-placeholder" class="text-center" {% if collections %}style="display: none;"{% endif %}>
+        <div id="table-placeholder" class="text-center">
           <h1>No Collections have been created</h1>
           <button type="button" class="btn btn-lg btn-primary" data-toggle="modal" data-target="#new-collection-modal">Create Collection</button>
         </div>
-        {% for collection in collections %}
-          {% include 'data_browser/details_table.html' with collection=collection %}
-        {% endfor %}
       </div>
     </div>
 
@@ -74,6 +68,9 @@
     <ul class="nav nav-pills nav-justified" role="tablist">
       <li role="presentation" class="nav-tab"><a href="" id="table-toggle" aria-controls="table" role="tab" data-toggle="tab">Table</a></li>
     </ul>
+  </div>
+  <div id="pending-tasks" style="display: none;">
+    <img src="{% static 'data_browser/images/loading.gif' %}" >
   </div>
 {% endblock %}
 
@@ -159,8 +156,9 @@
     var visualize_dataset_url = '{% url 'data_browser:visualize_dataset_workflow' %}';
     var get_features_url = '{% url 'data_browser:get_features' %}';
     var delete_dataset_url = '{% url 'data_browser:delete_dataset_workflow' %}';
+    var get_collections_url = '{% url 'data_browser:get_collections' %}';
+    var get_collection_data_url = '{% url 'data_browser:get_collection_data' %}';
     var services = {% autoescape off %}{{ services }}{% endautoescape %};
-    var collections = {% autoescape off %}{{ collections_json }}{% endautoescape %};
     var source_urls = [];
     <!--[{% for service in services %}'{% url 'data_browser:get_features' %}?service={{ service }}', {% endfor %}];-->
   </script>
