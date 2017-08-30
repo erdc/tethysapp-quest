@@ -1,21 +1,90 @@
 // mapping of datasets to their feature id
 var datasets_by_feature = {};
-// var collections = Array();
-
-function update_datasets_by_feature(collection){
-    collection.features.forEach(function(feature){
-        datasets_by_feature[feature.name] = [];
-    });
-    collection.datasets.forEach(function(dataset){
-        datasets_by_feature[dataset.feature].push(dataset);
-    });
-}
 
 /*******************************************************************************
  *
  *                        FUNCTIONS
  *
  *******************************************************************************/
+
+function update_collection_status(collection_name, message){
+  var collection_status = $('#' + collection_name + '-collection-status');
+  collection_status.find('.collection-status-message').text(message);
+  collection_status.show();
+  return collection_status;
+}
+
+function add_features_to_collection(e){
+  e.preventDefault();
+  $('#add-to-collection-button').hide();
+  $('#add-features-modal').modal('hide');
+  $('#manage-tab').click();
+
+  var url = $(this).attr('action');
+  var data = $(this).serializeArray();
+  var data_obj = object_from_array(data);
+  var parameter = $('#parameter').val();
+  var selected_features = search_select_interaction.getFeatures();
+  var features = selected_features.getArray().map(function(feature){
+      return feature.getId();
+  });
+
+  data.push({'name': 'features',
+             'value': features},
+            {'name': 'parameter',
+             'value': parameter}
+            );
+
+  if(data_obj.new_collection_name){
+    var placeholder = add_collection_placeholder(data_obj.new_collection_name);
+    var collection_status = placeholder.find('.collection-status');
+    collection_status.find('.collection-status-message').text('Adding ' + features.length + ' features...');
+    collection_status.show();
+  }
+  else{
+    var collection_name = data_obj.collection;
+    var collection_status = update_collection_status(collection_name, 'Adding ' + features.length + ' features...');
+  }
+
+
+  // Clear form fields
+  $('#collection').select2({'placeholder': 'Select a collection'})
+    .val('')
+    .trigger('change');
+  $('#new_collection_name').val('');
+  $('#new_collection_description').val('');
+
+  $.get(url, data)
+  .done(function(result) {
+      if(result.success){
+          deactivate_search_layer();
+          update_datasets_by_feature(result.collection);
+          update_collection_layer(result.collection);
+
+          if(result.collection_html)
+          {
+            //add new colleciton and assicated info
+            update_collection_html(result);
+          }
+          else {
+            // update details table
+            update_details_table(result.collection.name, result.details_table_html);
+          }
+      }
+      else{
+        console.log('error');
+        console.log(result);
+      }
+
+  })
+  .fail(function() {
+      console.log( "error" );
+  })
+  .always(function() {
+    collection_status.hide();
+  });
+};
+
 function initialize_datatable(selector)
 {
   selector.DataTable({
@@ -188,6 +257,7 @@ function add_data(feature_id){
             }
             else{
                 update_details_table(result.collection_name, result.details_table_html);
+                update_datasets_by_feature(result.collection);
             }
         }
 
@@ -241,15 +311,13 @@ function populate_options_form(event){
 }
 
 function populate_options_form_for_dataset(dataset, type){
-    change_status_to_loading(dataset);
+    // change_status_to_loading(dataset, type);
     var data = {'dataset': dataset};
     var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
                visualize: visualize_dataset_url,
                }[type];
-//    $('#options-content').load(url, $.param(data), function(e){
-//        $('.select2').select2();
-//    });
+
     $.get(url, data)
     .done(function(result) {
         if(result.success){
@@ -264,7 +332,7 @@ function populate_options_form_for_dataset(dataset, type){
                 }
             };
             var visualize = function(){
-               change_status_from_loading(dataset, 'view');
+               change_status_from_loading(dataset, type);
                show_plot_layout();
                $('#plot-content-placeholder').addClass('hidden');
                $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
@@ -292,15 +360,15 @@ function populate_options_form_for_dataset(dataset, type){
     });
 }
 
-function show_metadata(uri){
+function show_details(uri){
     var data = {'uri': uri};
-    var url = show_metadata_url;
+    var url = show_details_url;
 
     $.get(url, data)
     .done(function(result) {
         if(result.success){
-            show_metadata_layout();
-            $('#metadata-content').html(result.html);
+            show_details_layout();
+            $('#details-content').html(result.html);
         }
     })
     .fail(function() {
@@ -320,7 +388,7 @@ function change_status_to_loading(dataset_id){
 
 
 function change_status_from_loading(dataset_id, type){
-    if(type == 'view'){
+    if(type === 'visualize'){
       $('#visualize-dataset-options-btn-' + dataset_id).show();
     }
     else{
@@ -331,16 +399,13 @@ function change_status_from_loading(dataset_id, type){
 
 function submit_options(event){
     event.preventDefault();
-    var url = $('#options-form').attr('action');
-    var data = $('#options-form').serializeArray();
+    var form = $('#options-form');
+    var url = form.attr('action');
+    var data = form.serializeArray();
+    var data_obj = object_from_array(data);
     $('#options-modal').modal('hide');
 
-    var dataset_id;
-    data.forEach(function(obj){
-        if(obj.name == 'uri'){
-            dataset_id = obj.value;
-        }
-    });
+    var dataset_id = data_obj.uri;
 
     change_status_to_loading(dataset_id);
 
@@ -348,6 +413,7 @@ function submit_options(event){
     .done(function(result) {
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
         }
         else{
             console.log(result);
@@ -367,48 +433,90 @@ var data = {'dataset': dataset_id};
     window.location = url;
 }
 
-function add_collection_details(collection_name, collection_display_name, details_html){
-    nav_html = '<li role="presentation" class="nav-tab ' + collection_name + '-collection"><a href="#collection-detail-' + collection_name + '" aria-controls="collection-detail-' + collection_name + '" role="tab" data-toggle="tab">' + collection_name + '</a></li>';
-    $('#collection-details-nav').child('ul').append(nav_html);
-    $('#collection-details-content').append(details_html);
+function update_datasets_by_feature(collection){
+    collection.features.forEach(function(feature){
+        datasets_by_feature[feature.name] = [];
+    });
+    collection.datasets.forEach(function(dataset){
+        datasets_by_feature[dataset.feature].push(dataset);
+    });
 }
 
-function new_collection_html_update(result){
+function update_collection_html(result){
+  remove_collection_placeholder(result.collection.display_name);
   if(result.success){
       $('#table-placeholder').css('display', 'none');
       $('#collections-list').append(result.collection_html);
-      $('#new-collection-modal').modal('hide')
       // update collection select
       $('#collection').select2({data: [{id: result.collection.name, text: result.collection.display_name }],
-                                placeholder: 'Select a collection'});
-      $('#collection').trigger('change');
+                                placeholder: 'Select a collection',
+                                })
+        .val('')
+        .trigger('change');
       $('#add-features-collection-select-div').css('display', 'block');
       // add details table
-      $('#collection-details-nav ul').append(result.details_table_tab_html);
+      $('#collection-details-nav').find('ul').append(result.details_table_tab_html);
       $('#collection-details-content').append(result.details_table_html);
       update_details_table(result.collection.name);
   }
 }
 
+function add_collection_placeholder(collection_name){
+  var placeholder = $('#loading-gif-collections')
+    .clone()
+    .show()
+    .attr('id', 'loading-gif-collections-' + collection_name.toLowerCase().replace(/ /g, '-'))
+    .insertAfter('#loading-gif-collections');
+
+  placeholder.children('h2').html(collection_name);
+
+  return placeholder;
+}
+
+function remove_collection_placeholder(collection_name){
+  $('#loading-gif-collections-' + collection_name.toLowerCase().replace(/ /g, '-')). detach();
+}
+
 function new_collection(event){
-    event.preventDefault();
-    $('#new-collection-submit').hide();
-    $('#new-collection-loading-gif').show();
+  event.preventDefault();
+  $('#new-collection-modal').modal('hide');
 
-    var url = $(this).attr('action');
-    var data = $(this).serializeArray();
+  var url = $(this).attr('action');
+  var data = $(this).serializeArray();
+  var data_obj = object_from_array(data);
 
-    $.post(url, data)
-    .done(function(result){
-      new_collection_html_update(result);
-      $('#new-collection-submit').show();
-      $('#new-collection-loading-gif').hide();
+  var collection_name = data_obj.collection_name;
+
+  add_collection_placeholder(collection_name);
+
+  $.post(url, data)
+  .done(function(result){
+    update_collection_html(result);
+
+  })
+  .fail(function() {
+      console.log( "error" );
+  })
+  .always(function() {
+  });
+}
+
+function update_collection(collection){
+  add_collection_placeholder(collection.display_name);
+  $.get(get_collection_data_url, {'collection': collection.name})
+    .done(function(result) {
+      if(result.success){
+        update_datasets_by_feature(result.collection);
+        add_collection_layer(result.collection);
+        update_collection_html(result.html);
+        // collections.push(result.collection);
+      }
     })
     .fail(function() {
-        console.log( "error" );
+
+      console.log( "error" );
     })
     .always(function() {
-
     });
 }
 
@@ -417,6 +525,7 @@ function delete_collection(event){
     var url = $(this).attr('href');
     var collection_name = $(this).attr('data-collection-name');
     var collection_elements = $('.' + collection_name + '-collection');
+    update_collection_status(collection_name, 'Deleting...');
 
     $.get(url)
     .done(function(result){
@@ -424,14 +533,13 @@ function delete_collection(event){
             $(collection_elements).remove();
             update_details_table(collection_name);
             // if there are no more collections display the placeholder div
-            if(!$('#collection-details-nav li').length){
+            if(!$('#collection-details-nav').find('li').length){
                 $('#table-placeholder').css('display', 'block');
             }
             remove_layer(collection_name);
             // update collection select
-            $('#collection option[value="' + collection_name + '"]').remove();
-            $('#collection').select2('val', '');
-            $('#collection').trigger('change');
+            var collection_select = $('#collection')
+            collection_select.find('option[value="' + collection_name + '"]').remove();
         }
     });
 }
@@ -446,12 +554,12 @@ function get_dataset_context_menu_items(dataset){
         {
             text: 'Download',
             callback: function(){
-                    populate_options_form_for_dataset(dataset_id, 'download');
+                    populate_options_form_for_dataset(dataset_id, 'retrieve');
                 },
         }
     ];
 
-    if(dataset.status == 'downloaded' || dataset.status == 'filter applied'){
+    if(dataset.status === 'downloaded' || dataset.status === 'filter applied'){
         dataset_contextmenu_items.push(
             {
                 text: 'Visualize',
@@ -475,9 +583,9 @@ function get_dataset_context_menu_items(dataset){
     }
     dataset_contextmenu_items.push(
         {
-            text: 'Show Metadata',
+            text: 'Details',
             callback: function(){
-                    show_metadata(dataset_id);
+                    show_details(dataset_id);
                 },
         },
         {
@@ -492,21 +600,8 @@ function get_dataset_context_menu_items(dataset){
 }
 
 function bind_context_menu(){
-    $("#collection-details-container td").contextMenu({
-        menuSelector: "#details-context-menu",
-//        menuSelected: function (invokedOn, selectedMenu) {
-//            var options = {'Retrieve': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'retrieve');},
-//                           'Apply Filter': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'filter');},
-//                           'Visualize': function(dataset_id){populate_options_form_for_dataset(dataset_id, 'visualize');},
-//                           'Show Metadata': show_metadata,
-//                           'Download': function(dataset_id){export_dataset(dataset_id);},
-//                           'Delete': delete_dataset,
-//                           }
-//
-//            var option = options[selectedMenu.text()];
-//            var dataset_id = get_dataset_id_from_details_table_row(invokedOn.parent());
-//            option(dataset_id);
-//        }
+    $('#collection-details-container').find('td').contextMenu({
+        menuSelector: '#details-context-menu',
     });
 
 }
@@ -518,33 +613,27 @@ function reset_search() {
     $('#add-to-collection-button').hide();
 }
 
-function update_collection(collection){
-
-
-  var loading_gif = $('#loading-gif-collections')
-    .clone()
-    .show()
-    .removeAttr('id')
-    .insertAfter('#loading-gif-collections');
-
-  $.get(get_collection_data_url, {'collection': collection})
-    .done(function(result) {
-      if(result.success){
-        update_datasets_by_feature(result.collection);
-        add_collection_layer(result.collection);
-        new_collection_html_update(result.html);
-        // collections.push(result.collection);
-      }
-    })
-    .fail(function() {
-
-      console.log( "error" );
-    })
-    .always(function() {
-      loading_gif.detach();
-    });
+function object_from_array(a){
+  var o = {};
+   $.each(a, function() {
+       if (o[this.name]) {
+           if (!o[this.name].push) {
+               o[this.name] = [o[this.name]];
+           }
+           o[this.name].push(this.value || '');
+       } else {
+           o[this.name] = this.value || '';
+       }
+   });
+   return o;
 }
 
+
+/*******************************************************************************
+ *
+ *                        PAGE LOAD
+ *
+ *******************************************************************************/
 
 $(function() { //wait for page to load
 
@@ -569,7 +658,7 @@ $(function() { //wait for page to load
 
   $('#add-to-collection-button').click(function(e){
       var selected_features = search_select_interaction.getFeatures();
-      $('#number-of-selected-features').text(selected_features.array_.length + ' features are selected.');
+      $('#number-of-selected-features').text(selected_features.getArray().length + ' features are selected.');
 
   });
 
@@ -597,60 +686,7 @@ $(function() { //wait for page to load
       }, 100);
   });
 
-  $('#add-features-form').submit(function(e){
-      e.preventDefault();
-      $('#add-to-collection-button').hide();
-      $('#add-features-modal').modal('hide');
-      $('#manage-tab').click();
-      $('#new_collection_name').val('');
-      $('#new_collection_description').val('');
-      $('#pending-tasks').show();
-
-      var url = $(this).attr('action');
-      var data = $(this).serializeArray();
-  //    var collection_name = $(this).serializeObject().collection;
-      var parameter = $('input[name="parameter"]:checked').val();
-      var selected_features = search_select_interaction.getFeatures();
-      var features = selected_features.array_.map(function(feature){
-          return feature.id_;
-      });
-
-      data.push({'name': 'features',
-                 'value': features},
-                {'name': 'parameter',
-                 'value': parameter}
-                );
-
-      $.get(url, data)
-      .done(function(result) {
-          if(result.success){
-              deactivate_search_layer();
-              update_datasets_by_feature(result.collection);
-              update_collection_layer(result.collection);
-
-              if(result.collection_html)
-              {
-                //add new colleciton and assicated info
-                new_collection_html_update(result);
-              }
-              else {
-                // update details table
-                update_details_table(result.collection.name, result.details_table_html);
-              }
-          }
-          else{
-            console.log('error');
-            console.log(result);
-          }
-
-      })
-      .fail(function() {
-          console.log( "error" );
-      })
-      .always(function() {
-        $('#pending-tasks').hide();
-      });
-  });
+  $('#add-features-form').submit(add_features_to_collection);
 
   //cleanup modals on close
   $('#new-collection-modal').on('hidden.bs.modal', function () {

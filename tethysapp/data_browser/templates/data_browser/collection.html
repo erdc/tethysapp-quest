@@ -1,8 +1,10 @@
+{% load staticfiles %}
+
 <div class="collection {{ collection.name }}-collection">
 
     <div class="dropdown">
       <h2>{{ collection.display_name }}</h2>
-      <button class="btn btn-default btn-pills right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+      <button class="btn btn-xs btn-default btn-pills right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu" aria-labelledby="dLabel">
@@ -11,6 +13,10 @@
         <li><a class="delete-collection" href="{% url 'data_browser:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
       </ul>
     </div>
-    <div>Description: {{ collection.description }}</div>
+    <div>{{ collection.description }}</div>
     <div class="collection-color" style="background-color:{{ collection.metadata.color }};"></div>
+    <div id="{{ collection.name }}-collection-status" class="collection-status" style="display: none;">
+      <span class="collection-status-message">Pending...</span>
+      <img src="{% static 'data_browser/images/loading.gif' %}">
+    </div>
 </div>

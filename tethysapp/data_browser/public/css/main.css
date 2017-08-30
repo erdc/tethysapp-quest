@@ -130,7 +130,7 @@ h1.title{
 
 #plot-container,
 #collection-details-container,
-#metadata-container{
+#details-container{
     width: 100%;
     height: 100%;
     background: white;
@@ -141,14 +141,19 @@ h1.title{
     padding: 10px;
 }
 
-#metadata-container{
+#details-container{
     padding: 10px 2px 5px 10px;
 }
-#metadata-content{
+#details-content{
     overflow: auto;
+    max-height: 100%;
 }
 
-#close-metadata-btn{
+#details-content td:first-child{
+    text-align: right;
+}
+
+#close-details-btn{
     position: absolute;
     right: 5px;
 }

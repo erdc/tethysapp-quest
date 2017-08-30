@@ -2,29 +2,22 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 import plotly.graph_objs as go
-import pandas as pd
 
 from tethys_sdk.gizmos import (MapView,
-                               MVDraw,
                                MVView,
-                               MVLayer,
-                               MVLegendClass,
                                SelectInput,
                                TableView,
                                DatePicker,
                                PlotlyView,
                                TextInput,
-                               ToggleSwitch,
                                )
 
 from app import DataBrowser as app
-import utilities
 
 import quest
 import json
 import os
 
-from time import time
 
 from pprint import pprint  # for debugging
 
@@ -132,7 +125,7 @@ import utilities
 @activate_user_settings
 def get_collections(request):
 
-    collections = quest.api.get_collections()
+    collections = quest.api.get_collections(expand=True).values()
 
     result = {'success': True,
               'collections': collections,
@@ -526,13 +519,14 @@ def retrieve_dataset(request, uri, options=None):
         collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
+        result['collection'] = utilities.get_collection_with_metadata(collection)
         success = True
     except Exception as e:
         result['error'] = str(e)
 
     result['success'] = success
 
-    return JsonResponse(result)
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 @login_required()
@@ -636,21 +630,37 @@ def visualize_dataset_workflow(request):
     return JsonResponse(result)
 
 
-@login_required()
-@activate_user_settings
-def show_metadata_workflow(request):
-    uri = request.GET['uri']
+def get_metadata_table_html(request, title, metadata, boarders=False):
+    """
+    Create HTML table for metadata property and value pairs. Any values that are dictionaries will (recursively) be
+    converted into sub-tables.
+    """
 
-    title = 'Metadata'
+    sub_tables = dict()
+    rows = list()
+    for k, v in metadata.items():
+        value = v
+        if isinstance(v, dict):
+            try:
+                # convert keys that can be integers to get around limitation in string formatting syntax
+                k = int(k)
+            except ValueError:
+                # if key cannot be cast as an integer then just use the original key
+                pass
+            value = '{{sub_tables[{0}]}}'.format(k)
+            sub_tables[k] = get_metadata_table_html(request, None, v, True)
+        if isinstance(v, basestring):
+            # this is required so the '{}' characters render correctly after string formatting
+            value = v.replace('{', '{{').replace('}', '}}')
+        rows.append((k, value))
 
-    metadata = quest.api.get_metadata(uri)[uri]
-    rows = [(k, v) for k, v in metadata.items()]
+    column_names = ('Property', 'Value')
 
-    table_view_options = TableView(column_names=('Property', 'Value'),
+    table_view_options = TableView(column_names=column_names,
                                    rows=rows,
                                    hover=True,
                                    striped=True,
-                                   bordered=False,
+                                   bordered=boarders,
                                    condensed=False)
 
     context = {'title': title,
@@ -658,6 +668,23 @@ def show_metadata_workflow(request):
                }
 
     html = render(request, 'data_browser/metadata.html', context).content
+    html = html.format(sub_tables=sub_tables)
+
+    return html
+
+
+@login_required()
+@activate_user_settings
+def show_metadata_workflow(request):
+    uri = request.GET['uri']
+
+    title = 'Details'
+
+    metadata = quest.api.get_metadata(uri)[uri]
+    metadata.pop('file_path', None)
+    metadata.pop('visualization_path', None)
+
+    html = get_metadata_table_html(request, title, metadata)
 
     result = {'success': True,
               'html': html,
@@ -850,7 +877,7 @@ def export_dataset(request):
 
     # hack to get around how quest is saving time series files
     if metadata['file_format'] == 'timeseries-hdf5':
-        file_path = '{0}.h5'.format(file_path)
+        file_path = '{0}'.format(file_path)
     file_name = os.path.basename(file_path)
     f = open(file_path, 'rb')
     # workspace_path = app.get_app_workspace().path

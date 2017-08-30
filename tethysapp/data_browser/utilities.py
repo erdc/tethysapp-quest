@@ -1,7 +1,5 @@
 import random
-import json
 import os
-import datetime
 import geojson
 
 import quest
@@ -13,6 +11,9 @@ from app import DataBrowser as app
 
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+
+# global variable to cache the services metadata query
+services_metadata = None
 
 
 def get_random_color():
@@ -88,12 +89,17 @@ def get_hierarchical_provider_list():
 
 
 def get_feature_source(feature):
+    global services_metadata
+
     metadata = quest.api.get_metadata(feature)[feature]
     location = metadata['display_name']
     service = metadata['service']
+
+    if not services_metadata:
+        services_metadata = quest.api.get_services(expand=True)
+
     if service:
-        service_metadata = quest.api.get_services(expand=True)[service]
-        source = service_metadata['display_name']
+        source = services_metadata[service]['display_name']
     else:
         source = None
     return location, source

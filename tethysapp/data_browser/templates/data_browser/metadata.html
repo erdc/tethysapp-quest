@@ -1,4 +1,6 @@
 {% load staticfiles tethys_gizmos %}
 
+{% if title %}
 <h4 class="modal-title">{{ title }}</h4>
+{% endif %}
 {% gizmo table_view table_view_options %}

@@ -314,7 +314,7 @@ drag_box.on('boxend', function() {
 //////////////////////////////////////////////
 
 function get_menu_items(feature){
-    var feature_id = feature.id_;
+    var feature_id = feature.getId();
     if(feature_id.startsWith('svc')){
         return [{
             text: 'Add To Collection',
@@ -340,9 +340,9 @@ function get_menu_items(feature){
               },
             },
             {
-              text: 'Show Metadata',
+              text: 'Details',
               callback: function(){
-                show_metadata(feature_id);
+                show_details(feature_id);
               },
             },
     //        '-', // this is a separator

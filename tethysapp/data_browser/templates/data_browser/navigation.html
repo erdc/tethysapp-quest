@@ -6,7 +6,7 @@
   <ul class="nav nav-pills" role="tablist">
     <li role="presentation" class="nav-tab active"><a id="manage-tab" href="#manage" aria-controls="manage" role="tab" data-toggle="tab">Manage</a></li>
     <li role="presentation" class="nav-tab"><a id="search-tab" href="#search" aria-controls="search" role="tab" data-toggle="tab">Search</a></li>
-    <li role="presentation" class="nav-tab"><a id="tools-tab" href="#tools" aria-controls="tools" role="tab" data-toggle="tab">Tools</a></li>
+    {# <li role="presentation" class="nav-tab"><a id="tools-tab" href="#tools" aria-controls="tools" role="tab" data-toggle="tab">Tools</a></li> #}
   </ul>
 
   <div class="tab-content">
@@ -19,8 +19,13 @@
       <div id="collections-list">
       </div>
       <div id="loading-gif-collections" class="collection">
+        <h2></h2>
         Loading
         <img src="{% static 'data_browser/images/loading.gif' %}">
+        <div class="collection-status" style="display: none;">
+          <span class="collection-status-message">Pending...</span>
+          <img src="{% static 'data_browser/images/loading.gif' %}">
+        </div>
       </div>
     </div>
 
@@ -91,13 +96,15 @@
       </form>
     </div>
 
-    <!-- Manage Tab Pane -->
+    {% comment future feature for accessing filters %}
+    <!-- Tools Tab Pane -->
     <div role="tabpanel" class="tab-pane" id="tools">
       <h1 class="title">Toolbox</h1>
       <div id="tools-list">
         ...
       </div>
     </div>
+    {% endcomment %}
 
   </div>
 </div>

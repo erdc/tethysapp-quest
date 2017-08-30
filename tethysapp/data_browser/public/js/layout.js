@@ -2,7 +2,7 @@ var LAYOUT_DIV_MAPPING = {
     'map': '#map_view_outer_container',
     'plot': '#plot-container',
     'table': '#collection-details-container',
-    'metadata': '#metadata-container',
+    'details': '#details-container',
 };
 
 var row = {
@@ -81,8 +81,8 @@ myLayout.registerComponent( 'plot', function( container, state ){
     container.getElement().append(plot);
 });
 
-myLayout.registerComponent( 'metadata', function( container, state ){
-    var plot = $(LAYOUT_DIV_MAPPING['metadata']).detach();
+myLayout.registerComponent( 'details', function( container, state ){
+    var plot = $(LAYOUT_DIV_MAPPING['details']).detach();
     container.getElement().append(plot);
 });
 
@@ -167,12 +167,12 @@ function show_table_layout(){
     }
 }
 
-function show_metadata_layout(){
-    var id = 'metadata', parent_id = 'row';
+function show_details_layout(){
+    var id = 'details', parent_id = 'row';
 
     var item = myLayout.root.getItemsById(id);
     if(item.length > 0){
-        // metadata is already visible
+        // details is already visible
     }
     else
     {
@@ -184,7 +184,7 @@ function show_metadata_layout(){
 }
 
 // handle close events for close buttons
-['table', 'metadata'].forEach(function(elem){
+['table', 'details'].forEach(function(elem){
   $('#close-' + elem + '-btn').click(function(){
       var item = myLayout.root.getItemsById(elem);
 
