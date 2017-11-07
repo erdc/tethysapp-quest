@@ -82,8 +82,10 @@ h1.title{
     float: left;
 }
 
-#search-button{
-    margin: 5px;
+#search-button,
+#add-to-collection-button{
+    margin-bottom: 5px;
+    width: 100%;
 }
 
 #hidden{

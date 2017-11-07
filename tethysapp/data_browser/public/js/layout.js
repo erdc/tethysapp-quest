@@ -62,10 +62,6 @@ var config = {
 
 var myLayout = new window.GoldenLayout( config, $('#layout') );
 
-myLayout.registerComponent( 'example', function( container, state ){
-    container.getElement().html( '<h2>' + state.text + '</h2>');
-});
-
 myLayout.registerComponent( 'map', function( container, state ){
     var map = $(LAYOUT_DIV_MAPPING['map']).detach();
     container.getElement().append(map);
@@ -109,6 +105,7 @@ function add_layout_item( id, parent_id, index){
         id: id,
         width: 20,
         type: 'component',
+        isClosable: false,
         componentName: id,
         componentState: { text: id }
     };
