@@ -126,6 +126,10 @@ class DataBrowser(TethysAppBase):
                     UrlMap(name='export_dataset',
                            url='data-browser/rest/datasets/export-dataset',
                            controller='data_browser.controllers.export_dataset'),
+
+                    UrlMap(name='test_form',
+                           url='data-browser/form',
+                           controller='data_browser.controllers.test_form'),
         )
 
         return url_maps

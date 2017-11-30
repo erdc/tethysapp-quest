@@ -283,27 +283,24 @@ def get_option_options(property, property_options, set_options):
         for condition, condition_options in property_options['options'].items():
             condition_input_options_list = list()
 
-            for condition_property, condition_property_options in condition_options['properties'].items():
+            for condition_property_options in condition_options['properties']:
+                condition_property = condition_property_options['name']
                 condition_input_type, condition_input_options = get_option_options(condition_property, condition_property_options, set_options)
                 condition_input_options_list.append(condition_input_options)
             conditions_options[condition] = condition_input_options_list
         input_options['conditions_options'] = conditions_options
 
-    elif 'enum' in property_options or isinstance(property_options['type'], dict):
+    elif property_options['type'].endswith('Selector'):
         input_type = 'select'
-        if isinstance(property_options['type'], dict):
-            options = property_options['type']['enum']
-            set_options.setdefault(property, property_options['type'].get('default'))
-        else:
-            options = property_options['enum']
+        set_options.setdefault(property, property_options.get('default'))
         input_options = SelectInput(name=property,
                                     display_text=property_options['description'],
                                     multiple=False,
-                                    options=[(option, option,) for option in options],
+                                    options=property_options['range'],
                                     initial=set_options.get(property, ''),
                                     )
 
-    elif 'date' in property_options['description']:
+    elif property_options['type']:
         input_type = 'date'
         input_options = DatePicker(name=property,
                                    display_text=property_options['description'],
@@ -324,19 +321,24 @@ def get_option_options(property, property_options, set_options):
 
 
 def get_options_html(request, uri, options, set_options, options_type, submit_controller_name, submit_btn_text):
+    form = widgets(options, set_options)()
+    for field in form.fields.values():
+        field.widget.attrs.update({'class': 'form-control'})
+
     context = {'options_type': options_type,
                'action': reverse('data_browser:{0}'.format(submit_controller_name)),
                'uri': uri,
                'submit_btn_text': submit_btn_text,
-               'properties': options.get('properties', None),
-               'title': options.get('title', ''),
+               'properties': form, #options.get('properties', None),
+               'title': options.title #get('title', ''),
                }
 
-    for property, property_options in context['properties'].items():
-        input_type, input_options = get_option_options(property, property_options, set_options)
-
-        context['properties'][property]['input_type'] = input_type
-        context['properties'][property]['input_options'] = input_options
+    # for property_options in context['properties']:
+    #     property_name = property_options['name']
+    #     input_type, input_options = get_option_options(property_name, property_options, set_options)
+    #
+    #     property_options['input_type'] = input_type
+    #     property_options['input_options'] = input_options
 
     # html = render_to_string('data_browser/options.html', context)
     html = render(request, 'data_browser/options.html', context).content.decode('utf-8')
@@ -350,7 +352,7 @@ def get_download_options_workflow(request):
     dataset = request.GET['dataset']
     success = False
     try:
-        options = quest.api.download_options(dataset)
+        options = quest.api.download_options(dataset, fmt='param')
         if dataset in options:
             options = options[dataset]
 
@@ -358,8 +360,8 @@ def get_download_options_workflow(request):
     except Exception as e:
         raise(e)
 
-    if 'properties' not in options:
-        return retrieve_dataset(request, dataset)
+    # if 'properties' not in options:
+    #     return retrieve_dataset(request, dataset)
 
     options_metadata_name = 'options'
     set_options = {}
@@ -549,6 +551,7 @@ def get_details_table(request, collection):
 def retrieve_dataset(request, uri, options=None):
     success = False
     result = {}
+
     try:
         dataset_id = utilities.stage_dataset_for_download(uri, options=options)
         quest.api.download_datasets(dataset_id, raise_on_error=False)
@@ -961,3 +964,37 @@ def export_dataset(request):
     # It's usually a good idea to set the 'Content-Length' header too.
     # You can also set any other required headers: Cache-Control, etc.
     return response
+
+
+def test_form(request):
+
+    from widgets import widgets
+
+    s = quest.api.get_services()[0]
+    o = quest.api.download_options(s, fmt='param')[s]
+
+    TestForm = widgets(o)
+
+    message = None
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = TestForm(request.POST)
+        # check whether it's valid:
+        if form.is_valid():
+            # process the data in form.cleaned_data as required
+            # ...
+            # redirect to a new URL:
+            message = 'Thanks! Your name is %s' % form.cleaned_data['parameter']
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+        form =TestForm()
+
+    for field in form.fields.values():
+        field.widget.attrs.update({'class': 'form-control'})
+    form.error_css_class = 'error'
+
+    context = {'form': form, 'message': message}
+
+    return render(request, 'data_browser/test_form.html', context)
