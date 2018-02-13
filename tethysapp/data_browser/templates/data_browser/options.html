@@ -1,4 +1,6 @@
-{% load staticfiles tethys_gizmos %}
+
+{{ properties.media }}
+{{ properties.media.js }}
 
 <div class="modal-header">
   <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -8,17 +10,32 @@
   <form id="options-form" action="{{ action }}" method="post">
     {% csrf_token %}
       <input type="hidden" name="uri" value="{{ uri }}">
-    {% for property, property_options in properties.items %}
-      {% if property_options.input_type == 'conditional' %}
-        {% include 'data_browser/conditional_input.html' with options=property_options.input_options %}
-      {% elif property_options.input_type == 'select' %}
-        {% gizmo select_input property_options.input_options %}
-      {% elif property_options.input_type == 'date' %}
-        {% gizmo date_picker property_options.input_options %}
-      {% else %}
-        {% gizmo text_input property_options.input_options %}
-      {% endif %}
-    {% endfor %}
+{#    {% for property_options in properties %}#}
+{#      {% if property_options.input_type == 'conditional' %}#}
+{#        {% include 'data_browser/conditional_input.html' with options=property_options.input_options %}#}
+{#      {% elif property_options.input_type == 'select' %}#}
+{#        {% gizmo select_input property_options.input_options %}#}
+{#      {% elif property_options.input_type == 'date' %}#}
+{#        {% gizmo date_picker property_options.input_options %}#}
+{#      {% else %}#}
+{#        {% gizmo text_input property_options.input_options %}#}
+{#      {% endif %}#}
+{#    {% endfor %}#}
+{#    {% for field in properties %}#}
+{#      <div class="form-group">#}
+{#        {{ field.label_tag }}#}
+{#        {% if field.errors %}#}
+{#          <div class="alert alert-danger" role="alert">#}
+{#            {{ field.errors }}#}
+{#          </div>#}
+{#        {% endif %}#}
+{#        {{ field }}#}
+{#        {% if field.help_text %}#}
+{#          <small id="emailHelp" class="form-text text-muted">{{ field.help_text|safe }}</small>#}
+{#        {% endif %}#}
+{#      </div>#}
+{#    {% endfor %}#}
+    {{  properties.as_table }}
   </form>
 </div>
 <div class="modal-footer">

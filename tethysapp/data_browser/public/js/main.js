@@ -306,17 +306,18 @@ function resize_table() {
 
 function populate_options_form(event){
     var dataset = $(this).attr('data-dataset-id');
-    var type = $(this).attr('data-options-type');
-    populate_options_form_for_dataset(dataset, type);
+    var button_type = $(this).attr('data-options-type');
+
+    populate_options_form_for_dataset(dataset, button_type);
 }
 
-function populate_options_form_for_dataset(dataset, type){
-    // change_status_to_loading(dataset, type);
+function populate_options_form_for_dataset(dataset, button_type){
+    change_status_to_loading(dataset)
     var data = {'dataset': dataset};
     var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
                visualize: visualize_dataset_url,
-               }[type];
+               }[button_type];
 
     $.get(url, data)
     .done(function(result) {
@@ -325,21 +326,34 @@ function populate_options_form_for_dataset(dataset, type){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
-                    TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
+                    // TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
+                    setTimeout(function(){$('.django-select2').djangoSelect2();}, 200);
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
                 }
+                change_status_to_complete(dataset);
             };
             var visualize = function(){
-               change_status_from_loading(dataset, type);
-               show_plot_layout();
-               $('#plot-content-placeholder').addClass('hidden');
-               $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
-               setTimeout(function(){
-                   $('#plot-content').replaceWith(result.html);
-                   resize_plot();
-               }, 100);
+               if(result.datatype == 'timeseries'){
+                   show_plot_layout();
+                   $('#plot-content-placeholder').addClass('hidden');
+                   $('#plot-content').html('<h2 class="text-center"> Loading ... </h2>');
+                   setTimeout(function(){
+                       $('#plot-content').replaceWith(result.html);
+                       resize_plot();
+                   }, 100);
+
+                   change_status_to_complete(dataset);
+
+                   }
+                else{
+//                    console.log(result.file_extents);
+
+                   add_raster_layer(data, result.file_extents);
+
+
+                    }
 
             };
             var func = {retrieve: options,
@@ -347,7 +361,7 @@ function populate_options_form_for_dataset(dataset, type){
                         visualize: visualize,
                         }
 
-             func[type]();
+             func[button_type]();
 
         }
 
@@ -383,6 +397,7 @@ function change_status_to_loading(dataset_id){
 
     $('#retrieve-dataset-options-btn-' + dataset_id).hide();
     $('#visualize-dataset-options-btn-' + dataset_id).hide();
+    $('#export-dataset-btn-' + dataset_id).hide();
     $('#loading-gif-' + dataset_id).show();
 }
 
@@ -395,6 +410,48 @@ function change_status_from_loading(dataset_id, type){
       $('#retrieve-dataset-options-btn-' + dataset_id).show();
     }
     $('#loading-gif-' + dataset_id).hide();
+}
+
+function change_status_to_complete(dataset_id){
+
+    $('#retrieve-dataset-options-btn-' + dataset_id).show();
+    $('#visualize-dataset-options-btn-' + dataset_id).show();
+    $('#export-dataset-btn-' + dataset_id).show();
+    $('#loading-gif-' + dataset_id).hide();
+}
+
+function custom_query_options(button_type){
+    var len = $('#custom-query-table tr').length;
+
+    var addRow = function(){
+
+            //string to add row to table
+            var rowStr = '<tr><td><input type="text" name="field"size="15"></td><td><input type="text" name="value" size="15"></td></tr>'
+
+            $('#custom-query-table').append(rowStr);
+
+                   }
+
+    var deleteRow = function(){
+
+        if($('#custom-query-table tr').length > 2)
+             {
+             $('#custom-query-table tr:last').remove();
+             }
+
+
+    }
+
+    var func = {
+                add: addRow,
+                remove: deleteRow,
+                        }
+
+
+   func[button_type]();
+
+//    $('#custom-query-table')
+
 }
 
 function submit_options(event){
@@ -414,6 +471,7 @@ function submit_options(event){
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
             update_datasets_by_feature(result.collection);
+            get_tasks();
         }
         else{
             console.log(result);
@@ -428,7 +486,7 @@ function submit_options(event){
 }
 
 function export_dataset(dataset_id){
-var data = {'dataset': dataset_id};
+    var data = {'dataset': dataset_id};
     var url = export_dataset_url + '?' + $.param(data);
     window.location = url;
 }
@@ -747,6 +805,10 @@ $(function() { //wait for page to load
       show_table_layout();
   });
 
+  //Add/delete row to custom query
+  $('#add-custom-row-button').on('click', function(){custom_query_options('add')});
+  $('#delete-custom-row-button').on('click', function(){custom_query_options('remove')});
+
   bind_context_menu();
 
   reload_collection_details_tabs($('.collection_detail_datatable'));
@@ -803,7 +865,7 @@ $(function() { //wait for page to load
           }
           else{
               $(service_checkbox).prop('checked', false).change();
-              $(service_checkbox).prop('disabled', true);
+              $(service_checkbox).prop('disabled', false);
           };
       };
       //expand services tab
@@ -924,7 +986,8 @@ function get_contextmenu_items(target){
     var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
     dataset = {name: dataset_id,
-               status: download_status}
+               status: download_status,
+               }
     return get_dataset_context_menu_items(dataset);
 }
 

@@ -3,11 +3,12 @@ import os
 import geojson
 
 import quest
+from past.builtins import basestring  # for python 2 compatibility
 from shapely.geometry.base import BaseGeometry
 from tethys_gizmos.gizmo_options import TableView
 
 
-from app import DataBrowser as app
+from .app import DataBrowser as app
 
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'

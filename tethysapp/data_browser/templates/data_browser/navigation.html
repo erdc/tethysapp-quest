@@ -93,8 +93,30 @@
           {% endfor %}
         </div>
       </div>
+
+      <div class="filter-group collapsible-container">
+        <div class="collapsible collapsed" data-toggle="collapse" data-target="#collapse-custom-query" aria-expanded="false" aria-controls="#collapse-custom-query">
+          <span class="caret"></span>
+        </div>
+        <h2>Custom Query</h2>
+        <div class="collapse" id="collapse-custom-query">
+            <table id="custom-query-table" style="border:none">
+            <tr>
+            <th>Field Name</th>
+            <th>Value</th></tr>
+            <tr>
+            <td> <INPUT TYPE="TEXT" NAME="field" size="15"> </td>
+            <td> <INPUT TYPE="TEXT" NAME="value" size="15"> </td>
+            </tr>
+            </table>
+            <button type="button" id="add-custom-row-button"> Add </button>
+            <button type="button" id="delete-custom-row-button"> Delete </button>
+        </div>
+      </div>
+
       </form>
     </div>
+
 
     {% comment future feature for accessing filters %}
     <!-- Tools Tab Pane -->

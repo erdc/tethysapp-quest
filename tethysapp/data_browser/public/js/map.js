@@ -29,6 +29,24 @@ var get_map_extents = function(){
     return geographic_extent;
 }
 
+function add_raster_layer (metadata, extents){
+    var dataset = metadata['dataset']
+    var url = get_raster_image_url + '?' + $.param(metadata);
+    var raster = new ol.layer.Image({
+      opacity: .25,
+      map: map,
+      extent: extents,
+      source: new ol.source.ImageStatic({
+        url: url,
+//        imageSize: [width,height],
+        imageExtent: extents,
+      }),
+
+     });
+
+    change_status_to_complete(dataset);
+}
+
 function get_layer_by_name(name){
     var layer;
     map.getLayers().forEach(function(lyr){

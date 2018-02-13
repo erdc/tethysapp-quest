@@ -12,7 +12,8 @@ from tethys_sdk.gizmos import (MapView,
                                TextInput,
                                )
 
-from app import DataBrowser as app
+from .app import DataBrowser as app
+from .widgets import widgets
 
 import quest
 import json
@@ -110,10 +111,44 @@ def home(request):
     return render(request, 'data_browser/home.html', context)
 
 
+@login_required()
+@activate_user_settings
+def get_raster_image(request):
+    dataset = request.GET['dataset']
+    success = False
+    try:
+        metadata = quest.api.get_metadata(dataset)[dataset]
+        success = True
+    except:
+        pass
+
+    from django.utils.encoding import smart_str
+
+
+    file_path = quest.api.visualize_dataset(dataset,reproject=True,crs='EPSG:3857')
+
+    file_name = os.path.basename(file_path)
+    import rasterio
+
+    f = open(file_path, 'rb')
+    # workspace_path = app.get_app_workspace().path
+    # workspace_path = os.path.dirname(workspace_path)
+    # file_path = os.path.relpath(file_path, workspace_path)
+    # file_path = os.path.join('/workspaces', app.package, file_path)
+
+    response = HttpResponse(f)
+    response['Content-Type'] = 'image/jpeg'  # TODO figure out mimetype
+    response['Content-Disposition'] = 'attachment; filename=%s' % smart_str(file_name)
+    # response['X-Accel-Redirect'] = smart_str(file_path)
+    # It's usually a good idea to set the 'Content-Length' header too.
+    # You can also set any other required headers: Cache-Control, etc.
+    return response
+
+
 from django.http import JsonResponse, HttpResponse
 from django.core.urlresolvers import reverse
 
-import utilities
+from . import utilities
 
 ############################################################################
 
@@ -125,7 +160,7 @@ import utilities
 @activate_user_settings
 def get_collections(request):
 
-    collections = quest.api.get_collections(expand=True).values()
+    collections = list(quest.api.get_collections(expand=True).values())
 
     result = {'success': True,
               'collections': collections,
@@ -154,9 +189,9 @@ def get_collection_data(request):
 def get_collection_html(request, collection):
 
     context = {'collection': collection}
-    collection_html = render(request, 'data_browser/collection.html', context).content
-    details_table_html = render(request, 'data_browser/details_table.html', context).content
-    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content
+    collection_html = render(request, 'data_browser/collection.html', context).content.decode('utf-8')
+    details_table_html = render(request, 'data_browser/details_table.html', context).content.decode('utf-8')
+    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content.decode('utf-8')
 
     result = {'success': True,
               'collection_html': collection_html,
@@ -219,14 +254,14 @@ def add_features_workflow(request):
     # context = {'collection': collection}
     result = {'collection': collection}
     result['details_table_html'] = \
-        render(request, 'data_browser/details_table.html', result).content
+        render(request, 'data_browser/details_table.html', result).content.decode('utf-8')
 
     if new_collection_added:
         result['collection_html'] = \
-            render(request, 'data_browser/collection.html', result).content
+            render(request, 'data_browser/collection.html', result).content.decode('utf-8')
         result['details_table_tab_html'] = \
             render(request, 'data_browser/details_table_tab.html',
-                   result).content
+                   result).content.decode('utf-8')
 
     result['success'] = success
 
@@ -304,7 +339,7 @@ def get_options_html(request, uri, options, set_options, options_type, submit_co
         context['properties'][property]['input_options'] = input_options
 
     # html = render_to_string('data_browser/options.html', context)
-    html = render(request, 'data_browser/options.html', context).content
+    html = render(request, 'data_browser/options.html', context).content.decode('utf-8')
 
     return html
 
@@ -361,10 +396,11 @@ def get_filter_list_workflow(request):
     success = False
     try:
         filters = quest.api.get_filters(filters={'dataset': dataset_id})
-        filter_options = {f: quest.api.apply_filter_options(f) for f in filters}
-        options['properties'] = {'filter': {'options': filter_options,
-                                            'description': 'filter',
-                                            'type': 'conditional'}}
+        filter_options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
+        options['properties'] = [{'name': 'filters',
+                                  'options': filter_options,
+                                  'description': 'filter',
+                                  'type': 'conditional'}]
 
         success = True
     except Exception as e:
@@ -372,7 +408,7 @@ def get_filter_list_workflow(request):
 
     html = get_options_html(request,
                             uri=dataset_id,
-                            options=options,
+                            options=filter_options[filters[0]],
                             set_options={},
                             options_type=options_type,
                             submit_controller_name=submit_controller_name,
@@ -445,7 +481,7 @@ def get_visualize_options_workflow(request):
 
         success = True
     except Exception as e:
-        raise(e)
+        raise e
 
     set_options = {}
     metadata = quest.api.get_metadata(dataset_id)[dataset_id]
@@ -506,7 +542,7 @@ def get_details_table(request, collection):
     collection = utilities.get_collection_with_metadata(collection)
     context = {'collection': collection}
 
-    details_table_html = render(request, 'data_browser/details_table.html', context).content
+    details_table_html = render(request, 'data_browser/details_table.html', context).content.decode('utf-8')
     return details_table_html
 
 
@@ -548,7 +584,7 @@ def apply_filter_workflow(request):
     result = {'success': False}
     dataset_id = request.POST['uri']
     filter = request.POST.get('filter')
-    filter_options = quest.api.apply_filter_options(filter)['properties'].keys()
+    filter_options = list(quest.api.apply_filter_options(filter)['properties'].keys())
     options = dict(request.POST.items())
     for k in options.keys():
         if k not in filter_options:
@@ -577,55 +613,88 @@ def visualize_dataset_workflow(request):
     time series data in a plot
     '''
     dataset = request.GET['dataset']
+    # datatype = request.GET['dataset_datatype']
+
+    datatype = quest.api.get_metadata(dataset)[dataset]['datatype']
+
     # load data
-    df = quest.api.open_dataset(dataset, fmt='dataframe')
-    parameter = df.metadata['parameter']
-    units = df.metadata.get('unit')
-    data_col = parameter if parameter in df.columns else df.columns[0]  # TODO fix this in quest
+    if not datatype:
+        raise ValueError('Cannot visualize a dataset without a datytype')
 
-    x = df.index
-    if hasattr(x, 'to_timestamp'):
-        x = x.to_timestamp()
+    if datatype == 'timeseries':
+        df = quest.api.open_dataset(dataset, fmt='dataframe')
+        parameter = df.metadata['parameter']
+        units = df.metadata.get('unit')
+        data_col = parameter if parameter in df.columns else df.columns[0]  # TODO fix this in quest
 
-    # create plotly plot
-    scatter_series = go.Scatter(
-        x=x,
-        y=df[data_col],
-        name=dataset,
-        fill='tozeroy'
-    )
-    plotly_layout = go.Layout(
-        showlegend=True,
-        height=350,
-        margin=go.Margin(
-            l=50,
-            r=0,
-            b=30,
-            t=0,
-            pad=4
-        ),
-        legend=dict(
-            orientation='h',
-        ),
-        yaxis=dict(
-            title="{0}{1}".format(data_col, " ({0})".format(units) if units else ''),
-        ),
-    )
-    # create plotly gizmo
-    plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
-                                             layout=plotly_layout),
-                                   height='100%',
-                                   attributes={'id': 'plot-content',
-                                               'data-dataset_id': dataset},
-                                   )
+        x = df.index
+        if hasattr(x, 'to_timestamp'):
+            x = x.to_timestamp()
 
-    context = {'plot_view_options': plot_view_options, }
+        # create plotly plot
+        scatter_series = go.Scatter(
+            x=x,
+            y=df[data_col],
+            name=dataset,
+            fill='tozeroy'
+        )
+        plotly_layout = go.Layout(
+            showlegend=True,
+            height=350,
+            margin=go.Margin(
+                l=50,
+                r=0,
+                b=30,
+                t=0,
+                pad=4
+            ),
+            legend=dict(
+                orientation='h',
+            ),
+            yaxis=dict(
+                title="{0}{1}".format(data_col, " ({0})".format(units) if units else ''),
+            ),
+        )
+        # create plotly gizmo
+        plot_view_options = PlotlyView(go.Figure(data=[scatter_series],
+                                                 layout=plotly_layout),
+                                       height='100%',
+                                       attributes={'id': 'plot-content',
+                                                   'data-dataset_id': dataset},
+                                       )
 
-    html = render(request, 'data_browser/visualize.html', context).content
+        context = {'plot_view_options': plot_view_options, }
 
-    result = {'success': True,
-              'html': html,
-              }
+        html = render(request, 'data_browser/visualize.html', context).content.decode('utf-8')
+
+        result = {'success': True,
+                  'html': html,
+
+                  }
+
+    else:
+        try:
+            metadata = quest.api.get_metadata(dataset)[dataset]
+            file_path = metadata['file_path']
+            result = {'success': True}
+        except Exception as e:
+
+            result['error'] = e
+
+        from django.utils.encoding import smart_str
+        import rasterio
+        import rasterio.warp
+
+        with rasterio.open(file_path) as src:
+
+            if src.crs.to_string() != '+init=epsg:3857':
+                file_extents = rasterio.warp.transform_bounds(src.crs.to_string(), 'EPSG:3857', *src.bounds)
+            else:
+                file_extents = src.bounds
+
+        result['file_extents'] = file_extents
+
+    result['datatype'] = datatype
 
     return JsonResponse(result)
 
@@ -649,7 +718,7 @@ def get_metadata_table_html(request, title, metadata, boarders=False):
                 pass
             value = '{{sub_tables[{0}]}}'.format(k)
             sub_tables[k] = get_metadata_table_html(request, None, v, True)
-        if isinstance(v, basestring):
+        if isinstance(v, str):
             # this is required so the '{}' characters render correctly after string formatting
             value = v.replace('{', '{{').replace('}', '}}')
         rows.append((k, value))
@@ -667,7 +736,7 @@ def get_metadata_table_html(request, title, metadata, boarders=False):
                'table_view_options': table_view_options,
                }
 
-    html = render(request, 'data_browser/metadata.html', context).content
+    html = render(request, 'data_browser/metadata.html', context).content.decode('utf-8')
     html = html.format(sub_tables=sub_tables)
 
     return html
@@ -818,7 +887,7 @@ def get_features(request):
             filters[filter_name] = value
 
     # try:
-    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
+    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True, update_cache=True)
 
     # except Exception as e:
     #     features = {'error': str(e)}
@@ -852,8 +921,8 @@ def retrieve_datasets(request):
     try:
         quest.api.download_datasets(dataset)
         success = True
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
     result = {'success': success}
 

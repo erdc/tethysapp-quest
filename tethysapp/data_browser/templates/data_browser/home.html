@@ -126,7 +126,7 @@
               {% csrf_token %}
               <div id="add-features-collection-select-div"{% if not collection_select_options.options %}style="display: none;"{% endif %}>
                 {% gizmo select_input collection_select_options %}
-                <h4>Add Feaures to New Collection</h4>
+                <h4>Add Feautres to New Collection</h4>
                 <hr>
               </div>
               {% gizmo new_collection_name_text_options %}
@@ -154,6 +154,7 @@
     var get_filter_list_url = '{% url 'data_browser:get_filter_list_workflow' %}';
     var get_filter_options_url = '{% url 'data_browser:get_filter_options_workflow' %}';
     var visualize_dataset_url = '{% url 'data_browser:visualize_dataset_workflow' %}';
+    var get_raster_image_url = '{% url 'data_browser:get_raster_image' %}';
     var get_features_url = '{% url 'data_browser:get_features' %}';
     var delete_dataset_url = '{% url 'data_browser:delete_dataset_workflow' %}';
     var get_collections_url = '{% url 'data_browser:get_collections' %}';
