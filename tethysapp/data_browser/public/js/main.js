@@ -471,7 +471,7 @@ function submit_options(event){
         if(result.success){
             update_details_table(result.collection_name, result.details_table_html);
             update_datasets_by_feature(result.collection);
-            get_tasks();
+//            get_tasks();
         }
         else{
             console.log(result);

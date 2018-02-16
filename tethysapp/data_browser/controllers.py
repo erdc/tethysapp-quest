@@ -408,6 +408,7 @@ def get_filter_list_workflow(request):
     except Exception as e:
         raise e
 
+    print(options)
     html = get_options_html(request,
                             uri=dataset_id,
                             options=filter_options[filters[0]],
@@ -574,9 +575,8 @@ def retrieve_dataset_workflow(request):
     retrieve_options = dict(request.POST.items())
     dataset = retrieve_options.pop('uri')
     retrieve_options.pop('csrfmiddlewaretoken')
-    for key, value in retrieve_options.items():
-        if not value:
-            retrieve_options.pop(key)
+    retrieve_options = {k: v for k, v in retrieve_options.items() if v}
+    print(retrieve_options)
 
     return retrieve_dataset(request, dataset, retrieve_options)
 

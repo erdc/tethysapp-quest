@@ -33,7 +33,7 @@ function add_raster_layer (metadata, extents){
     var dataset = metadata['dataset']
     var url = get_raster_image_url + '?' + $.param(metadata);
     var raster = new ol.layer.Image({
-      opacity: .25,
+      opacity: .5,
       map: map,
       extent: extents,
       source: new ol.source.ImageStatic({

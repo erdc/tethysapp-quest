@@ -138,6 +138,12 @@ widget_map = {
         lambda p, initial: forms.MultipleChoiceField(
             initial=initial or p.default,
         ),
+    param_util.DatasetListSelector:
+        lambda p, initial: forms.MultipleChoiceField(
+            initial=initial or p.default,
+            widget=Select2MultipleWidget,
+            choices=p.get_range().items(),
+        ),
     # param.Callable,
     param.Tuple:
         lambda p, initial: forms.MultiValueField(
@@ -151,7 +157,6 @@ widget_map = {
 
 
 def widgets(paramitarized_obj, set_options):
-    print(paramitarized_obj)
 
     class_name = '{}Form'.format(paramitarized_obj.name.title())
     form_class = type(class_name, (forms.Form,), dict(forms.Form.__dict__))
