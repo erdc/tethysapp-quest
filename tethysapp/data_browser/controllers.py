@@ -13,7 +13,8 @@ from tethys_sdk.gizmos import (MapView,
                                )
 
 from .app import DataBrowser as app
-from .widgets import widgets
+from .widgets import widgets, widgets_form
+from .conditional_widget import ConditionalSelect
 
 import quest
 import json
@@ -268,77 +269,31 @@ def add_features_workflow(request):
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
-def get_option_options(property, property_options, set_options):
-    if property_options['type'] == 'conditional':
-        input_type = 'conditional'
-        input_options = dict()
-        input_options['select_options'] = SelectInput(name=property,
-                                                      display_text=property_options['description'],
-                                                      multiple=False,
-                                                      options=[(option, option) for option in property_options['options'].keys()],
-                                                      initial=set_options.get(property, ''),
-                                                      select2_options={'placeholder': 'Select a ' + property_options['description'], 'allowClear': True},
-                                                      )
-        conditions_options = dict()
-        for condition, condition_options in property_options['options'].items():
-            condition_input_options_list = list()
+def get_select_options_html(request, uri, title, options, set_options, options_type, submit_controller_name):
+    form = widgets_form(options, set_options)()
 
-            for condition_property_options in condition_options['properties']:
-                condition_property = condition_property_options['name']
-                condition_input_type, condition_input_options = get_option_options(condition_property, condition_property_options, set_options)
-                condition_input_options_list.append(condition_input_options)
-            conditions_options[condition] = condition_input_options_list
-        input_options['conditions_options'] = conditions_options
+    context = {'options_type': options_type,
+               'action': reverse('data_browser:{0}'.format(submit_controller_name)),
+               'uri': uri,
+               'form_fields': form,
+               'title': title
+               }
 
-    elif property_options['type'].endswith('Selector'):
-        input_type = 'select'
-        set_options.setdefault(property, property_options.get('default'))
-        input_options = SelectInput(name=property,
-                                    display_text=property_options['description'],
-                                    multiple=False,
-                                    options=property_options['range'],
-                                    initial=set_options.get(property, ''),
-                                    )
+    html = render(request, 'data_browser/select_options.html', context).content.decode('utf-8')
 
-    elif property_options['type']:
-        input_type = 'date'
-        input_options = DatePicker(name=property,
-                                   display_text=property_options['description'],
-                                   autoclose=True,
-                                   format='m/d/yyyy',
-                                   today_button=True,
-                                   initial=set_options.get(property, '')
-                                   )
-    else:
-        input_type = 'text'
-        input_options = TextInput(name=property,
-                                  display_text=property_options['description'],
-                                  placeholder='',
-                                  initial=set_options.get(property, '')
-                                  )
-
-    return input_type, input_options
+    return html
 
 
-def get_options_html(request, uri, options, set_options, options_type, submit_controller_name, submit_btn_text):
-    form = widgets(options, set_options)()
-    for field in form.fields.values():
-        field.widget.attrs.update({'class': 'form-control'})
+def get_options_html(request, uri, title, options, set_options, options_type, submit_controller_name, submit_btn_text):
+    form = widgets_form(options, set_options)()
 
     context = {'options_type': options_type,
                'action': reverse('data_browser:{0}'.format(submit_controller_name)),
                'uri': uri,
                'submit_btn_text': submit_btn_text,
-               'properties': form, #options.get('properties', None),
-               'title': options.title #get('title', ''),
+               'form_fields': form,
+               'title': title
                }
-
-    # for property_options in context['properties']:
-    #     property_name = property_options['name']
-    #     input_type, input_options = get_option_options(property_name, property_options, set_options)
-    #
-    #     property_options['input_type'] = input_type
-    #     property_options['input_options'] = input_options
 
     # html = render_to_string('data_browser/options.html', context)
     html = render(request, 'data_browser/options.html', context).content.decode('utf-8')
@@ -353,15 +308,10 @@ def get_download_options_workflow(request):
     success = False
     try:
         options = quest.api.download_options(dataset, fmt='param')
-        if dataset in options:
-            options = options[dataset]
 
         success = True
     except Exception as e:
-        raise(e)
-
-    # if 'properties' not in options:
-    #     return retrieve_dataset(request, dataset)
+        raise e
 
     options_metadata_name = 'options'
     set_options = {}
@@ -373,6 +323,7 @@ def get_download_options_workflow(request):
 
     html = get_options_html(request,
                             uri=dataset,
+                            title=options[dataset].title,
                             options=options,
                             set_options=set_options,
                             options_type='retrieve',
@@ -386,36 +337,111 @@ def get_download_options_workflow(request):
     return JsonResponse(result)
 
 
+
+import param
+
+
+def get_select_object(options):
+    class SelectParam(param.Parameterized):
+        select = param.ObjectSelector(objects=options)
+
+    return SelectParam
+
+
 @login_required()
 @activate_user_settings
-def get_filter_list_workflow(request):
+def get_publisher_list_workflow(request):
     dataset_id = request.GET['dataset']
-    options_type = 'filter'
-    submit_controller_name = 'apply_filter_workflow'
-    submit_btn_text = 'Apply Filter'
-    options = {'title': 'Apply Filter'}
+    options_type = 'publish'
+    submit_controller_name = 'get_publish_options_workflow'
+    title = 'Select Publisher'
 
     success = False
     try:
-        filters = quest.api.get_filters(filters={'dataset': dataset_id})
-        filter_options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
-        options['properties'] = [{'name': 'filters',
-                                  'options': filter_options,
-                                  'description': 'filter',
-                                  'type': 'conditional'}]
+        publishers = quest.api.get_publishers()
+        publishers.insert(0, 'select publisher')
+        options = {'filters': get_select_object(publishers)}
 
         success = True
     except Exception as e:
         raise e
 
-    print(options)
+    html = get_select_options_html(
+        request,
+        uri=dataset_id,
+        title=title,
+        options=options,
+        set_options={},
+        options_type=options_type,
+        submit_controller_name=submit_controller_name,
+    )
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
+
+
+@login_required()
+@activate_user_settings
+def get_publish_options_workflow(request):
+    dataset_id = request.GET.get('uri')
+    publisher = request.GET.get('select')
+    success = False
+    try:
+        options = quest.api.get_publish_options(publisher, fmt='param')
+        success = True
+    except Exception as e:
+        raise e
+
     html = get_options_html(request,
                             uri=dataset_id,
-                            options=filter_options[filters[0]],
+                            title='Publish Dataset',
+                            options=options,
                             set_options={},
-                            options_type=options_type,
-                            submit_controller_name=submit_controller_name,
-                            submit_btn_text=submit_btn_text)
+                            options_type='publish',
+                            submit_controller_name='publish_dataset_workflow',
+                            submit_btn_text='Publish')
+
+    result = {'success': success,
+              'html': html,
+              }
+
+    return JsonResponse(result)
+
+
+@login_required()
+@activate_user_settings
+def get_filter_list_workflow(request):
+    dataset_id = request.GET['dataset']
+    options_type = 'filter'
+    # submit_controller_name = 'apply_filter_workflow'
+    submit_controller_name = 'get_filter_options_workflow'
+    # submit_btn_text = 'Apply Filter'
+    title = 'Apply Filter'
+
+    success = False
+    try:
+        filters = quest.api.get_filters(filters={'dataset': dataset_id})
+        filters.insert(0, 'select filter')
+        # options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
+        options = {'filters': get_select_object(filters)}
+
+        success = True
+    except Exception as e:
+        raise e
+
+    html = get_select_options_html(
+        request,
+        uri=dataset_id,
+        title=title,
+        options=options,
+        set_options={},
+        options_type=options_type,
+        submit_controller_name=submit_controller_name,
+        # submit_btn_text=submit_btn_text
+    )
 
     result = {'success': success,
               'html': html,
@@ -427,32 +453,34 @@ def get_filter_list_workflow(request):
 @login_required()
 @activate_user_settings
 def get_filter_options_workflow(request):
-    dataset_id = request.POST.get('uri')
-    filter = request.POST.get('filter')
+    dataset_id = request.GET.get('uri')
+    filter = request.GET.get('select')
     options_metadata_name = 'options'
     options_type = 'filter'
     submit_controller_name = 'apply_filter_workflow'
     submit_btn_text = 'Apply Filter'
+    title = 'Filter Options'
 
     get_options_function = quest.api.apply_filter_options
 
     success = False
     try:
-        options = get_options_function(filter)
+        options = {filter: quest.api.apply_filter_options(filter, fmt='param')}
 
         success = True
     except Exception as e:
-        raise(e)
+        raise e
 
     set_options = {}
-    metadata = quest.api.get_metadata(dataset_id)[dataset_id]
-    if options_metadata_name in metadata:
-        set_options = json.loads(metadata[options_metadata_name])
-        if not set_options:
-            set_options = {}
+    # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
+    # if options_metadata_name in metadata:
+    #     set_options = json.loads(metadata[options_metadata_name])
+    #     if not set_options:
+    #         set_options = {}
 
     html = get_options_html(request,
                             uri=dataset_id,
+                            title=title,
                             options=options,
                             set_options=set_options,
                             options_type=options_type,
@@ -487,11 +515,11 @@ def get_visualize_options_workflow(request):
         raise e
 
     set_options = {}
-    metadata = quest.api.get_metadata(dataset_id)[dataset_id]
-    if options_metadata_name in metadata:
-        set_options = json.loads(metadata[options_metadata_name])
-        if not set_options:
-            set_options = {}
+    # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
+    # if options_metadata_name in metadata:
+    #     set_options = json.loads(metadata[options_metadata_name])
+    #     if not set_options:
+    #         set_options = {}
 
     html = get_options_html(request,
                             uri=dataset_id,
@@ -520,7 +548,7 @@ def add_data_workflow(request):
 
         success = True
     except Exception as e:
-        raise (e)
+        raise e
 
     if 'properties' not in options:
         return retrieve_dataset(request, feature)
@@ -579,6 +607,12 @@ def retrieve_dataset_workflow(request):
     print(retrieve_options)
 
     return retrieve_dataset(request, dataset, retrieve_options)
+
+@login_required()
+@activate_user_settings
+def publish_dataset_workflow(request):
+
+    return JsonResponse({}, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 @login_required()

@@ -1,28 +1,29 @@
 from django import forms
 import param
-from tethys_sdk.gizmos import DatePicker
+from tethys_sdk.gizmos import SelectInput
 from datetimewidget.widgets import DateWidget
 from django_select2.forms import Select2Widget, Select2MultipleWidget
 from quest.util import param_util
 
 
-class DatePickerWidget(forms.DateInput):
-    template_name = 'date_picker.html'
+class ConditionalSelectWidget(forms.widgets.Select):
+    template_name = 'conditional_input.html'
+
+    def __init__(self, forms, **kwargs):
+        self.forms = forms
+        super(ConditionalSelectWidget, self).__init__(**kwargs)
 
     def get_context(self, name, value, attrs):
-        context = super(forms.DateInput, self).get_context(name, value, attrs)
-        print(context)
-        date_picker = DatePicker(name=name,
-                                 display_text='',
-                                 autoclose=True,
-                                 format='MM d, yyyy',
-                                 start_date='2/15/2014',
-                                 # start_view='decade',
-                                 today_button=True,
-                                 initial=context['widget'].get('value', ''),
-                                 attributes=attrs)
+        context = super(ConditionalSelectWidget, self).get_context(name, value, attrs)
 
-        context['gizmo_options'] = date_picker
+        select_options = SelectInput(
+            name=name,
+            display_text='select',
+            options=[(option, option) for option in self.forms.keys()],
+        )
+
+        context['select_options'] = select_options
+        context['forms'] = self.forms
 
         return context
 
@@ -77,6 +78,12 @@ widget_map = {
         ),
     param_util.DatasetSelector:
         lambda p, initial: forms.ChoiceField(
+            initial=initial or p.default,
+            widget=Select2Widget,
+            choices=p.get_range().items(),
+        ),
+    param_util.FeatureSelector:
+        lambda p, initial: forms.MultipleChoiceField(
             initial=initial or p.default,
             widget=Select2Widget,
             choices=p.get_range().items(),
@@ -144,6 +151,12 @@ widget_map = {
             widget=Select2MultipleWidget,
             choices=p.get_range().items(),
         ),
+    # param_util.FeatureListSelector:
+    #     lambda p, initial: forms.MultipleChoiceField(
+    #         initial=initial or p.default,
+    #         widget=Select2MultipleWidget,
+    #         choices=p.get_range().items(),
+    #     ),
     # param.Callable,
     param.Tuple:
         lambda p, initial: forms.MultiValueField(
@@ -157,7 +170,6 @@ widget_map = {
 
 
 def widgets(paramitarized_obj, set_options):
-
     class_name = '{}Form'.format(paramitarized_obj.name.title())
     form_class = type(class_name, (forms.Form,), dict(forms.Form.__dict__))
 
@@ -166,5 +178,30 @@ def widgets(paramitarized_obj, set_options):
 
     for p in sorted(params, key=lambda p: p.precedence or 9999):
         form_class.base_fields[p._attrib_name] = widget_map[type(p)](p, set_options.get(p._attrib_name))
+        form_class.base_fields[p._attrib_name].widget.attrs.update({'class': 'form-control'})
+
+    return form_class
+
+
+# WIP: attempt at handling conditional widgets
+def widgets_form(paramitarized_obj_dict, set_options):
+
+    form_classes = {}
+
+    for name, paramitarized_obj in paramitarized_obj_dict.items():
+        form_class = widgets(paramitarized_obj, set_options)
+        form_classes[name] = form_class
+
+    if len(form_classes) > 1:
+        class_name = '{}Form'.format('Conditional')
+        form_class = type(class_name, (forms.Form,), dict(forms.Form.__dict__))
+        choices = [(p, p) for p in form_classes.keys()]
+        form_class.base_fields['condition'] = forms.ChoiceField(
+                                                choices=choices,
+                                                widget=ConditionalSelectWidget(
+                                                    forms=form_classes,
+                                                    attrs={'class': 'form-control'})
+                                              )
+        # form_class.media = lambda: [f.media for f in form_classes.values()]
 
     return form_class

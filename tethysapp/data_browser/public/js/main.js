@@ -317,6 +317,7 @@ function populate_options_form_for_dataset(dataset, button_type){
     var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
                visualize: visualize_dataset_url,
+               publish: get_publisher_list_url,
                }[button_type];
 
     $.get(url, data)
@@ -326,8 +327,8 @@ function populate_options_form_for_dataset(dataset, button_type){
                 if(result.html){
                     $('#options-content').html(result.html);
                     $('#options-modal').modal('show');
-                    // TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
-                    setTimeout(function(){$('.django-select2').djangoSelect2();}, 200);
+//                    TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
+//                    setTimeout(function(){$('#options-content').find('.django-select2').djangoSelect2();}, 200);
                 }
                 else{
                     update_details_table(result.collection_name, result.details_table_html);
@@ -359,6 +360,7 @@ function populate_options_form_for_dataset(dataset, button_type){
             var func = {retrieve: options,
                         filter: options,
                         visualize: visualize,
+                        publish: options,
                         }
 
              func[button_type]();
@@ -394,10 +396,10 @@ function show_details(uri){
 }
 
 function change_status_to_loading(dataset_id){
-
-    $('#retrieve-dataset-options-btn-' + dataset_id).hide();
-    $('#visualize-dataset-options-btn-' + dataset_id).hide();
-    $('#export-dataset-btn-' + dataset_id).hide();
+    $('.dataset-action-btn-' + dataset_id).hide();
+//    $('#retrieve-dataset-options-btn-' + dataset_id).hide();
+//    $('#visualize-dataset-options-btn-' + dataset_id).hide();
+//    $('#export-dataset-btn-' + dataset_id).hide();
     $('#loading-gif-' + dataset_id).show();
 }
 
@@ -413,10 +415,10 @@ function change_status_from_loading(dataset_id, type){
 }
 
 function change_status_to_complete(dataset_id){
-
-    $('#retrieve-dataset-options-btn-' + dataset_id).show();
-    $('#visualize-dataset-options-btn-' + dataset_id).show();
-    $('#export-dataset-btn-' + dataset_id).show();
+    $('.dataset-action-btn-' + dataset_id).show();
+//    $('#retrieve-dataset-options-btn-' + dataset_id).show();
+//    $('#visualize-dataset-options-btn-' + dataset_id).show();
+//    $('#export-dataset-btn-' + dataset_id).show();
     $('#loading-gif-' + dataset_id).hide();
 }
 

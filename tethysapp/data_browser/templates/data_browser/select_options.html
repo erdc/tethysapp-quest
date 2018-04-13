@@ -12,10 +12,16 @@
     {{  form_fields.as_table }}
   </form>
 </div>
-<div class="modal-footer">
-  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-  <button type="submit" class="btn btn-primary options-submit" id="{{ options_type }}-options-submit-btn" data-options-type="{{ options_type }}" form="options-form" value="Submit">{{ submit_btn_text }}</button>
-</div>
 <script>
-  setTimeout(function(){$('#options-content').find('.django-select2').djangoSelect2();}, 200);
+  setTimeout(function(){$('#options-form').find('.django-select2').djangoSelect2();}, 200);
+  $('#options-form').find('.django-select2').change(function(){
+    var url = $('#options-form').attr('action');
+    var data = $('#options-form').serializeArray();
+    $.get(url, data)
+    .done(function(result){
+      if(result.success){
+        $('#options-content').html(result.html);
+      }
+    });
+  });
 </script>
