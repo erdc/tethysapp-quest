@@ -80,6 +80,32 @@ function update_collection_layer(collection){
     add_collection_layer(collection);
 }
 
+function update_collection_layer_color(collection_name, color){
+    layer = get_layer_by_name(collection_name);
+    if(color){
+        var fill_color = get_fill_color(color);
+        var fill = new ol.style.Fill({
+            color: fill_color
+        });
+        var stroke = new ol.style.Stroke({
+            color: color,
+            width: 3
+        });
+        var styles = [
+            new ol.style.Style({
+             image: new ol.style.Circle({
+               fill: fill,
+               stroke: stroke,
+               radius: 5
+             }),
+             fill: fill,
+             stroke: stroke
+            })
+        ];
+    }
+    layer.setStyle(styles);
+}
+
 function deactivate_search_layer() {
     remove_layer(SEARCH_LAYER_NAME);
     map.removeInteraction(search_select_interaction);
@@ -379,7 +405,7 @@ function get_menu_items(feature){
 
         datasets.forEach(function(dataset){
             location_contextmenu_items.push({
-                text: dataset.name,
+                text: dataset.display_name,
                 items: get_dataset_context_menu_items(dataset),
             });
         });

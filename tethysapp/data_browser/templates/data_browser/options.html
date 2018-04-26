@@ -8,7 +8,8 @@
 <div class="modal-body">
   <form id="options-form" action="{{ action }}" method="post">
     {% csrf_token %}
-      <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="dataset_id" value="{{ dataset_id }}">
     {{  form_fields.as_table }}
   </form>
 </div>
@@ -17,5 +18,5 @@
   <button type="submit" class="btn btn-primary options-submit" id="{{ options_type }}-options-submit-btn" data-options-type="{{ options_type }}" form="options-form" value="Submit">{{ submit_btn_text }}</button>
 </div>
 <script>
-  setTimeout(function(){$('#options-content').find('.django-select2').djangoSelect2();}, 200);
+  setTimeout(function(){$('#options-content').find('.django-select2').each(function(){$(this).djangoSelect2();})}, 200);
 </script>

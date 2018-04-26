@@ -3,6 +3,7 @@ import param
 from tethys_sdk.gizmos import SelectInput
 from datetimewidget.widgets import DateWidget
 from django_select2.forms import Select2Widget, Select2MultipleWidget
+from taggit.forms import TagWidget, TagField
 from quest.util import param_util
 
 
@@ -122,7 +123,7 @@ widget_map = {
                 bootstrap_version=3),
         ),
     param.List:
-        lambda p, initial: forms.CharField(
+        lambda p, initial: TagField(
             initial=initial or p.default,
         ),
     param.Path:

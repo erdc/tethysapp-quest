@@ -7,7 +7,7 @@ class DataBrowser(TethysAppBase):
     Tethys app class for DataBrowser.
     """
 
-    name = 'Data Browser'
+    name = 'Quest Web'
     index = 'data_browser:home'
     icon = 'data_browser/images/DataBrowserIcon.png'
     package = 'data_browser'
@@ -33,6 +33,9 @@ class DataBrowser(TethysAppBase):
                     ####################################################
 
                     #-----------------  Workflows  ---------------------
+                    UrlMap(name='new_project_workflow',
+                           url='data-browser/rest/workflows/new-project',
+                           controller='data_browser.controllers.new_project_workflow'),
 
                     UrlMap(name='get_collections',
                            url='data-browser/rest/workflows/get_collections',
@@ -53,6 +56,12 @@ class DataBrowser(TethysAppBase):
                     UrlMap(name='get_publisher_list_workflow',
                            url='data-browser/rest/workflows/publisher-list',
                            controller='data_browser.controllers.get_publisher_list_workflow'),
+                    UrlMap(name='authenticate_options_workflow',
+                           url='data-browser/rest/workflows/authenticate-options',
+                           controller='data_browser.controllers.authenticate_options_workflow'),
+                    UrlMap(name='authenticate_provider_workflow',
+                           url='data-browser/rest/workflows/authenticate-provider',
+                           controller='data_browser.controllers.authenticate_provider_workflow'),
                     UrlMap(name='get_publish_options_workflow',
                            url='data-browser/rest/workflows/publish-options',
                            controller='data_browser.controllers.get_publish_options_workflow'),
@@ -110,7 +119,7 @@ class DataBrowser(TethysAppBase):
                            url='data-browser/rest/collection/get/{name}',
                            controller='data_browser.controllers.get_collection'),
                     UrlMap(name='update_collection',
-                           url='data-browser/rest/collection/update/{name}',
+                           url='data-browser/rest/collection/update',
                            controller='data_browser.controllers.update_collection'),
                     UrlMap(name='delete_collection',
                            url='data-browser/rest/collection/delete/{name}',

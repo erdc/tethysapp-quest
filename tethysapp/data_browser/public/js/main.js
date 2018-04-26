@@ -304,15 +304,23 @@ function resize_table() {
 
 }
 
-function populate_options_form(event){
-    var dataset = $(this).attr('data-dataset-id');
-    var button_type = $(this).attr('data-options-type');
+function perform_dataset_action(event){
+    var dataset_id = $(this).attr('data-dataset-id');
+    var action_type = $(this).attr('data-action-type');
 
-    populate_options_form_for_dataset(dataset, button_type);
+    if(action_type == 'export'){
+        export_dataset(dataset_id);
+    }
+    else if(action_type == 'delete'){
+        delete_dataset(dataset_id);
+    }
+    else{
+        populate_options_form_for_dataset(dataset_id, action_type);
+    }
 }
 
 function populate_options_form_for_dataset(dataset, button_type){
-    change_status_to_loading(dataset)
+    change_status_to_loading(dataset);
     var data = {'dataset': dataset};
     var url = {retrieve: get_download_options_url,
                filter: get_filter_list_url,
@@ -326,14 +334,18 @@ function populate_options_form_for_dataset(dataset, button_type){
             var options = function(){
                 if(result.html){
                     $('#options-content').html(result.html);
-                    $('#options-modal').modal('show');
+                    if(result.has_options){
+                        $('#options-modal').modal('show');
+                        change_status_to_complete(dataset);
+                    }
+                    else{
+                        // submit the options form automatically if there are no options for the user to specify
+                        $('#options-content .options-submit').click();
+                    }
+
 //                    TETHYS_SELECT_INPUT.initSelectInput($('#options-content').find('.select2'));
 //                    setTimeout(function(){$('#options-content').find('.django-select2').djangoSelect2();}, 200);
                 }
-                else{
-                    update_details_table(result.collection_name, result.details_table_html);
-                }
-                change_status_to_complete(dataset);
             };
             var visualize = function(){
                if(result.datatype == 'timeseries'){
@@ -388,7 +400,7 @@ function show_details(uri){
         }
     })
     .fail(function() {
-        console.log( "error" );
+        console.log( "error: " + result );
     })
     .always(function() {
 
@@ -440,15 +452,12 @@ function custom_query_options(button_type){
              {
              $('#custom-query-table tr:last').remove();
              }
-
-
     }
 
     var func = {
                 add: addRow,
                 remove: deleteRow,
                         }
-
 
    func[button_type]();
 
@@ -464,26 +473,33 @@ function submit_options(event){
     var data_obj = object_from_array(data);
     $('#options-modal').modal('hide');
 
-    var dataset_id = data_obj.uri;
+    var dataset_id = data_obj.dataset_id;
 
     change_status_to_loading(dataset_id);
 
     $.post(url, data)
     .done(function(result) {
         if(result.success){
-            update_details_table(result.collection_name, result.details_table_html);
-            update_datasets_by_feature(result.collection);
+            if(result.collection){
+                update_details_table(result.collection_name, result.details_table_html);
+                update_datasets_by_feature(result.collection);
+            }
+            if(result.messages){
+                //display messages
+                $('#messages').append(result.messages);
+            }
+
 //            get_tasks();
         }
         else{
             console.log(result);
         }
     })
-    .fail(function() {
-        console.log( "error" );
+    .fail(function(result) {
+        console.log( "error: " + result );
     })
     .always(function() {
-
+        change_status_to_complete(dataset_id);
     });
 }
 
@@ -673,6 +689,19 @@ function reset_search() {
     $('#add-to-collection-button').hide();
 }
 
+function reset_service_tree(){
+    $('.checkbox-tree input[type="checkbox"]').prop({
+        checked: false,
+        indeterminate: false,
+        disabled: false,
+    });
+    $('.checkbox-tree .collapsible').each(function(){
+        if(!$(this).hasClass('collapsed')){
+            $(this).click();
+        }
+    });
+}
+
 function object_from_array(a){
   var o = {};
    $.each(a, function() {
@@ -785,13 +814,10 @@ $(function() { //wait for page to load
    *
    *******************************************************************************/
 
-  // Retrieve/Visualize Options Button
-  $('#collection-details-content').on('click', '.get-options', populate_options_form);
+  // Retrieve/Visualize/Filter/Export/Publish Action Buttons
+  $('#collection-details-content').on('click', '.dataset-action', perform_dataset_action);
 
-  // Export Dataset Button
-  $('#collection-details-content').on('click', '.export-dataset', function(){ export_dataset($(this).attr('data-dataset-id'))});
-
-  // Retrieve Button
+  // Options Form Submit Button
   $('#options-content').on('click', '.options-submit', submit_options);
 
   // New Collection Button
@@ -834,6 +860,34 @@ $(function() { //wait for page to load
      toggle_feature_selection_by_id(feature_id, collection_name, row.hasClass('selected'));
   });
 
+  $('#collections-list').on('click', '.collection-color', function(event){
+    var that = this;
+    var change_color_timeout;
+    var color_picker = $(this).parent().find('input[type=color]');
+    color_picker.on('input', function(event){
+        if(change_color_timeout){
+            clearTimeout(change_color_timeout);
+        }
+        var color = event.target.value;
+        $(that).css('background-color', color);
+
+        change_color_timeout = setTimeout(function(){
+            var collection_name = $(that).data('collection-name');
+            var data = {
+                'collection_name': collection_name,
+                'color': color,
+            }
+            $.post(update_collection_url, data)
+            .done(function(result) {
+                $(that).css('background-color', result.color);
+                $('li.' + collection_name + '-collection').find('a').css('background-color', result.color);
+                update_collection_layer_color(collection_name, result.color);
+            });
+        }, 1000);
+    });
+    color_picker.click();
+  });
+
 
   /*******************************************************************************
    *
@@ -856,18 +910,26 @@ $(function() { //wait for page to load
   $('#parameter').change(function(e){
       //clear map search layer & hide add to collection button
       reset_search();
+      reset_service_tree();
       //update data services tree
       var selected_value = $('#parameter').val();
       for(var i=0, len=services.length; i<len; i++){
           var service = services[i];
           var service_checkbox = $('input[value="' + service.name + '"]');
+          var parent_control = $(service_checkbox).parents().eq(4).find('.collapsible');
           if($.inArray(selected_value, service.parameters) > -1){
-              $(service_checkbox).prop('disabled', false);
-              $(service_checkbox).prop('checked', true).change();
+              $(service_checkbox).prop('disabled', false).change();
+//              $(service_checkbox).prop('checked', true).change();
+
+              // expand providers that contain services with the selected parameter
+              if (parent_control.hasClass('collapsed')){
+                parent_control.click();
+              }
           }
           else{
-              $(service_checkbox).prop('checked', false).change();
-              $(service_checkbox).prop('disabled', false);
+              // disable services that don't provide the selected parameter
+//              $(service_checkbox).prop('checked', false).change();
+              $(service_checkbox).prop('disabled', true).change();
           };
       };
       //expand services tab
@@ -891,22 +953,29 @@ $(function() { //wait for page to load
   $('.checkbox-tree input[type="checkbox"]').change(function(e) {
 
     var checked = $(this).prop("checked"),
+        disabled = $(this).prop("disabled"),
         container = $(this).parent().parent().parent();
 
     // set all child elements checked property to be the same as the parent
     container.find('input[type="checkbox"]').prop({
       indeterminate: false,
-      checked: checked
+      checked: checked,  // TODO don't check children if they are disabled.
+      disabled: disabled
     });
 
     // set indeterminate state for parents if necessary
     function checkSiblings(el) {
 
       var parent = el.parent().parent(),
-          all = true;
+          all = true,
+          all_disabled = true;
 
       el.siblings().each(function() {
         return all = ($(this).children('div').children('label').children('input[type="checkbox"]').prop("checked") === checked);
+      });
+
+      el.siblings().each(function() {
+        return all_disabled = ($(this).children('div').children('label').children('input[type="checkbox"]').prop("disabled") === disabled);
       });
 
       if (all && checked) {
@@ -931,6 +1000,17 @@ $(function() { //wait for page to load
           checked: false
         });
 
+      }
+
+      if (all_disabled && disabled) {
+        parent.children('div').children('label').children('input[type="checkbox"]').prop({
+          disabled: disabled,
+        });
+
+      } else if (all_disabled && !disabled) {
+
+        parent.children('div').children('label').children('input[type="checkbox"]').prop("disabled", disabled);
+//        parent.children('div').children('label').children('input[type="checkbox"]').prop("indeterminate", (parent.find('input[type="checkbox"]:checked').length > 0));
       }
 
     }

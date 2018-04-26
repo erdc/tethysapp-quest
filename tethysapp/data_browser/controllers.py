@@ -14,11 +14,13 @@ from tethys_sdk.gizmos import (MapView,
 
 from .app import DataBrowser as app
 from .widgets import widgets, widgets_form
-from .conditional_widget import ConditionalSelect
+# from .conditional_widget import ConditionalSelect
 
 import quest
 import json
 import os
+import warnings
+warnings.simplefilter('ignore')
 
 
 from pprint import pprint  # for debugging
@@ -55,6 +57,7 @@ def home(request):
     """
     Controller for the app home page.
     """
+
     # Define view options
     view_options = MVView(
         projection='EPSG:4326',
@@ -63,6 +66,32 @@ def home(request):
         maxZoom=18,
         minZoom=2
     )
+    
+    esri_layer_names = [
+        # 'ESRI_Imagery_World_2D',
+        # 'ESRI_StreetMap_World_2D',
+        'NatGeo_World_Map',
+        # 'NGS_Topo_US_2D',
+        'Ocean_Basemap',
+        'USA_Topo_Maps',
+        'World_Imagery',
+        'World_Physical_Map',
+        'World_Shaded_Relief',
+        'World_Street_Map',
+        'World_Terrain_Base',
+        'World_Topo_Map',
+        ]
+    esri_layers = [{'ESRI': {'layer': l}} for l in esri_layer_names]
+    basemaps =[
+       'Stamen',
+        {'Stamen': {'layer': 'toner', 'label': 'Black and White'}},
+        {'Stamen': {'layer': 'watercolor'}},
+        'OpenStreetMap',
+        {'CartoDB': {'style': 'dark'}},
+        {'CartoDB': {'style': 'light', 'labels': False, 'label': 'CartoDB-light-no-labels'}},
+       'ESRI',
+    ]
+    basemaps.extend(esri_layers)
 
     map_view_options = MapView(height='100%',
                                width='100%',
@@ -71,7 +100,7 @@ def home(request):
                                          {'ZoomToExtent': {'projection': 'EPSG:4326', 'extent': [-130, 22, -10, 54]}}
                                          ],
                                view=view_options,
-                               basemap=['Stamen', 'OpenStreetMap', ],
+                               basemap=basemaps,
                                draw=None,
                                legend=False
                                )
@@ -207,13 +236,26 @@ def get_collection_html(request, collection):
 @activate_user_settings
 def new_collection_workflow(request):
     collection_name = request.POST.get('collection_name')
-    collection_description = request.POST.get('description', "")
+    collection_description = request.POST.get('collection_description', "")
     collection = utilities.generate_new_collection(collection_name,
                                                    collection_description)
 
     result = get_collection_html(request, collection)
 
     return JsonResponse(result)
+
+
+@login_required()
+@activate_user_settings
+def new_project_workflow(request):
+    if request.POST:
+        project_name = request.POST.get('project_name')
+        project_description = request.POST.get('project_description')
+        if project_name:
+            project = quest.api.new_project(project_name, description=project_description)
+
+            return JsonResponse({'project': project})
+    return JsonResponse({'error': 'Invalid request ...'})
 
 
 @login_required()
@@ -248,8 +290,10 @@ def add_features_workflow(request):
         collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
-    except Exception as e:
-        print('Ignoring Exception: {0}'.format(str(e)))
+    # except Exception as e:
+    #     print('Ignoring Exception: {0}'.format(str(e)))
+    #     pass
+    finally:
         pass
 
     # context = {'collection': collection}
@@ -269,12 +313,13 @@ def add_features_workflow(request):
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
 
-def get_select_options_html(request, uri, title, options, set_options, options_type, submit_controller_name):
+def get_select_options_html(request, uri, dataset_id, title, options, set_options, options_type, submit_controller_name):
     form = widgets_form(options, set_options)()
 
     context = {'options_type': options_type,
                'action': reverse('data_browser:{0}'.format(submit_controller_name)),
                'uri': uri,
+               'dataset_id': dataset_id,
                'form_fields': form,
                'title': title
                }
@@ -284,12 +329,13 @@ def get_select_options_html(request, uri, title, options, set_options, options_t
     return html
 
 
-def get_options_html(request, uri, title, options, set_options, options_type, submit_controller_name, submit_btn_text):
+def get_options_html(request, uri, dataset_id, title, options, set_options, options_type, submit_controller_name, submit_btn_text):
     form = widgets_form(options, set_options)()
 
     context = {'options_type': options_type,
                'action': reverse('data_browser:{0}'.format(submit_controller_name)),
                'uri': uri,
+               'dataset_id': dataset_id,
                'submit_btn_text': submit_btn_text,
                'form_fields': form,
                'title': title
@@ -304,41 +350,45 @@ def get_options_html(request, uri, title, options, set_options, options_type, su
 @login_required()
 @activate_user_settings
 def get_download_options_workflow(request):
-    dataset = request.GET['dataset']
+    dataset_id = request.GET['dataset']
     success = False
     try:
-        options = quest.api.download_options(dataset, fmt='param')
-
+        options = quest.api.download_options(dataset_id, fmt='param')
+        has_options = len(quest.api.download_options(dataset_id)[dataset_id]) > 0
         success = True
     except Exception as e:
         raise e
 
     options_metadata_name = 'options'
     set_options = {}
-    metadata = quest.api.get_metadata(dataset)[dataset]
+    metadata = quest.api.get_metadata(dataset_id)[dataset_id]
     if options_metadata_name in metadata:
         set_options = metadata[options_metadata_name]
         if not set_options:
             set_options = {}
 
     html = get_options_html(request,
-                            uri=dataset,
-                            title=options[dataset].title,
+                            uri=dataset_id,
+                            dataset_id=dataset_id,
+                            title=options[dataset_id].title,
                             options=options,
                             set_options=set_options,
                             options_type='retrieve',
                             submit_controller_name='retrieve_dataset_workflow',
                             submit_btn_text='Retrieve')
 
-    result = {'success': success,
-              'html': html,
-              }
+    result = {
+        'has_options': has_options,
+        'success': success,
+        'html': html,
+    }
 
     return JsonResponse(result)
 
 
 
 import param
+from quest.util import NamedString
 
 
 def get_select_object(options):
@@ -353,12 +403,13 @@ def get_select_object(options):
 def get_publisher_list_workflow(request):
     dataset_id = request.GET['dataset']
     options_type = 'publish'
-    submit_controller_name = 'get_publish_options_workflow'
+    submit_controller_name = 'authenticate_options_workflow'
     title = 'Select Publisher'
 
     success = False
     try:
-        publishers = quest.api.get_publishers()
+        publishers = quest.api.get_publishers(expand=True)
+        publishers = [NamedString(k, v['display_name']) for k, v in publishers.items()]
         publishers.insert(0, 'select publisher')
         options = {'filters': get_select_object(publishers)}
 
@@ -369,6 +420,7 @@ def get_publisher_list_workflow(request):
     html = get_select_options_html(
         request,
         uri=dataset_id,
+        dataset_id=dataset_id,
         title=title,
         options=options,
         set_options={},
@@ -376,7 +428,40 @@ def get_publisher_list_workflow(request):
         submit_controller_name=submit_controller_name,
     )
 
-    result = {'success': success,
+    result = {
+        'has_options': True,
+        'success': success,
+        'html': html,
+    }
+
+    return JsonResponse(result)
+
+
+@login_required()
+@activate_user_settings
+def authenticate_options_workflow(request):
+    dataset_id = request.GET.get('dataset_id')
+    publisher = request.GET.get('select')
+    publisher_name = quest.api.get_publishers(expand=True)[publisher]['display_name']
+    provider, pub, _ = quest.util.parse_service_uri(publisher)
+
+    if quest.api.get_auth_status(provider):
+        request.GET._mutable = True
+        request.GET['uri'] = publisher
+        request.GET._mutable = False
+        return get_publish_options_workflow(request)
+
+    context = {
+        'publisher': publisher_name,
+        'uri': publisher,
+        'dataset_id': dataset_id,
+        'action': reverse('data_browser:{0}'.format('authenticate_provider_workflow')),
+        'submit_btn_text': 'Authenticate'
+    }
+
+    html = render(request, 'data_browser/authenticate.html', context).content.decode('utf-8')
+
+    result = {'success': True,
               'html': html,
               }
 
@@ -385,9 +470,22 @@ def get_publisher_list_workflow(request):
 
 @login_required()
 @activate_user_settings
+def authenticate_provider_workflow(request):
+    publisher = request.POST.get('uri')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+
+    provider, publisher, _ = quest.util.parse_service_uri(publisher)
+    quest.api.authenticate_provider(provider, username=username, password=password)
+    request.GET = request.POST
+
+    return get_publish_options_workflow(request)
+
+@login_required()
+@activate_user_settings
 def get_publish_options_workflow(request):
-    dataset_id = request.GET.get('uri')
-    publisher = request.GET.get('select')
+    dataset_id = request.GET.get('dataset_id')
+    publisher = request.GET.get('uri')
     success = False
     try:
         options = quest.api.get_publish_options(publisher, fmt='param')
@@ -396,10 +494,11 @@ def get_publish_options_workflow(request):
         raise e
 
     html = get_options_html(request,
-                            uri=dataset_id,
+                            uri=publisher,
+                            dataset_id=dataset_id,
                             title='Publish Dataset',
                             options=options,
-                            set_options={},
+                            set_options={'dataset': dataset_id},
                             options_type='publish',
                             submit_controller_name='publish_dataset_workflow',
                             submit_btn_text='Publish')
@@ -407,7 +506,6 @@ def get_publish_options_workflow(request):
     result = {'success': success,
               'html': html,
               }
-
     return JsonResponse(result)
 
 
@@ -435,6 +533,7 @@ def get_filter_list_workflow(request):
     html = get_select_options_html(
         request,
         uri=dataset_id,
+        dataset_id=dataset_id,
         title=title,
         options=options,
         set_options={},
@@ -443,9 +542,11 @@ def get_filter_list_workflow(request):
         # submit_btn_text=submit_btn_text
     )
 
-    result = {'success': success,
-              'html': html,
-              }
+    result = {
+        'has_options': True,
+        'success': success,
+        'html': html,
+    }
 
     return JsonResponse(result)
 
@@ -471,7 +572,7 @@ def get_filter_options_workflow(request):
     except Exception as e:
         raise e
 
-    set_options = {}
+    set_options = {'dataset': dataset_id}
     # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
     # if options_metadata_name in metadata:
     #     set_options = json.loads(metadata[options_metadata_name])
@@ -479,7 +580,8 @@ def get_filter_options_workflow(request):
     #         set_options = {}
 
     html = get_options_html(request,
-                            uri=dataset_id,
+                            uri=filter,
+                            dataset_id=dataset_id,
                             title=title,
                             options=options,
                             set_options=set_options,
@@ -604,30 +706,47 @@ def retrieve_dataset_workflow(request):
     dataset = retrieve_options.pop('uri')
     retrieve_options.pop('csrfmiddlewaretoken')
     retrieve_options = {k: v for k, v in retrieve_options.items() if v}
-    print(retrieve_options)
 
     return retrieve_dataset(request, dataset, retrieve_options)
 
 @login_required()
 @activate_user_settings
 def publish_dataset_workflow(request):
+    options = dict(request.POST.items())
+    options['keywords'] = quest.util.listify(request.POST.get('keywords'))
+    publisher = options['uri']
+    publish_options = [p['name'] for p in quest.api.get_publish_options(publisher)[publisher]['properties']]
 
-    return JsonResponse({}, json_dumps_params={'default': utilities.pre_jsonify})
+    for k in options.keys():
+        if k not in publish_options:
+            del options[k]
+
+    quest.api.publish(publisher, **options)
+
+    alert_context = {
+        'alert_style': 'success',
+        'alert_message': 'The dataset {} was successfully published to {}.'.format(options['dataset'], publisher)
+    }
+    alert_html = render(request, 'data_browser/alert.html', alert_context).content.decode('utf-8')
+
+    return JsonResponse({'success': True, 'messages': alert_html}, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 @login_required()
 @activate_user_settings
 def apply_filter_workflow(request):
     result = {'success': False}
-    dataset_id = request.POST['uri']
-    filter = request.POST.get('filter')
-    filter_options = list(quest.api.apply_filter_options(filter)['properties'].keys())
-    options = dict(request.POST.items())
-    for k in options.keys():
-        if k not in filter_options:
+    filter = request.POST.get('uri')
+    filter_options = [p['name'] for p in quest.api.apply_filter_options(filter)['properties']]
+    options = request.POST.copy()
+
+    for k, v in options.items():
+        if k not in filter_options or not v:
             del options[k]
+
     try:
-        quest.api.apply_filter(filter, datasets=dataset_id, options=options)
+        results = quest.api.apply_filter(filter, options=options)
+        dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
@@ -889,8 +1008,12 @@ def get_collection(request, name):
 
 @login_required()
 @activate_user_settings
-def update_collection(request, name):
-    pass
+def update_collection(request):
+    collection_name = request.POST.get('collection_name')
+    collection_color = request.POST.get('color')
+    quest.api.update_metadata(collection_name, metadata={'color': collection_color})[collection_name]
+
+    return JsonResponse({'color': collection_color})
 
 
 @login_required()
@@ -924,7 +1047,7 @@ def get_features(request):
             filters[filter_name] = value
 
     # try:
-    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True, update_cache=True)
+    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
 
     # except Exception as e:
     #     features = {'error': str(e)}

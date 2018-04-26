@@ -1,0 +1,36 @@
+<div class="modal-header">
+  <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+  <h4 class="modal-title">Credentials for {{ publisher }}</h4>
+</div>
+<div class="modal-body">
+  <form id="authentication-form" action="{{ action }}" method="post">
+    {% csrf_token %}
+    <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="dataset_id" value="{{ dataset_id }}">
+    <div class="form-group">
+      <label for="provider_username">Username:</label>
+      <input type="text" class="form-control" id="provider_username" placeholder="Enter username for {{ publisher }}" name="username">
+    </div>
+    <div class="form-group">
+      <label for="provider_password">Password:</label>
+      <input type="password" class="form-control" id="provider_password" placeholder="Enter password" name="password">
+    </div>
+  </form>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+  <button type="submit" class="btn btn-primary" id="authentication-submit-btn" form="authentication-form" value="Submit">{{ submit_btn_text }}</button>
+</div>
+<script>
+  $('#authentication-submit-btn').click(function(){
+    event.preventDefault();
+    var url = $('#authentication-form').attr('action');
+    var data = $('#authentication-form').serializeArray();
+    $.post(url, data)
+    .done(function(result){
+      if(result.success){
+        $('#options-content').html(result.html);
+      };
+    });
+  });
+</script>

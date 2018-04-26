@@ -14,7 +14,8 @@
       </ul>
     </div>
     <div>{{ collection.description }}</div>
-    <div class="collection-color" style="background-color:{{ collection.metadata.color }};"></div>
+    <div class="collection-color" data-collection-name="{{ collection.name }}" style="background-color:{{ collection.metadata.color }};"></div>
+    <input type="color" value="{{ collection.metadata.color }}" hidden="true">
     <div id="{{ collection.name }}-collection-status" class="collection-status" style="display: none;">
       <span class="collection-status-message">Pending...</span>
       <img src="{% static 'data_browser/images/loading.gif' %}">

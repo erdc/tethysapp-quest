@@ -84,7 +84,8 @@ def get_hierarchical_provider_list():
             # for parameter in service['parameters']:
             #     service_tree.sub_options.append(CheckboxTree(parameter))
             provider_tree.append(service_tree)
-        providers_tree.append(provider_tree)
+        if len(provider_tree.sub_trees) > 0:
+            providers_tree.append(provider_tree)
 
     return providers_tree
 
@@ -126,7 +127,7 @@ def stage_dataset_for_download(uri, options):
         feature = uri
     else:
         feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
-    quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
+    # quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
     return dataset_id
 
 

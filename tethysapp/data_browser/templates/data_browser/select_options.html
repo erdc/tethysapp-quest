@@ -8,7 +8,8 @@
 <div class="modal-body">
   <form id="options-form" action="{{ action }}" method="post">
     {% csrf_token %}
-      <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="uri" value="{{ uri }}">
+    <input type="hidden" name="dataset_id" value="{{ dataset_id }}">
     {{  form_fields.as_table }}
   </form>
 </div>

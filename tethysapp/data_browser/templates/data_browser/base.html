@@ -19,6 +19,18 @@
 {# The name you provided in your app.py is accessible through the tethys_app.name context variable #}
 {% block app_title %}{{ tethys_app.name }}{% endblock %}
 
+{% block header_buttons %}
+  <div class="header-button dropdown">
+    <a class="btn dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+      <span class="glyphicon glyphicon-option-vertical"></span>
+    </a>
+    <ul id="quest-settings-dropdown-menu" class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+      <li><span data-toggle="modal" data-target="#project-modal">Change Project...</span></li>
+      <li><span data-toggle="modal" data-target="#add-provider-modal">Add Data Provider...</span></li>
+    </ul>
+  </div>
+{% endblock %}
+
 {% block app_navigation_items %}
   {% include 'data_browser/navigation.html' with collections=collections parameters=parameters checkbox_tree=checkbox_tree geom_types=geom_types collection_select_options=collection_select_options new_collection_text_options=new_collection_text_options %}
 {% endblock %}
@@ -27,6 +39,38 @@
 {% endblock %}
 
 {% block app_actions %}
+{% endblock %}
+
+{% block after_app_content %}
+  {{ block.super }}
+    <!-- Project Model -->
+    <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="new-project-title">New Collection</h4>
+          </div>
+          <div class="modal-body">
+            <form id="new-project-form" action="{% url 'data_browser:new_project_workflow' %}" method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="project_name">Collection Name</label>
+                <input type="text" class="form-control" id="project_name" name="project_name" placeholder="New Project">
+              </div>
+              <div class="form-group">
+                <label for="project_description">Description</label>
+                <input type="text" class="form-control" id="project_description" name="project_description" placeholder="New Project">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button id='new-project-submit' type="submit" class="btn btn-primary" form="new-project-form" value="Submit">Submit</button>
+            <img src="{% static 'data_browser/images/loading.gif' %}" id="new-project-loading-gif" style="display: none;">
+          </div>
+        </div>
+      </div>
+    </div>
 {% endblock %}
 
 {% block content_dependent_styles %}

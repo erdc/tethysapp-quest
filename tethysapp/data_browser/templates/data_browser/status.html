@@ -2,22 +2,27 @@
 
 {% if status == 'downloaded' or status == 'filter applied' %}
   <span class="actions-btn">
-    <button type="button" class="btn btn-info btn-sm get-options dataset-action-btn-{{ dataset }}" id="visualize-dataset-options-btn-{{ dataset }}" data-options-type="visualize" data-dataset-id="{{ dataset }}">
+    <button type="button" class="btn btn-primary btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="visualize-dataset-options-btn-{{ dataset }}" data-action-type="visualize" data-dataset-id="{{ dataset }}">
       View
     </button>
   </span>
   <span class="actions-btn">
-    <button type="button" class="btn btn-success btn-sm export-dataset dataset-action-btn-{{ dataset }}" id="export-dataset-btn-{{ dataset }}" data-dataset-id="{{ dataset }}">
+    <button type="button" class="btn btn-info btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="filter-dataset-options-btn-{{ dataset }}" data-action-type="filter" data-dataset-id="{{ dataset }}">
+      Filter
+    </button>
+  </span>
+  <span class="actions-btn">
+    <button type="button" class="btn btn-success btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="export-dataset-btn-{{ dataset }}" data-action-type="export" data-dataset-id="{{ dataset }}">
       Export
     </button>
   </span>
   <span class="actions-btn">
-    <button type="button" class="btn btn-warning btn-sm get-options dataset-action-btn-{{ dataset }}" id="publish-dataset-btn-{{ dataset }}" data-options-type="publish" data-dataset-id="{{ dataset }}">
+    <button type="button" class="btn btn-warning btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="publish-dataset-btn-{{ dataset }}" data-action-type="publish" data-dataset-id="{{ dataset }}">
       Publish
     </button>
   </span>
 {% elif status == 'staged for download' or status == 'failed download' %}
-  <button type="button" class="btn btn-primary btn-sm get-options dataset-action-btn-{{ dataset }}" id="retrieve-dataset-options-btn-{{ dataset }}" data-options-type="retrieve" data-dataset-id="{{ dataset }}">
+  <button type="button" class="btn btn-default btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="retrieve-dataset-options-btn-{{ dataset }}" data-action-type="retrieve" data-dataset-id="{{ dataset }}">
     Retrieve
   </button>
       {% if status == 'failed download' %}
@@ -26,4 +31,9 @@
       data-content="{{ message }}"><span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span></a>
       {% endif %}
 {% endif %}
+  <span class="actions-btn" style="float:right;">
+    <button type="button" class="btn btn-danger btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="delete-dataset-btn-{{ dataset }}" data-action-type="delete" data-dataset-id="{{ dataset }}">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </span>
 <img src="{% static 'data_browser/images/loading.gif' %}" id="loading-gif-{{ dataset }}" {% if status != 'pending' %}style="display: none;"{% endif %}>
