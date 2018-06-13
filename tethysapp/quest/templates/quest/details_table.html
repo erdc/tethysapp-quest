@@ -21,7 +21,7 @@
             <td>{{ entry }}</td>
             {% endfor %}
             <td class="status">
-              {% include 'data_browser/status.html' with dataset=auxiliary_data.name status=auxiliary_data.status message=auxiliary_data.message %}
+              {% include 'quest/status.html' with dataset=auxiliary_data.name status=auxiliary_data.status message=auxiliary_data.message %}
             </td>
           </tr>
           {% endwith %}

@@ -6,7 +6,7 @@
 
 {% block styles %}
   {{ block.super }}
-  <link href="{% static 'data_browser/vendor/ol3-contextmenu/ol3-contextmenu.min.css' %}" rel="stylesheet"/>
+  <link href="{% static 'quest/vendor/ol3-contextmenu/ol3-contextmenu.min.css' %}" rel="stylesheet"/>
   <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-base.css" />
   <link type="text/css" rel="stylesheet" href="//golden-layout.com/assets/css/goldenlayout-light-theme.css" />
 {% endblock %}
@@ -32,7 +32,7 @@
 {% endblock %}
 
 {% block app_navigation_items %}
-  {% include 'data_browser/navigation.html' with collections=collections parameters=parameters checkbox_tree=checkbox_tree geom_types=geom_types collection_select_options=collection_select_options new_collection_text_options=new_collection_text_options %}
+  {% include 'quest/navigation.html' with collections=collections parameters=parameters checkbox_tree=checkbox_tree geom_types=geom_types collection_select_options=collection_select_options new_collection_text_options=new_collection_text_options %}
 {% endblock %}
 
 {% block app_content %}
@@ -52,7 +52,7 @@
             <h4 class="modal-title" id="new-project-title">New Collection</h4>
           </div>
           <div class="modal-body">
-            <form id="new-project-form" action="{% url 'data_browser:new_project_workflow' %}" method="post">
+            <form id="new-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
               {% csrf_token %}
               <div class="form-group">
                 <label for="project_name">Collection Name</label>
@@ -66,7 +66,7 @@
           </div>
           <div class="modal-footer">
             <button id='new-project-submit' type="submit" class="btn btn-primary" form="new-project-form" value="Submit">Submit</button>
-            <img src="{% static 'data_browser/images/loading.gif' %}" id="new-project-loading-gif" style="display: none;">
+            <img src="{% static 'quest/images/loading.gif' %}" id="new-project-loading-gif" style="display: none;">
           </div>
         </div>
       </div>
@@ -75,6 +75,6 @@
 
 {% block content_dependent_styles %}
   {{ block.super }}
-  <link href="{% static 'data_browser/css/main.css' %}" rel="stylesheet"/>
+  <link href="{% static 'quest/css/main.css' %}" rel="stylesheet"/>
   <script type="text/javascript" src="//golden-layout.com/assets/js/goldenlayout.min.js"></script>
 {% endblock %}

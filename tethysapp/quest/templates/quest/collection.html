@@ -10,7 +10,7 @@
       <ul class="dropdown-menu" aria-labelledby="dLabel">
         <li><a class="collection-details-menu-item" href="#" data-collection-name="{{ collection.name }}">Details</a></li>
         <li role="separator" class="divider"></li>
-        <li><a class="delete-collection" href="{% url 'data_browser:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
+        <li><a class="delete-collection" href="{% url 'quest:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
       </ul>
     </div>
     <div>{{ collection.description }}</div>
@@ -18,6 +18,6 @@
     <input type="color" value="{{ collection.metadata.color }}" hidden="true">
     <div id="{{ collection.name }}-collection-status" class="collection-status" style="display: none;">
       <span class="collection-status-message">Pending...</span>
-      <img src="{% static 'data_browser/images/loading.gif' %}">
+      <img src="{% static 'quest/images/loading.gif' %}">
     </div>
 </div>

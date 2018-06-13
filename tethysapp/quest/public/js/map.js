@@ -82,7 +82,7 @@ function update_collection_layer(collection){
 
 function update_collection_layer_color(collection_name, color){
     layer = get_layer_by_name(collection_name);
-    if(color){
+    if(layer && color){
         var fill_color = get_fill_color(color);
         var fill = new ol.style.Fill({
             color: fill_color
@@ -102,8 +102,10 @@ function update_collection_layer_color(collection_name, color){
              stroke: stroke
             })
         ];
+
+        layer.setStyle(styles);
     }
-    layer.setStyle(styles);
+
 }
 
 function deactivate_search_layer() {

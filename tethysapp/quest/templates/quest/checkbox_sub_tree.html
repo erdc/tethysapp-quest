@@ -14,7 +14,7 @@
     </div>
     {% if option.sub_trees %}
       <ul class="collapse" id="collapse-checkbox_tree-{{ checkbox_tree.name }}-{{ next_id }}">
-        {% include 'data_browser/checkbox_sub_tree.html' with checkbox_tree=option id=next_id %}
+        {% include 'quest/checkbox_sub_tree.html' with checkbox_tree=option id=next_id %}
       </ul>
     {% endif %}
   </li>

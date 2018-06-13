@@ -21,10 +21,10 @@
       <div id="loading-gif-collections" class="collection">
         <h2></h2>
         Loading
-        <img src="{% static 'data_browser/images/loading.gif' %}">
+        <img src="{% static 'quest/images/loading.gif' %}">
         <div class="collection-status" style="display: none;">
           <span class="collection-status-message">Pending...</span>
-          <img src="{% static 'data_browser/images/loading.gif' %}">
+          <img src="{% static 'quest/images/loading.gif' %}">
         </div>
       </div>
     </div>
@@ -33,7 +33,7 @@
     <div role="tabpanel" class="tab-pane" id="search">
       <h1 class="title">Filters</h1>
 
-      <form id="search-form" action="{% url 'data_browser:get_features' %}" method="get">
+      <form id="search-form" action="{% url 'quest:get_features' %}" method="get">
         {% csrf_token %}
 
       <div>
@@ -41,7 +41,7 @@
           <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
           Search
         </button>
-        <img src="{% static 'data_browser/images/loading.gif' %}" id="loading-gif-search" style="display: none;">
+        <img src="{% static 'quest/images/loading.gif' %}" id="loading-gif-search" style="display: none;">
       </div>
       <div>
         <button id="add-to-collection-button" type="button" class="btn btn-success" data-toggle="modal" data-target="#add-features-modal" style="display: none;">
@@ -70,7 +70,7 @@
             {% if checkbox_tree.title %}{{ checkbox_tree.title }}{% endif %}
             {% if checkbox_tree.sub_trees %}
               <ul class="list-unstyled">
-                {% include 'data_browser/checkbox_sub_tree.html' with checkbox_tree=checkbox_tree id="0" %}
+                {% include 'quest/checkbox_sub_tree.html' with checkbox_tree=checkbox_tree id="0" %}
               </ul>
             {% endif %}
           </div>

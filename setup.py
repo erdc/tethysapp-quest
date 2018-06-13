@@ -4,9 +4,9 @@ from setuptools import setup, find_packages
 from tethys_apps.app_installation import custom_develop_command, custom_install_command
 
 ### Apps Definition ###
-app_package = 'data_browser'
+app_package = 'quest'
 release_package = 'tethysapp-' + app_package
-app_class = 'data_browser.app:DataBrowser'
+app_class = 'quest.app:Quest'
 app_package_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tethysapp', app_package)
 
 ### Python Dependencies ###
