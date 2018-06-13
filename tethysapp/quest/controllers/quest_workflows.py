@@ -1,29 +1,35 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import ensure_csrf_cookie
-import plotly.graph_objs as go
+##########################################################################
 
-from tethys_sdk.gizmos import (MapView,
-                               MVView,
-                               SelectInput,
-                               TableView,
-                               DatePicker,
-                               PlotlyView,
-                               TextInput,
-                               )
+#        WORKFLOW CONTROLLERS
 
-from .app import Quest as app
-from .widgets import widgets, widgets_form
-# from .conditional_widget import ConditionalSelect
+############################################################################
 
-import quest
-import json
+# python imports
 import os
-import warnings
-warnings.simplefilter('ignore')
 
+# 3rd-party imports
+import quest
+from quest.util import NamedString
+import plotly.graph_objs as go
+import param
 
-from pprint import pprint  # for debugging
+# django imports
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
+from django.core.urlresolvers import reverse
+from django.shortcuts import render
+
+# tethys imports
+from tethys_sdk.gizmos import (
+    PlotlyView,
+    TableView
+)
+
+# local imports
+from ..app import Quest as app
+from ..widgets import widgets_form
+from .. import utilities
+
 
 
 user_services = app.get_custom_setting('user_services')
@@ -48,97 +54,6 @@ def activate_user_settings(func):
         return func(request, *args, **kwargs)
 
     return wrapper
-
-
-@ensure_csrf_cookie
-@login_required()
-@activate_user_settings
-def home(request):
-    """
-    Controller for the app home page.
-    """
-
-    # Define view options
-    view_options = MVView(
-        projection='EPSG:4326',
-        center=[-90.856665, 32.309082],
-        zoom=5,
-        maxZoom=18,
-        minZoom=2
-    )
-    
-    esri_layer_names = [
-        # 'ESRI_Imagery_World_2D',
-        # 'ESRI_StreetMap_World_2D',
-        'NatGeo_World_Map',
-        # 'NGS_Topo_US_2D',
-        'Ocean_Basemap',
-        'USA_Topo_Maps',
-        'World_Imagery',
-        'World_Physical_Map',
-        'World_Shaded_Relief',
-        'World_Street_Map',
-        'World_Terrain_Base',
-        'World_Topo_Map',
-        ]
-    esri_layers = [{'ESRI': {'layer': l}} for l in esri_layer_names]
-    basemaps =[
-       'Stamen',
-        {'Stamen': {'layer': 'toner', 'label': 'Black and White'}},
-        {'Stamen': {'layer': 'watercolor'}},
-        'OpenStreetMap',
-        {'CartoDB': {'style': 'dark'}},
-        {'CartoDB': {'style': 'light', 'labels': False, 'label': 'CartoDB-light-no-labels'}},
-       'ESRI',
-    ]
-    basemaps.extend(esri_layers)
-
-    map_view_options = MapView(height='100%',
-                               width='100%',
-                               controls=['ZoomSlider', 'Rotate', 'FullScreen',
-                                         {'MousePosition': {'projection': 'EPSG:4326'}},
-                                         {'ZoomToExtent': {'projection': 'EPSG:4326', 'extent': [-130, 22, -10, 54]}}
-                                         ],
-                               view=view_options,
-                               basemap=basemaps,
-                               draw=None,
-                               legend=False
-                               )
-
-    collection_select_options = SelectInput(display_text='Select Collection',
-                                            name='collection',
-                                            multiple=False,
-                                            options=[],
-                                            )
-
-    new_collection_name_text_options = TextInput(display_text='New Collection Name',
-                                                 name='new_collection_name',
-                                                 )
-    new_collection_description_text_options = TextInput(display_text='New Collection Description',
-                                                        name='new_collection_description',
-                                                        )
-
-    parameters_select_options = SelectInput(name='parameter',
-                                            display_text='',
-                                            options=[(p, p) for p in quest.api.get_mapped_parameters()],
-                                            select2_options={'placeholder': 'Select a parameter'},
-                                            )
-
-    services = json.dumps(list(quest.api.get_services(expand=True).values()))
-
-    checkbox_tree = utilities.get_hierarchical_provider_list()
-
-    context = {'services': services,
-               'parameters_select_options': parameters_select_options,
-               'checkbox_tree': checkbox_tree,
-               'geom_types': [('Points', 'point'), ('Lines', 'line'), ('Polygon', 'polygon'), ('Any', '')],
-               'map_view_options': map_view_options,
-               'collection_select_options': collection_select_options,
-               'new_collection_name_text_options': new_collection_name_text_options,
-               'new_collection_description_text_options': new_collection_description_text_options,
-               }
-
-    return render(request, 'quest/home.html', context)
 
 
 @login_required()
@@ -174,17 +89,6 @@ def get_raster_image(request):
     # You can also set any other required headers: Cache-Control, etc.
     return response
 
-
-from django.http import JsonResponse, HttpResponse
-from django.core.urlresolvers import reverse
-
-from . import utilities
-
-############################################################################
-
-#        REST WORKFLOW CONTROLLERS
-
-############################################################################
 
 @login_required()
 @activate_user_settings
@@ -384,11 +288,6 @@ def get_download_options_workflow(request):
     }
 
     return JsonResponse(result)
-
-
-
-import param
-from quest.util import NamedString
 
 
 def get_select_object(options):
@@ -963,131 +862,6 @@ def delete_feature_workflow(request):
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
-############################################################################
-
-#        REST CONTROLLERS
-
-############################################################################
-
-
-@login_required()
-# @activate_user_settings
-def get_settings(request):
-    return JsonResponse(quest.api.get_settings())
-
-
-@login_required()
-@activate_user_settings
-def new_collection(request):
-    if request.POST:
-        collection_name = request.POST.get('collection_name')
-        if collection_name:
-            collection_description = request.POST.get('description') or ""
-            collection = utilities.generate_new_collection(collection_name,
-                                                           collection_description,
-                                                           metadata=False)
-
-            return JsonResponse({'collection': collection})
-    return JsonResponse({'error': 'Invalid request ...'})
-
-
-@login_required()
-@activate_user_settings
-def get_collection(request, name):
-    success = False
-    collection = None
-    collections = quest.api.get_collections(expand=True)
-    if name in collections.keys():
-        try:
-            collection = collections[name]
-            success = True
-        except:
-            pass
-    return JsonResponse({'success': success, 'collection': collection})
-
-
-@login_required()
-@activate_user_settings
-def update_collection(request):
-    collection_name = request.POST.get('collection_name')
-    collection_color = request.POST.get('color')
-    quest.api.update_metadata(collection_name, metadata={'color': collection_color})[collection_name]
-
-    return JsonResponse({'color': collection_color})
-
-
-@login_required()
-@activate_user_settings
-def delete_collection(request, name):
-    success = False
-    collections = quest.api.get_collections()
-    if name in collections:
-        try:
-            quest.api.delete(name)
-            success = True
-        except:
-            pass
-
-    result = {'success': success}
-
-    return JsonResponse(result)
-
-
-@login_required()
-@activate_user_settings
-def get_features(request):
-
-    uris = request.GET.get('uris')
-    services = request.GET.get('services')
-    uris = utilities.listify(uris, services)
-    filters = {}
-    for filter_name in ['geom_type', 'parameter', 'bbox']:
-        value = request.GET.get(filter_name)
-        if value is not None:
-            filters[filter_name] = value
-
-    # try:
-    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
-
-    # except Exception as e:
-    #     features = {'error': str(e)}
-
-    return JsonResponse(features)
-
-
-@login_required()
-@activate_user_settings
-def add_features(request):
-    collection = request.GET.get('collection')
-    features = request.GET.get('features')
-
-    success = False
-    try:
-        quest.api.add_features(collection, features)
-        success = True
-    except:
-        pass
-
-    result = {'success': success}
-
-    return JsonResponse(result)
-
-
-@login_required()
-@activate_user_settings
-def retrieve_datasets(request):
-    dataset = request.GET['dataset']
-    success = False
-    try:
-        quest.api.download_datasets(dataset)
-        success = True
-    except Exception as e:
-        print(e)
-
-    result = {'success': success}
-
-    return JsonResponse(result)
-
 
 @login_required()
 @activate_user_settings
@@ -1121,37 +895,3 @@ def export_dataset(request):
     # It's usually a good idea to set the 'Content-Length' header too.
     # You can also set any other required headers: Cache-Control, etc.
     return response
-
-
-def test_form(request):
-
-    from widgets import widgets
-
-    s = quest.api.get_services()[0]
-    o = quest.api.download_options(s, fmt='param')[s]
-
-    TestForm = widgets(o)
-
-    message = None
-    # if this is a POST request we need to process the form data
-    if request.method == 'POST':
-        # create a form instance and populate it with data from the request:
-        form = TestForm(request.POST)
-        # check whether it's valid:
-        if form.is_valid():
-            # process the data in form.cleaned_data as required
-            # ...
-            # redirect to a new URL:
-            message = 'Thanks! Your name is %s' % form.cleaned_data['parameter']
-
-    # if a GET (or any other method) we'll create a blank form
-    else:
-        form =TestForm()
-
-    for field in form.fields.values():
-        field.widget.attrs.update({'class': 'form-control'})
-    form.error_css_class = 'error'
-
-    context = {'form': form, 'message': message}
-
-    return render(request, 'quest/test_form.html', context)
