@@ -12,7 +12,7 @@ from tethys_sdk.gizmos import (MapView,
                                TextInput,
                                )
 
-from .app import DataBrowser as app
+from .app import Quest as app
 from .widgets import widgets, widgets_form
 # from .conditional_widget import ConditionalSelect
 
@@ -138,7 +138,7 @@ def home(request):
                'new_collection_description_text_options': new_collection_description_text_options,
                }
 
-    return render(request, 'data_browser/home.html', context)
+    return render(request, 'quest/home.html', context)
 
 
 @login_required()
@@ -219,9 +219,9 @@ def get_collection_data(request):
 def get_collection_html(request, collection):
 
     context = {'collection': collection}
-    collection_html = render(request, 'data_browser/collection.html', context).content.decode('utf-8')
-    details_table_html = render(request, 'data_browser/details_table.html', context).content.decode('utf-8')
-    details_table_tab_html = render(request, 'data_browser/details_table_tab.html', context).content.decode('utf-8')
+    collection_html = render(request, 'quest/collection.html', context).content.decode('utf-8')
+    details_table_html = render(request, 'quest/details_table.html', context).content.decode('utf-8')
+    details_table_tab_html = render(request, 'quest/details_table_tab.html', context).content.decode('utf-8')
 
     result = {'success': True,
               'collection_html': collection_html,
@@ -299,13 +299,13 @@ def add_features_workflow(request):
     # context = {'collection': collection}
     result = {'collection': collection}
     result['details_table_html'] = \
-        render(request, 'data_browser/details_table.html', result).content.decode('utf-8')
+        render(request, 'quest/details_table.html', result).content.decode('utf-8')
 
     if new_collection_added:
         result['collection_html'] = \
-            render(request, 'data_browser/collection.html', result).content.decode('utf-8')
+            render(request, 'quest/collection.html', result).content.decode('utf-8')
         result['details_table_tab_html'] = \
-            render(request, 'data_browser/details_table_tab.html',
+            render(request, 'quest/details_table_tab.html',
                    result).content.decode('utf-8')
 
     result['success'] = success
@@ -317,14 +317,14 @@ def get_select_options_html(request, uri, dataset_id, title, options, set_option
     form = widgets_form(options, set_options)()
 
     context = {'options_type': options_type,
-               'action': reverse('data_browser:{0}'.format(submit_controller_name)),
+               'action': reverse('quest:{0}'.format(submit_controller_name)),
                'uri': uri,
                'dataset_id': dataset_id,
                'form_fields': form,
                'title': title
                }
 
-    html = render(request, 'data_browser/select_options.html', context).content.decode('utf-8')
+    html = render(request, 'quest/select_options.html', context).content.decode('utf-8')
 
     return html
 
@@ -333,7 +333,7 @@ def get_options_html(request, uri, dataset_id, title, options, set_options, opti
     form = widgets_form(options, set_options)()
 
     context = {'options_type': options_type,
-               'action': reverse('data_browser:{0}'.format(submit_controller_name)),
+               'action': reverse('quest:{0}'.format(submit_controller_name)),
                'uri': uri,
                'dataset_id': dataset_id,
                'submit_btn_text': submit_btn_text,
@@ -341,8 +341,8 @@ def get_options_html(request, uri, dataset_id, title, options, set_options, opti
                'title': title
                }
 
-    # html = render_to_string('data_browser/options.html', context)
-    html = render(request, 'data_browser/options.html', context).content.decode('utf-8')
+    # html = render_to_string('quest/options.html', context)
+    html = render(request, 'quest/options.html', context).content.decode('utf-8')
 
     return html
 
@@ -455,11 +455,11 @@ def authenticate_options_workflow(request):
         'publisher': publisher_name,
         'uri': publisher,
         'dataset_id': dataset_id,
-        'action': reverse('data_browser:{0}'.format('authenticate_provider_workflow')),
+        'action': reverse('quest:{0}'.format('authenticate_provider_workflow')),
         'submit_btn_text': 'Authenticate'
     }
 
-    html = render(request, 'data_browser/authenticate.html', context).content.decode('utf-8')
+    html = render(request, 'quest/authenticate.html', context).content.decode('utf-8')
 
     result = {'success': True,
               'html': html,
@@ -675,7 +675,7 @@ def get_details_table(request, collection):
     collection = utilities.get_collection_with_metadata(collection)
     context = {'collection': collection}
 
-    details_table_html = render(request, 'data_browser/details_table.html', context).content.decode('utf-8')
+    details_table_html = render(request, 'quest/details_table.html', context).content.decode('utf-8')
     return details_table_html
 
 
@@ -727,7 +727,7 @@ def publish_dataset_workflow(request):
         'alert_style': 'success',
         'alert_message': 'The dataset {} was successfully published to {}.'.format(options['dataset'], publisher)
     }
-    alert_html = render(request, 'data_browser/alert.html', alert_context).content.decode('utf-8')
+    alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
 
     return JsonResponse({'success': True, 'messages': alert_html}, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -821,7 +821,7 @@ def visualize_dataset_workflow(request):
 
         context = {'plot_view_options': plot_view_options, }
 
-        html = render(request, 'data_browser/visualize.html', context).content.decode('utf-8')
+        html = render(request, 'quest/visualize.html', context).content.decode('utf-8')
 
         result = {'success': True,
                   'html': html,
@@ -892,7 +892,7 @@ def get_metadata_table_html(request, title, metadata, boarders=False):
                'table_view_options': table_view_options,
                }
 
-    html = render(request, 'data_browser/metadata.html', context).content.decode('utf-8')
+    html = render(request, 'quest/metadata.html', context).content.decode('utf-8')
     html = html.format(sub_tables=sub_tables)
 
     return html
@@ -1154,4 +1154,4 @@ def test_form(request):
 
     context = {'form': form, 'message': message}
 
-    return render(request, 'data_browser/test_form.html', context)
+    return render(request, 'quest/test_form.html', context)

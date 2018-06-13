@@ -8,7 +8,7 @@ from shapely.geometry.base import BaseGeometry
 from tethys_gizmos.gizmo_options import TableView
 
 
-from .app import DataBrowser as app
+from .app import Quest as app
 
 
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'

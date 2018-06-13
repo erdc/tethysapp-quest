@@ -7,4 +7,4 @@
 *.idea
 *.sqlite3
 *~
-tethysapp/data_browser/workspaces/
+tethysapp/quest/workspaces/
