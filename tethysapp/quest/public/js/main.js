@@ -1,3 +1,5 @@
+"use strict"; // And enable strict mode for this library
+
 // mapping of datasets to their feature id
 var datasets_by_feature = {};
 
@@ -16,15 +18,11 @@ function update_collection_status(collection_name, message){
 
 function add_features_to_collection(e){
   e.preventDefault();
-  $('#add-to-collection-button').hide();
-  $('#add-features-modal').modal('hide');
-  $('#manage-tab').click();
-
   var url = $(this).attr('action');
   var data = $(this).serializeArray();
   var data_obj = object_from_array(data);
   var parameter = $('#parameter').val();
-  var selected_features = search_select_interaction.getFeatures();
+  var selected_features = QUEST_MAP.get_selected_features();
   var features = selected_features.getArray().map(function(feature){
       return feature.getId();
   });
@@ -46,6 +44,11 @@ function add_features_to_collection(e){
     var collection_status = update_collection_status(collection_name, 'Adding ' + features.length + ' features...');
   }
 
+  // Reset page
+  $('#add-to-collection-button').hide();
+  $('#add-features-modal').modal('hide');
+  $('#manage-tab').click();
+
 
   // Clear form fields
   $('#collection').select2({'placeholder': 'Select a collection'})
@@ -57,9 +60,9 @@ function add_features_to_collection(e){
   $.get(url, data)
   .done(function(result) {
       if(result.success){
-          deactivate_search_layer();
+          QUEST_MAP.deactivate_search_layer_interaction();
           update_datasets_by_feature(result.collection);
-          update_collection_layer(result.collection);
+          QUEST_MAP.update_collection_layer(result.collection);
 
           if(result.collection_html)
           {
@@ -363,7 +366,7 @@ function populate_options_form_for_dataset(dataset, button_type){
                 else{
 //                    console.log(result.file_extents);
 
-                   add_raster_layer(data, result.file_extents);
+                   QUEST_MAP.add_raster_layer(data, result.file_extents);
 
 
                     }
@@ -583,7 +586,7 @@ function update_collection(collection){
     .done(function(result) {
       if(result.success){
         update_datasets_by_feature(result.collection);
-        add_collection_layer(result.collection);
+        QUEST_MAP.add_collection_layer(result.collection);
         update_collection_html(result.html);
         // collections.push(result.collection);
       }
@@ -612,7 +615,7 @@ function delete_collection(event){
             if(!$('#collection-details-nav').find('li').length){
                 $('#table-placeholder').css('display', 'block');
             }
-            remove_layer(collection_name);
+            QUEST_MAP.remove_layer(collection_name);
             // update collection select
             var collection_select = $('#collection')
             collection_select.find('option[value="' + collection_name + '"]').remove();
@@ -683,7 +686,7 @@ function bind_context_menu(){
 }
 
 function reset_search() {
-    deactivate_search_layer();
+    QUEST_MAP.deactivate_search_layer_interaction();
     $('#search-button').show();
     $('#loading-gif-search').hide();
     $('#add-to-collection-button').hide();
@@ -746,7 +749,7 @@ $(function() { //wait for page to load
     });
 
   $('#add-to-collection-button').click(function(e){
-      var selected_features = search_select_interaction.getFeatures();
+      var selected_features = QUEST_MAP.get_selected_features();
       $('#number-of-selected-features').text(selected_features.getArray().length + ' features are selected.');
 
   });
@@ -754,7 +757,7 @@ $(function() { //wait for page to load
   $('#search-form').submit(function(e){
       e.preventDefault();
       show_map_layout();
-      deactivate_search_layer();
+      QUEST_MAP.deactivate_search_layer_interaction();
       $('#search-button').hide();
       $('#loading-gif-search').show();
       $('#add-to-collection-button').hide();
@@ -762,11 +765,7 @@ $(function() { //wait for page to load
       var data = $(this).serializeArray();
 
       setTimeout(function(){  // allow map time to load if it wasn't already showing
-
-        data.push({'name': 'bbox',
-                   'value': get_map_extents()});
-        var url = get_source_url(data);
-        load_map_layer(SEARCH_LAYER_NAME, url, null, null, function(){
+        QUEST_MAP.add_search_layer(data, function(){
             show_map_layout();
             $('#search-button').show();
             $('#loading-gif-search').hide();
@@ -799,13 +798,13 @@ $(function() { //wait for page to load
   $('#manage-tab').click(function(e){
       reset_search();
       // activate collection interaction
-      activate_collection_interaction();
+      QUEST_MAP.activate_collection_interaction();
   });
 
   $('#search-tab').click(function(e){
       // deactivate collection interaction
       show_map_layout();
-      deactivate_collection_interaction();
+      QUEST_MAP.deactivate_collection_interaction();
   });
 
   /*******************************************************************************
@@ -857,7 +856,7 @@ $(function() { //wait for page to load
      var feature_id = row.data('feature_id');
      var collection_name = row.parent().data('collection_id');
 
-     toggle_feature_selection_by_id(feature_id, collection_name, row.hasClass('selected'));
+     QUEST_MAP.toggle_feature_selection_by_id(feature_id, collection_name, row.hasClass('selected'));
   });
 
   $('#collections-list').on('click', '.collection-color', function(event){
@@ -881,7 +880,7 @@ $(function() { //wait for page to load
             .done(function(result) {
                 $(that).css('background-color', result.color);
                 $('li.' + collection_name + '-collection').find('a').css('background-color', result.color);
-                update_collection_layer_color(collection_name, result.color);
+                QUEST_MAP.update_collection_layer_color(collection_name, result.color);
             });
         }, 1000);
     });
@@ -906,7 +905,7 @@ $(function() { //wait for page to load
   $('#app-navigation .nav li a').removeAttr("style");
 
 
-  // automate service selection based on parameter selection
+  // automate services enabled based on parameter selection
   $('#parameter').change(function(e){
       //clear map search layer & hide add to collection button
       reset_search();
@@ -936,8 +935,18 @@ $(function() { //wait for page to load
       if(!$('#collapse-services').hasClass('in')){
         $('#collapse-services-btn').click();
       }
-      //enable search buttons
-      $('#search-button').attr('disabled', false);
+  });
+
+  // activate search button only when service is selected
+  // TODO: button stays active when provider level checkbox is unchecked
+  $('input[name="services"]').change(function(){
+        var checked = false;
+        $('input[name="services"]').each(function(){
+            if(this.checked){
+                checked = true;
+            }
+        });
+        $('#search-button').attr('disabled', !checked);
   });
 
 
