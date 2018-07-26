@@ -17,7 +17,7 @@ import param
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.core.urlresolvers import reverse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 # tethys imports
 from tethys_sdk.gizmos import (
@@ -153,13 +153,15 @@ def new_collection_workflow(request):
 @activate_user_settings
 def new_project_workflow(request):
     if request.POST:
-        project_name = request.POST.get('project_name')
+        project_name = request.POST.get('new_project_name')
         project_description = request.POST.get('project_description')
         if project_name:
             project = quest.api.new_project(project_name, description=project_description)
 
-            return JsonResponse({'project': project})
-    return JsonResponse({'error': 'Invalid request ...'})
+        else :
+            project_name = request.POST.get('project')
+            quest.api.set_active_project(project_name)
+    return redirect('quest:home')
 
 
 @login_required()

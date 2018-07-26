@@ -94,6 +94,16 @@ def home(request):
                                                         name='new_collection_description',
                                                         )
 
+    project_select_options = SelectInput(display_text='Select Project',
+                                            name='project',
+                                            multiple=False,
+                                            options=[(v['display_name'],k) for k,v in quest.api.get_projects(expand=True).items()],
+                                            )
+
+    new_project_name_text_options = TextInput(display_text='New Project Name',
+                                                 name='new_project_name',
+                                                 )
+
     parameters_select_options = SelectInput(name='parameter',
                                             display_text='',
                                             options=[(p, p) for p in quest.api.get_mapped_parameters()],
@@ -112,6 +122,9 @@ def home(request):
                'collection_select_options': collection_select_options,
                'new_collection_name_text_options': new_collection_name_text_options,
                'new_collection_description_text_options': new_collection_description_text_options,
+               'project_select_options': project_select_options,
+               'new_project_name_text_options':new_project_name_text_options,
+               'active_project':quest.api.get_active_project()
                }
 
     return render(request, 'quest/home.html', context)

@@ -1,6 +1,6 @@
 {% extends "tethys_apps/app_base.html" %}
 
-{% load staticfiles %}
+{% load staticfiles tethys_gizmos%}
 
 {% block title %}- {{ tethys_app.name }}{% endblock %}
 
@@ -17,7 +17,7 @@
 {% endblock %}
 
 {# The name you provided in your app.py is accessible through the tethys_app.name context variable #}
-{% block app_title %}{{ tethys_app.name }}{% endblock %}
+{% block app_title %}{{ tethys_app.name }}:{{active_project}}{% endblock %}
 
 {% block header_buttons %}
   <div class="header-button dropdown">
@@ -44,29 +44,26 @@
 {% block after_app_content %}
   {{ block.super }}
     <!-- Project Model -->
-    <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="project-modal">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="new-project-title">New Collection</h4>
+            <h4 class="modal-title" id="add-features-title">Change Project</h4>
           </div>
           <div class="modal-body">
-            <form id="new-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
+            <form id="change-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
               {% csrf_token %}
-              <div class="form-group">
-                <label for="project_name">Collection Name</label>
-                <input type="text" class="form-control" id="project_name" name="project_name" placeholder="New Project">
+              <div id="change-project-select-div"{% if true %}style="display: none;"{% endif %}>
+                {% gizmo project_select_options %}
+                <h4>Create New Project</h4>
+                <hr>
               </div>
-              <div class="form-group">
-                <label for="project_description">Description</label>
-                <input type="text" class="form-control" id="project_description" name="project_description" placeholder="New Project">
-              </div>
+              {% gizmo new_project_name_text_options %}
             </form>
           </div>
           <div class="modal-footer">
-            <button id='new-project-submit' type="submit" class="btn btn-primary" form="new-project-form" value="Submit">Submit</button>
-            <img src="{% static 'quest/images/loading.gif' %}" id="new-project-loading-gif" style="display: none;">
+            <button id='change-project-submit' type="submit" class="btn btn-primary" form="change-project-form" value="Submit">Submit</button>
           </div>
         </div>
       </div>
