@@ -832,6 +832,21 @@ $(function() { //wait for page to load
       show_table_layout();
   });
 
+  // Toggle Collection Visibility
+  $('#collections-list').on('click', '.collection-visibility-menu-item, .collection-visibility-checkbox', function(){
+    var collection_name = $(this).data('collection-name');
+    var menu_item = $(this).parents(".collection").find(".collection-visibility-menu-item");
+    var check_box = $(this).parents(".collection").find(".collection-visibility-checkbox");
+    var is_visible = menu_item.html() == "Hide";
+
+    var is_visible1 = is_visible ? "Show" : "Hide";
+    menu_item.html(is_visible1);
+    check_box.prop('checked',!is_visible);
+
+
+    QUEST_MAP.set_layer_visibility(collection_name, !is_visible);
+  });
+
   //Add/delete row to custom query
   $('#add-custom-row-button').on('click', function(){custom_query_options('add')});
   $('#delete-custom-row-button').on('click', function(){custom_query_options('remove')});

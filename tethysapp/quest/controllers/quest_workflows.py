@@ -163,6 +163,17 @@ def new_project_workflow(request):
             quest.api.set_active_project(project_name)
     return redirect('quest:home')
 
+@login_required()
+@activate_user_settings
+def add_dataprovider_workflow(request):
+    if request.POST:
+        providerUrl = request.POST.get('data-provider-url')
+        if providerUrl:
+            quest.api.add_provider(providerUrl)
+            settings_file = quest.util.config._default_config_file()
+            quest.api.save_settings(settings_file)
+    return redirect('quest:home')
+
 
 @login_required()
 @activate_user_settings

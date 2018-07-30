@@ -38,6 +38,10 @@ class Quest(TethysAppBase):
                    url='quest/rest/workflows/new-project',
                    controller='quest.controllers.quest_workflows.new_project_workflow'),
 
+            UrlMap(name='add_dataprovider_workflow',
+                   url='quest/rest/workflows/add-provider',
+                   controller='quest.controllers.quest_workflows.add_dataprovider_workflow'),
+
             UrlMap(name='get_collections',
                    url='quest/rest/workflows/get_collections',
                    controller='quest.controllers.quest_workflows.get_collections'),

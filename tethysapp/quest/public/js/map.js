@@ -36,6 +36,7 @@ var QUEST_MAP = (function() {
         toggle_feature_selection_by_id,
         select_feature_if_not_selected,
         get_selected_features,
+        set_layer_visibility,
 
         //event functions
         select_table_element_for_feature,
@@ -227,6 +228,15 @@ var QUEST_MAP = (function() {
         return features;
     }
 
+    set_layer_visibility = function(layer_name,is_visible){
+        var layer = get_layer_by_name(layer_name);
+        layer.setVisible(is_visible);
+
+        if(active_interaction){
+           //todo: unselect feature for the layer that's turned off
+        }
+    }
+
     select_table_element_for_feature = function(event) {
       var feature = event.element;
       $("tbody[data-collection_id='" + feature.get('collection')  + "'] tr[data-feature_id='" + feature.get('name') + "']")
@@ -374,6 +384,7 @@ var QUEST_MAP = (function() {
       deactivate_search_layer_interaction: deactivate_search_layer_interaction,
       select_feature: select_feature_if_not_selected,
       toggle_feature_selection_by_id: toggle_feature_selection_by_id,
+      set_layer_visibility: set_layer_visibility,
     };
 
   // Initialization: jQuery function that gets called when
