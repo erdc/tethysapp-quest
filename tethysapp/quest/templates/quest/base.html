@@ -68,6 +68,30 @@
         </div>
       </div>
     </div>
+
+ <!-- Provider Model -->
+    <div class="modal fade" id="add-provider-modal" tabindex="-1" role="dialog" aria-labelledby="project-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="add-provider-title">Add Data Provider</h4>
+          </div>
+          <div class="modal-body">
+            <form id="data-provider-form" action="{% url 'quest:add_dataprovider_workflow' %}" method="post">
+              {% csrf_token %}
+              <div class="form-group">
+                <label for="data-provider-url">Data Provider URL</label>
+                <input type="text" class="form-control" id="data-provider-url" name="data-provider-url" placeholder="Http://...">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button id='data-provider-submit' type="submit" class="btn btn-primary" form="data-provider-form" value="Submit">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
 {% endblock %}
 
 {% block content_dependent_styles %}

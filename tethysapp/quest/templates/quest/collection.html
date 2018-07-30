@@ -3,12 +3,18 @@
 <div class="collection {{ collection.name }}-collection">
 
     <div class="dropdown">
-      <h2>{{ collection.display_name }}</h2>
+      <input type="checkbox" name="{{ collection.name }}-visibility" value="{{ collection.name }}-visibility" class="collection-visibility-checkbox"
+                 data-collection-name="{{ collection.name }}" checked>
+      <h2>
+          {{ collection.display_name }}
+      </h2>
       <button class="btn btn-xs btn-default btn-pills right" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
         <span class="caret"></span>
       </button>
       <ul class="dropdown-menu" aria-labelledby="dLabel">
         <li><a class="collection-details-menu-item" href="#" data-collection-name="{{ collection.name }}">Details</a></li>
+        <li><a class="collection-visibility-menu-item" href="#" data-collection-name="{{ collection.name }}">Hide</a></li>
+        <!--<li><a class="collection-visibility-menu-item" href="#" data-collection-name="{{ collection.name }}">Show</a></li>-->
         <li role="separator" class="divider"></li>
         <li><a class="delete-collection" href="{% url 'quest:delete_collection' name=collection.name %}" data-collection-name="{{ collection.name }}">Delete</a></li>
       </ul>
