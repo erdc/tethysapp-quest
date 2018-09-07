@@ -81,13 +81,13 @@ widget_map = {
         lambda p, initial: forms.ChoiceField(
             initial=initial or p.default,
             widget=Select2Widget,
-            choices=p.get_range().items(),
+            choices=[(v, k) for k, v in p.get_range().items()],
         ),
     param_util.CatalogEntrySelector:
         lambda p, initial: forms.MultipleChoiceField(
             initial=initial or p.default,
             widget=Select2Widget,
-            choices=p.get_range().items(),
+            choices=[(v, k) for k, v in p.get_range().items()],
         ),
     param.Number:
         lambda p, initial: forms.FloatField(
@@ -150,7 +150,7 @@ widget_map = {
         lambda p, initial: forms.MultipleChoiceField(
             initial=initial or p.default,
             widget=Select2MultipleWidget,
-            choices=p.get_range().items(),
+            choices=[(v, k) for k, v in p.get_range().items()],
         ),
     # param_util.FeatureListSelector:
     #     lambda p, initial: forms.MultipleChoiceField(
