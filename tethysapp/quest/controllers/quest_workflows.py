@@ -9,6 +9,7 @@ import os
 
 # 3rd-party imports
 import quest
+from django.contrib import messages
 from quest.util import NamedString
 import plotly.graph_objs as go
 import param
@@ -143,10 +144,33 @@ def new_collection_workflow(request):
     collection_description = request.POST.get('collection_description', "")
     collection = utilities.generate_new_collection(collection_name,
                                                    collection_description)
+    try:
+        result = get_collection_html(request, collection)
+        result['success'] = True
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The collection was successfully created.'
+        }
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
 
-    result = get_collection_html(request, collection)
+    except ValueError as e:
+        print(e)
+        result['success'] = False
+        result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The collection was NOT successfully created'
 
-    return JsonResponse(result)
+        }
+
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
+    finally:
+        pass
+
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+
+    # return JsonResponse(result)
 
 
 @login_required()
@@ -155,8 +179,34 @@ def new_project_workflow(request):
     if request.POST:
         project_name = request.POST.get('new_project_name')
         project_description = request.POST.get('project_description')
+        result = {}
         if project_name:
-            project = quest.api.new_project(project_name, description=project_description)
+            try:
+                project = quest.api.new_project(project_name, description=project_description)
+                result = project
+                result['success'] = True
+                alert_context = {
+                    'alert_style': 'success',
+                    'alert_message': 'The project was successfully created.'
+                }
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+            except ValueError as e:
+                pass
+                print(e)
+                result['success'] = False
+                result['error_message'] = str(e)
+                alert_context = {
+                    'alert_style': 'danger',
+                    'alert_message': 'The project was NOT successfully created'
+
+                }
+
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+                result['messages'] = alert_html
+                request.session['messages'] = [alert_context]
+            finally:
+                pass
+
 
         else :
             project_name = request.POST.get('project')
@@ -197,6 +247,7 @@ def add_features_workflow(request):
         new_collection_added = True
 
     success = False
+    result = {}
 
     try:
         features = quest.api.add_features(collection_name, features)
@@ -207,6 +258,23 @@ def add_features_workflow(request):
         collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
+        result['success'] = False
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The feature(s) was successfully created.'
+        }
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+    except ValueError as e:
+        result['success'] = False
+        result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The feature(s) was NOT successfully created'
+
+        }
+
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
     # except Exception as e:
     #     print('Ignoring Exception: {0}'.format(str(e)))
     #     pass
@@ -557,7 +625,7 @@ def add_data_workflow(request):
 
     success = False
     try:
-        options = quest.api.download_options(feature)
+        options = quest.api.download_options(feature, fmt='param')
         options = options[feature]
 
         success = True
@@ -569,6 +637,8 @@ def add_data_workflow(request):
 
     html = get_options_html(request,
                             uri=feature,
+                            dataset_id=None,
+                            title='Download Data',
                             options=options,
                             set_options={},
                             options_type='retrieve',
@@ -650,23 +720,42 @@ def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
     filter_options = [p['name'] for p in quest.api.apply_filter_options(filter)['properties']]
-    options = request.POST.copy()
 
-    for k, v in options.items():
-        if k not in filter_options or not v:
-            del options[k]
+    new_filter_options = dict()
+
+    for k, v in request.POST.items():
+        if k in filter_options and v:
+            new_filter_options[k] = v
+    if 'datasets' in new_filter_options:
+        new_filter_options['datasets'] = quest.util.listify(new_filter_options['datasets'])
 
     try:
-        results = quest.api.apply_filter(filter, options=options)
+        results = quest.api.apply_filter(filter, options=new_filter_options)
         dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
+
+
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
-    # except Exception as e:
-    #     result['success'] = False
-    #     result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The dataset {} was successfully published to.'.format(dataset_id)
+        }
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+    except ValueError as e:
+        print(e)
+        result['success'] = False
+        result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The dataset was NOT successfully published'
+
+        }
+
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
     finally:
         pass
 
@@ -816,7 +905,6 @@ def show_metadata_workflow(request):
     uri = request.GET['uri']
 
     title = 'Details'
-
     metadata = quest.api.get_metadata(uri)[uri]
     metadata.pop('file_path', None)
     metadata.pop('visualization_path', None)

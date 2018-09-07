@@ -26,6 +26,9 @@ class Quest(TethysAppBase):
             UrlMap(name='home',
                            url='quest',
                            controller='quest.controllers.home'),
+            UrlMap(name='home_messages',
+                   url='quest/{messages}',
+                   controller='quest.controllers.home'),
 
             ####################################################
             #                                                  #

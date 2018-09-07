@@ -33,7 +33,7 @@ def home(request):
     """
     Controller for the app home page.
     """
-
+    messages = request.session.pop('messages', None)
     # Define view options
     view_options = MVView(
         projection='EPSG:4326',
@@ -93,12 +93,15 @@ def home(request):
     new_collection_description_text_options = TextInput(display_text='New Collection Description',
                                                         name='new_collection_description',
                                                         )
+    act_project = quest.api.get_active_project()
 
-    project_select_options = SelectInput(display_text='Select Project',
-                                            name='project',
-                                            multiple=False,
-                                            options=[(v['display_name'],k) for k,v in quest.api.get_projects(expand=True).items()],
-                                            )
+    project_select_options = SelectInput(
+        display_text='Select Project',
+        name='project',
+        multiple=False,
+        select2_options={'placeholder': 'Select a Project'},
+        options=[(v['display_name'],k) for k,v in quest.api.get_projects(expand=True).items() if k != act_project],
+    )
 
     new_project_name_text_options = TextInput(display_text='New Project Name',
                                                  name='new_project_name',
@@ -123,8 +126,9 @@ def home(request):
                'new_collection_name_text_options': new_collection_name_text_options,
                'new_collection_description_text_options': new_collection_description_text_options,
                'project_select_options': project_select_options,
-               'new_project_name_text_options':new_project_name_text_options,
-               'active_project':quest.api.get_active_project()
+               'new_project_name_text_options': new_project_name_text_options,
+               'active_project': quest.api.get_active_project(),
+               'messages': messages
                }
 
     return render(request, 'quest/home.html', context)
