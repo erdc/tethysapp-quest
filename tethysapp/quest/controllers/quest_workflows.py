@@ -152,7 +152,7 @@ def new_collection_workflow(request):
             'alert_message': 'The collection was successfully created.'
         }
         alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-
+    # Added code here to alert user if collection was not created successfully
     except ValueError as e:
         print(e)
         result['success'] = False
@@ -190,6 +190,7 @@ def new_project_workflow(request):
                     'alert_message': 'The project was successfully created.'
                 }
                 alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+            # Added code here to alert user if project was not created successfully
             except ValueError as e:
                 pass
                 print(e)
@@ -197,7 +198,7 @@ def new_project_workflow(request):
                 result['error_message'] = str(e)
                 alert_context = {
                     'alert_style': 'danger',
-                    'alert_message': 'The project was NOT successfully created'
+                    'alert_message': 'The project was NOT successfully created: ' + str(result['error_message'])
 
                 }
 
@@ -206,8 +207,6 @@ def new_project_workflow(request):
                 request.session['messages'] = [alert_context]
             finally:
                 pass
-
-
         else :
             project_name = request.POST.get('project')
             quest.api.set_active_project(project_name)
@@ -744,13 +743,14 @@ def apply_filter_workflow(request):
             'alert_message': 'The dataset {} was successfully published to.'.format(dataset_id)
         }
         alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        # Added code here to alert to user if dataset was not created successfully
     except ValueError as e:
         print(e)
         result['success'] = False
         result['error_message'] = str(e)
         alert_context = {
             'alert_style': 'danger',
-            'alert_message': 'The dataset was NOT successfully published'
+            'alert_message': 'The dataset was NOT successfully published: ' + str(result['error_message'])
 
         }
 
