@@ -60,8 +60,14 @@
                 <hr>
               </div>
               {% gizmo new_project_name_text_options %}
+              <div id="delete-project">
+              <h4 class="modal-title" id="delete-project-title">Delete Project</h4>
+              <hr>
+              </div>
+              {% gizmo project_delete_select_options %}
             </form>
           </div>
+
           <div class="modal-footer">
             <button id='change-project-submit' type="submit" class="btn btn-primary" form="change-project-form" value="Submit">Submit</button>
           </div>

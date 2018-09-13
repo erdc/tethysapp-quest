@@ -41,6 +41,10 @@ class Quest(TethysAppBase):
                    url='quest/rest/workflows/new-project',
                    controller='quest.controllers.quest_workflows.new_project_workflow'),
 
+            UrlMap(name='delete_project_workflow',
+                   url='quest/rest/workflows/delete-project',
+                   controller='quest.controllers.quest_workflows.delete_project_workflow'),
+
             UrlMap(name='add_dataprovider_workflow',
                    url='quest/rest/workflows/add-provider',
                    controller='quest.controllers.quest_workflows.add_dataprovider_workflow'),

@@ -192,8 +192,6 @@ def new_project_workflow(request):
                 alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
             # Added code here to alert user if project was not created successfully
             except ValueError as e:
-                pass
-                print(e)
                 result['success'] = False
                 result['error_message'] = str(e)
                 alert_context = {
@@ -209,7 +207,8 @@ def new_project_workflow(request):
                 pass
         else :
             project_name = request.POST.get('project')
-            quest.api.set_active_project(project_name)
+            if project_name:
+               quest.api.set_active_project(project_name)
     return redirect('quest:home')
 
 @login_required()
@@ -500,7 +499,7 @@ def get_filter_list_workflow(request):
 
     success = False
     try:
-        filters = quest.api.get_filters(filters={'dataset': dataset_id})
+        filters = quest.api.get_tools(filters={'dataset': dataset_id})
         filters.insert(0, 'select filter')
         # options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
         options = {'filters': get_select_object(filters)}
@@ -541,11 +540,11 @@ def get_filter_options_workflow(request):
     submit_btn_text = 'Apply Filter'
     title = 'Filter Options'
 
-    get_options_function = quest.api.apply_filter_options
+    get_options_function = quest.api.get_tool_options
 
     success = False
     try:
-        options = {filter: quest.api.apply_filter_options(filter, fmt='param')}
+        options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
         success = True
     except Exception as e:
@@ -718,7 +717,7 @@ def publish_dataset_workflow(request):
 def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
-    filter_options = [p['name'] for p in quest.api.apply_filter_options(filter)['properties']]
+    filter_options = [p['name'] for p in quest.api.get_tool_options(filter)['properties']]
 
     new_filter_options = dict()
 
@@ -729,7 +728,7 @@ def apply_filter_workflow(request):
         new_filter_options['datasets'] = quest.util.listify(new_filter_options['datasets'])
 
     try:
-        results = quest.api.apply_filter(filter, options=new_filter_options)
+        results = quest.api.run_tool(filter, options=new_filter_options)
         dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
 
@@ -939,6 +938,44 @@ def delete_dataset_workflow(request):
         result['error'] = str(e)
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+
+@login_required()
+@activate_user_settings
+def delete_project_workflow(request):
+    if request.POST:
+        project_name = request.POST.get('project')
+        result = {}
+        if project_name:
+            try:
+                quest.api.delete_project(project_name)
+                result = project_name
+                result['success'] = True
+                alert_context = {
+                    'alert_style': 'success',
+                    'alert_message': 'The project was successfully deleted.'
+                }
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+            # Added code here to alert user if project was not created successfully
+            except ValueError as e:
+                result['success'] = False
+                result['error_message'] = str(e)
+                alert_context = {
+                    'alert_style': 'danger',
+                    'alert_message': 'The project was NOT successfully deleted: ' + str(result['error_message'])
+
+                }
+
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+                result['messages'] = alert_html
+                request.session['messages'] = [alert_context]
+            finally:
+                pass
+        # else :
+        #     project_name = request.POST.get('project')
+        #     if project_name:
+        #        quest.api.set_active_project(project_name)
+    return redirect('quest:home')
+
 
 
 @login_required()
