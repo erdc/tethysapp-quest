@@ -105,9 +105,9 @@ def home(request):
 
     project_delete_select_options = SelectInput(
         display_text='Project to Delete',
-        name='project',
+        name='delete_project',
         multiple=False,
-        select2_options={'placeholder': 'Select a Project'},
+        select2_options={'placeholder': 'Select Project to Delete..'},
         options=[(v['display_name'], k) for k, v in quest.api.get_projects(expand=True).items() if k != act_project],
     )
 

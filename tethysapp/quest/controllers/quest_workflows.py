@@ -175,7 +175,7 @@ def new_collection_workflow(request):
 
 @login_required()
 @activate_user_settings
-def new_project_workflow(request):
+def manage_project_workflow(request):
     if request.POST:
         project_name = request.POST.get('new_project_name')
         project_description = request.POST.get('project_description')
@@ -205,10 +205,15 @@ def new_project_workflow(request):
                 request.session['messages'] = [alert_context]
             finally:
                 pass
-        else :
+        elif request.POST.get('project'):
             project_name = request.POST.get('project')
-            if project_name:
-               quest.api.set_active_project(project_name)
+            quest.api.set_active_project(project_name)
+
+        elif request.POST.get('delete_project'):
+            project_name = request.POST.get('delete_project')
+
+            quest.api.delete_project(project_name)
+
     return redirect('quest:home')
 
 @login_required()
@@ -739,24 +744,18 @@ def apply_filter_workflow(request):
         result['success'] = True
         alert_context = {
             'alert_style': 'success',
-            'alert_message': 'The dataset {} was successfully published to.'.format(dataset_id)
+            'alert_message': 'The dataset {} was successfully created by filter {}.'.format(dataset_id, filter)
         }
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-        # Added code here to alert to user if dataset was not created successfully
-    except ValueError as e:
-        print(e)
-        result['success'] = False
-        result['error_message'] = str(e)
+    except:
         alert_context = {
             'alert_style': 'danger',
-            'alert_message': 'The dataset was NOT successfully published: ' + str(result['error_message'])
+            'alert_message': 'The filter has an Invalid input'
 
         }
+    finally:
 
         alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
         result['messages'] = alert_html
-    finally:
-        pass
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -938,44 +937,6 @@ def delete_dataset_workflow(request):
         result['error'] = str(e)
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
-
-@login_required()
-@activate_user_settings
-def delete_project_workflow(request):
-    if request.POST:
-        project_name = request.POST.get('project')
-        result = {}
-        if project_name:
-            try:
-                quest.api.delete_project(project_name)
-                result = project_name
-                result['success'] = True
-                alert_context = {
-                    'alert_style': 'success',
-                    'alert_message': 'The project was successfully deleted.'
-                }
-                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-            # Added code here to alert user if project was not created successfully
-            except ValueError as e:
-                result['success'] = False
-                result['error_message'] = str(e)
-                alert_context = {
-                    'alert_style': 'danger',
-                    'alert_message': 'The project was NOT successfully deleted: ' + str(result['error_message'])
-
-                }
-
-                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-                result['messages'] = alert_html
-                request.session['messages'] = [alert_context]
-            finally:
-                pass
-        # else :
-        #     project_name = request.POST.get('project')
-        #     if project_name:
-        #        quest.api.set_active_project(project_name)
-    return redirect('quest:home')
-
 
 
 @login_required()

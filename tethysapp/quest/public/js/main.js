@@ -500,7 +500,7 @@ function submit_options(event){
         change_status_to_complete(dataset_id);
         if(result.messages){
             //display messages
-            $('#messages').append(result.messages);
+            $('.flash-messages').append(result.messages);
         }
     });
 }

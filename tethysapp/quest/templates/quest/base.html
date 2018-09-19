@@ -52,7 +52,7 @@
             <h4 class="modal-title" id="add-features-title">Manage Project</h4>
           </div>
           <div class="modal-body">
-            <form id="change-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
+            <form id="change-project-form" action="{% url 'quest:manage_project_workflow' %}" method="post">
               {% csrf_token %}
               <div id="change-project-select-div"{% if true %}style="display: none;"{% endif %}>
                 {% gizmo project_select_options %}

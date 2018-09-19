@@ -18,16 +18,19 @@
   <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/colreorder/1.3.2/css/colReorder.dataTables.min.css">
 {% endblock %}
 
+{% block flash %}
+  <div class="flash-messages nav-justified">
+    {% for message in messages %}
+      {% include 'quest/alert.html' with alert_style=message.alert_style alert_message=message.alert_message %}
+    {% endfor %}
+  </div>
+{% endblock %}
+
 {% block app_content %}
   <div id="layout"></div>
 
   {% gizmo map_view map_view_options %}
 
-  <div id="messages">
-    {% for message in messages %}
-      {% include 'quest/alert.html' with alert_style=message.alert_style alert_message=message.alert_message %}
-    {% endfor %}
-  </div>
   <div id="hidden">
 
     <!-- Collection Details Tables -->
