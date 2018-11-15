@@ -25,10 +25,12 @@ from tethys_sdk.gizmos import (
 
 # local imports
 from .. import utilities
+from .quest_workflows import activate_user_settings
 
 
 @ensure_csrf_cookie
 @login_required()
+@activate_user_settings
 def home(request):
     """
     Controller for the app home page.
@@ -96,7 +98,7 @@ def home(request):
     act_project = quest.api.get_active_project()
 
     project_select_options = SelectInput(
-        display_text='Select Project',
+        display_text='Set Active Project',
         name='project',
         multiple=False,
         select2_options={'placeholder': 'Select a Project'},

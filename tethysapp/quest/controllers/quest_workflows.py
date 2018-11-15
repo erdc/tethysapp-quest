@@ -222,7 +222,7 @@ def add_dataprovider_workflow(request):
     if request.POST:
         providerUrl = request.POST.get('data-provider-url')
         if providerUrl:
-            quest.api.add_provider(providerUrl)
+            quest.api.add_user_provider(providerUrl)
             settings_file = quest.util.config._default_config_file()
             quest.api.save_settings(settings_file)
     return redirect('quest:home')
@@ -253,7 +253,7 @@ def add_features_workflow(request):
     result = {}
 
     try:
-        features = quest.api.add_features(collection_name, features)
+        features = quest.api.add_datasets(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
             utilities.stage_dataset_for_download(feature, options)
@@ -341,8 +341,8 @@ def get_download_options_workflow(request):
     dataset_id = request.GET['dataset']
     success = False
     try:
-        options = quest.api.download_options(dataset_id, fmt='param')
-        has_options = len(quest.api.download_options(dataset_id)[dataset_id]) > 0
+        options = quest.api.get_download_options(dataset_id, fmt='param')
+        has_options = len(quest.api.get_download_options(dataset_id)[dataset_id]) > 0
         success = True
     except Exception as e:
         raise e
