@@ -116,11 +116,6 @@ h1.title{
     color: rgb(26, 51, 76);
 }
 
-#app-content-wrapper #app-content #app-navigation .nav li a:hover,
-#layout-nav .nav-tab a:hover{
-    background: rgba(255, 255, 255, 0.9);
-}
-
 #app-content-wrapper #app-content #app-navigation .nav li.active a,
 #layout-nav .nav-tab a.active{
     background: rgb(26, 51, 76);
@@ -308,4 +303,9 @@ span.glyphicon.glyphicon-filter.select2-selection__arrow{
     position: absolute;
     bottom: 50px;
     right: 300px;
+}
+
+#app-header .tethys-app-header #header-buttons-wrapper .header-button #quest-settings-dropdown-menu li a{
+    color: rgb(26, 51, 76);
+    font-size: 13px;
 }

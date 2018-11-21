@@ -172,6 +172,7 @@ def add_dataprovider_workflow(request):
             quest.api.add_user_provider(providerUrl)
             settings_file = quest.util.config._default_config_file()
             quest.api.save_settings(settings_file)
+        utilities.update_services_metadata()
     return redirect('quest:home')
 
 
@@ -202,7 +203,7 @@ def add_features_workflow(request):
         features = quest.api.add_datasets(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
-            utilities.stage_dataset_for_download(feature, options)
+            quest.api.stage_for_download(feature, options)
 
         collection = utilities.get_collection_with_metadata(collection_name)
 
@@ -596,7 +597,7 @@ def retrieve_dataset(request, uri, options=None):
     result = {}
 
     try:
-        dataset_id = utilities.stage_dataset_for_download(uri, options=options)
+        dataset_id = quest.api.stage_for_download(uri, options=options)
         quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
@@ -652,10 +653,11 @@ def apply_filter_workflow(request):
     filter_options = [p['name'] for p in quest.api.get_tool_options(filter)['properties']]
     options = request.POST.copy()
 
+    new_options = dict()
     for k, v in options.items():
-        if k not in filter_options or not v:
-            del options[k]
-
+        if k in filter_options and v:
+            new_options[k] = v
+    options = new_options
     try:
         results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]

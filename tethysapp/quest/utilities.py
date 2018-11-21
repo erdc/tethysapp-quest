@@ -90,6 +90,11 @@ def get_hierarchical_provider_list():
     return providers_tree
 
 
+def update_services_metadata():
+    global services_metadata
+    services_metadata = quest.api.get_services(expand=True)
+
+
 def get_feature_source(feature):
     global services_metadata
 
@@ -97,8 +102,8 @@ def get_feature_source(feature):
     location = metadata['display_name']
     service = metadata['service']
 
-    if not services_metadata:
-        services_metadata = quest.api.get_services(expand=True)
+    if services_metadata is None:
+        update_services_metadata()
 
     if service:
         source = services_metadata[service]['display_name']
@@ -114,21 +119,6 @@ def get_display_name(feature, parameter):
     parameter = parameter.split(':')[0]
     display_name = '{0}|{1}'.format(provider.upper(), parameter.title())
     return display_name
-
-
-def stage_dataset_for_download(uri, options):
-    dataset_id = quest.api.stage_for_download(uri, options)[0]
-    parameter = None
-    # if options is not None:
-    #     parameter = options.get('parameter')
-    # if parameter is None:
-    #     parameter = get_dataset_parameter(quest.api.get_metadata(dataset_id)[dataset_id])
-    # if uri.startswith('f'):
-    #     feature = uri
-    # else:
-    #     feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
-    # quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
-    return dataset_id
 
 
 def get_dataset_parameter(dataset):
