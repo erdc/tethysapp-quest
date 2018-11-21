@@ -83,7 +83,7 @@ widget_map = {
             widget=Select2Widget,
             choices=p.get_range().items(),
         ),
-    param_util.FeatureSelector:
+    param_util.CatalogEntrySelector:
         lambda p, initial: forms.MultipleChoiceField(
             initial=initial or p.default,
             widget=Select2Widget,

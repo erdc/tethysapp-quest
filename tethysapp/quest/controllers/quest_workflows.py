@@ -169,7 +169,7 @@ def add_dataprovider_workflow(request):
     if request.POST:
         providerUrl = request.POST.get('data-provider-url')
         if providerUrl:
-            quest.api.add_provider(providerUrl)
+            quest.api.add_user_provider(providerUrl)
             settings_file = quest.util.config._default_config_file()
             quest.api.save_settings(settings_file)
     return redirect('quest:home')
@@ -199,7 +199,7 @@ def add_features_workflow(request):
     success = False
 
     try:
-        features = quest.api.add_features(collection_name, features)
+        features = quest.api.add_datasets(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
             utilities.stage_dataset_for_download(feature, options)
@@ -270,8 +270,8 @@ def get_download_options_workflow(request):
     dataset_id = request.GET['dataset']
     success = False
     try:
-        options = quest.api.download_options(dataset_id, fmt='param')
-        has_options = len(quest.api.download_options(dataset_id)[dataset_id]) > 0
+        options = quest.api.get_download_options(dataset_id, fmt='param')
+        has_options = len(quest.api.get_download_options(dataset_id)[dataset_id]) > 0
         success = True
     except Exception as e:
         raise e
@@ -433,7 +433,7 @@ def get_filter_list_workflow(request):
 
     success = False
     try:
-        filters = quest.api.get_filters(filters={'dataset': dataset_id})
+        filters = quest.api.get_tools(filters={'dataset': dataset_id})
         filters.insert(0, 'select filter')
         # options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
         options = {'filters': get_select_object(filters)}
@@ -474,11 +474,11 @@ def get_filter_options_workflow(request):
     submit_btn_text = 'Apply Filter'
     title = 'Filter Options'
 
-    get_options_function = quest.api.apply_filter_options
+    get_options_function = quest.api.get_tool_options
 
     success = False
     try:
-        options = {filter: quest.api.apply_filter_options(filter, fmt='param')}
+        options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
         success = True
     except Exception as e:
@@ -649,7 +649,7 @@ def publish_dataset_workflow(request):
 def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
-    filter_options = [p['name'] for p in quest.api.apply_filter_options(filter)['properties']]
+    filter_options = [p['name'] for p in quest.api.get_tool_options(filter)['properties']]
     options = request.POST.copy()
 
     for k, v in options.items():
@@ -657,7 +657,7 @@ def apply_filter_workflow(request):
             del options[k]
 
     try:
-        results = quest.api.apply_filter(filter, options=options)
+        results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
         result['collection_name'] = collection

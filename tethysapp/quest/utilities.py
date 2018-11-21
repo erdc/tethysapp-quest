@@ -119,14 +119,14 @@ def get_display_name(feature, parameter):
 def stage_dataset_for_download(uri, options):
     dataset_id = quest.api.stage_for_download(uri, options)[0]
     parameter = None
-    if options is not None:
-        parameter = options.get('parameter')
-    if parameter is None:
-        parameter = get_dataset_parameter(quest.api.get_metadata(dataset_id)[dataset_id])
-    if uri.startswith('f'):
-        feature = uri
-    else:
-        feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
+    # if options is not None:
+    #     parameter = options.get('parameter')
+    # if parameter is None:
+    #     parameter = get_dataset_parameter(quest.api.get_metadata(dataset_id)[dataset_id])
+    # if uri.startswith('f'):
+    #     feature = uri
+    # else:
+    #     feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
     # quest.api.update_metadata(dataset_id, display_name=get_display_name(feature, parameter))
     return dataset_id
 
@@ -139,7 +139,7 @@ def get_dataset_parameter(dataset):
             parameter = download_options.get('parameter')
         else:
             dataset_id = dataset.get('name')
-            feature = quest.api.get_metadata(dataset_id)[dataset_id]['feature']
+            feature = quest.api.get_metadata(dataset_id)[dataset_id]['catalog_entry']
             feature = quest.api.get_metadata(feature)[feature]
             parameters = feature.get('parameters').split(',')
             if len(parameters) == 1:
@@ -168,7 +168,7 @@ def get_dataset_rows(datasets):
     rows = []
     for dataset in datasets:
         name = dataset['display_name'] or dataset['name']
-        location, source = get_feature_source(dataset['feature'])
+        location, source = get_feature_source(dataset['catalog_entry'])
         parameter = get_dataset_parameter(dataset)
         data_type = dataset['datatype']
         status = dataset['status']
@@ -198,7 +198,7 @@ def pre_jsonify(obj):
 
 def add_metadata_to_collection(collection):
     collection['features'] = \
-        list(quest.api.get_features(collection['name'], expand=True).values())
+        list(quest.api.search_catalog(collection['name'], expand=True).values())
     collection['datasets'] = \
         list(quest.api.get_datasets(expand=True,
                                     filters={'collection': collection['name']},
@@ -245,7 +245,7 @@ def update_quest_cache():
     services = quest.api.get_services()
     for service in services:
         try:
-            quest.api.get_features(service, update_cache=True)
+            quest.api.search_catalog(service, update_cache=True)
         except:
             print("Error with {0}".format(service))
 
