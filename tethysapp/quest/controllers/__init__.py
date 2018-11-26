@@ -65,6 +65,7 @@ def home(request):
         {'Stamen': {'layer': 'toner', 'label': 'Black and White'}},
         {'Stamen': {'layer': 'watercolor'}},
         'OpenStreetMap',
+        'CartoDB',
         {'CartoDB': {'style': 'dark'}},
         {'CartoDB': {'style': 'light', 'labels': False, 'label': 'CartoDB-light-no-labels'}},
         'ESRI',

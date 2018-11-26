@@ -516,7 +516,7 @@ function update_datasets_by_feature(collection){
         datasets_by_feature[feature.name] = [];
     });
     collection.datasets.forEach(function(dataset){
-        datasets_by_feature[dataset.feature].push(dataset);
+        datasets_by_feature[dataset.catalog_entry].push(dataset);
     });
 }
 
