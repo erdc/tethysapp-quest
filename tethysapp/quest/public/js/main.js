@@ -482,15 +482,9 @@ function submit_options(event){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
-            if(result.collection){
-                update_details_table(result.collection_name, result.details_table_html);
-                update_datasets_by_feature(result.collection);
-            }
-//            get_tasks();
-        }
-        else{
-            console.log(result);
+        if(result.collection){
+            update_details_table(result.collection_name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
         }
     })
     .fail(function(result) {

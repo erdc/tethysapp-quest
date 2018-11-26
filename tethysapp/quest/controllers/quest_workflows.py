@@ -16,7 +16,7 @@ import param
 
 # django imports
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, redirect
 
@@ -666,21 +666,17 @@ def get_details_table(request, collection):
 
 
 def retrieve_dataset(request, uri, options=None):
-    success = False
     result = {}
 
     try:
-        dataset_id = quest.api.stage_for_download(uri, options=options)
+        dataset_id = quest.api.stage_for_download(uri, options=options)[0]
         quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
-        success = True
     except Exception as e:
-        result['error'] = str(e)
-
-    result['success'] = success
+        return HttpResponseBadRequest(str(e))
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
