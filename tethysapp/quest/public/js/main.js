@@ -59,7 +59,6 @@ function add_features_to_collection(e){
 
   $.get(url, data)
   .done(function(result) {
-      if(result.success){
           QUEST_MAP.deactivate_search_layer_interaction();
           update_datasets_by_feature(result.collection);
           QUEST_MAP.update_collection_layer(result.collection);
@@ -73,11 +72,6 @@ function add_features_to_collection(e){
             // update details table
             update_details_table(result.collection.name, result.details_table_html);
           }
-      }
-      else{
-        console.log('error');
-        console.log(result);
-      }
 
   })
   .fail(function() {
@@ -201,14 +195,9 @@ function delete_dataset(dataset_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
             reset_plot(dataset_id);
-        }
-        else{
-            console.log(result);
-        }
     })
     .fail(function() {
         console.log( "error" );
@@ -226,7 +215,6 @@ function delete_feature(feature_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             // delete feature on map
             var layer = get_layer_by_name(result.collection.name);
             layer.getSource().removeFeature(layer.getSource().getFeatureById(feature_id));
@@ -234,7 +222,6 @@ function delete_feature(feature_id){
             // update details table
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
-        }
     })
     .fail(function() {
         console.log( "error" );
@@ -252,7 +239,6 @@ function add_data(feature_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
@@ -262,8 +248,6 @@ function add_data(feature_id){
                 update_details_table(result.collection_name, result.details_table_html);
                 update_datasets_by_feature(result.collection);
             }
-        }
-
     })
     .fail(function() {
         console.log( "error" );
@@ -333,7 +317,7 @@ function populate_options_form_for_dataset(dataset, button_type){
 
     $.get(url, data)
     .done(function(result) {
-        if(result.success){
+
             var options = function(){
                 if(result.html){
                     $('#options-content').html(result.html);
@@ -380,11 +364,10 @@ function populate_options_form_for_dataset(dataset, button_type){
 
              func[button_type]();
 
-        }
 
     })
-    .fail(function() {
-        console.log( "error" );
+    .fail(function(result) {
+        console.log( "error" + result.responseText );
     })
     .always(function() {
 
@@ -397,12 +380,10 @@ function show_details(uri){
 
     $.get(url, data)
     .done(function(result) {
-        if(result.success){
             show_details_layout();
             $('#details-content').html(result.html);
-        }
     })
-    .fail(function() {
+    .fail(function(result) {
         console.log( "error: " + result );
     })
     .always(function() {
@@ -482,27 +463,20 @@ function submit_options(event){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
-            if(result.collection){
-                update_details_table(result.collection_name, result.details_table_html);
-                update_datasets_by_feature(result.collection);
-            }
-            if(result.messages){
-                //display messages
-                $('#messages').append(result.messages);
-            }
-
-//            get_tasks();
-        }
-        else{
-            console.log(result);
+        if(result.collection){
+            update_details_table(result.collection_name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
         }
     })
     .fail(function(result) {
-        console.log( "error: " + result );
+        console.log("submit_options failed due to the following Error: " + result.responseText);
     })
-    .always(function() {
+    .always(function(result) {
         change_status_to_complete(dataset_id);
+        if(result.messages){
+            //display messages
+            $('.flash-messages').append(result.messages);
+        }
     });
 }
 
@@ -517,13 +491,12 @@ function update_datasets_by_feature(collection){
         datasets_by_feature[feature.name] = [];
     });
     collection.datasets.forEach(function(dataset){
-        datasets_by_feature[dataset.feature].push(dataset);
+        datasets_by_feature[dataset.catalog_entry].push(dataset);
     });
 }
 
 function update_collection_html(result){
   remove_collection_placeholder(result.collection.display_name);
-  if(result.success){
       $('#table-placeholder').css('display', 'none');
       $('#collections-list').append(result.collection_html);
       // update collection select
@@ -537,7 +510,6 @@ function update_collection_html(result){
       $('#collection-details-nav').find('ul').append(result.details_table_tab_html);
       $('#collection-details-content').append(result.details_table_html);
       update_details_table(result.collection.name);
-  }
 }
 
 function add_collection_placeholder(collection_name){
@@ -584,12 +556,10 @@ function update_collection(collection){
   add_collection_placeholder(collection.display_name);
   $.get(get_collection_data_url, {'collection': collection.name})
     .done(function(result) {
-      if(result.success){
         update_datasets_by_feature(result.collection);
         QUEST_MAP.add_collection_layer(result.collection);
         update_collection_html(result.html);
         // collections.push(result.collection);
-      }
     })
     .fail(function() {
 
@@ -608,7 +578,6 @@ function delete_collection(event){
 
     $.get(url)
     .done(function(result){
-        if(result.success){
             $(collection_elements).remove();
             update_details_table(collection_name);
             // if there are no more collections display the placeholder div
@@ -619,7 +588,6 @@ function delete_collection(event){
             // update collection select
             var collection_select = $('#collection')
             collection_select.find('option[value="' + collection_name + '"]').remove();
-        }
     });
 }
 
@@ -627,7 +595,6 @@ function delete_collection(event){
 function get_dataset_context_menu_items(dataset){
 
     var dataset_id = dataset.name;
-
     var dataset_contextmenu_items = [
 
         {
@@ -732,14 +699,7 @@ $(function() { //wait for page to load
   //load collections
   $.get(get_collections_url)
     .done(function(result) {
-      if(result.success){
         result.collections.forEach(update_collection);
-      }
-      else{
-        console.log('error');
-        console.log(result);
-      }
-
     })
     .fail(function() {
       console.log( "error" );
@@ -830,6 +790,21 @@ $(function() { //wait for page to load
       var collection_name = $(this).data('collection-name');
       $('#collection-details-nav li.' + collection_name + '-collection a').click();
       show_table_layout();
+  });
+
+  // Toggle Collection Visibility
+  $('#collections-list').on('click', '.collection-visibility-menu-item, .collection-visibility-checkbox', function(){
+    var collection_name = $(this).data('collection-name');
+    var menu_item = $(this).parents(".collection").find(".collection-visibility-menu-item");
+    var check_box = $(this).parents(".collection").find(".collection-visibility-checkbox");
+    var is_visible = menu_item.html() == "Hide";
+
+    var is_visible1 = is_visible ? "Show" : "Hide";
+    menu_item.html(is_visible1);
+    check_box.prop('checked',!is_visible);
+
+
+    QUEST_MAP.set_layer_visibility(collection_name, !is_visible);
   });
 
   //Add/delete row to custom query
@@ -1076,7 +1051,7 @@ $.ajaxSetup({
 function get_contextmenu_items(target){
     var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
-    dataset = {name: dataset_id,
+    var dataset = {name: dataset_id,
                status: download_status,
                }
     return get_dataset_context_menu_items(dataset);

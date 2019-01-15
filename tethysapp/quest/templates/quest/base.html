@@ -1,6 +1,6 @@
 {% extends "tethys_apps/app_base.html" %}
 
-{% load staticfiles %}
+{% load staticfiles tethys_gizmos%}
 
 {% block title %}- {{ tethys_app.name }}{% endblock %}
 
@@ -17,7 +17,7 @@
 {% endblock %}
 
 {# The name you provided in your app.py is accessible through the tethys_app.name context variable #}
-{% block app_title %}{{ tethys_app.name }}{% endblock %}
+{% block app_title %}{{ tethys_app.name }}:{{active_project}}{% endblock %}
 
 {% block header_buttons %}
   <div class="header-button dropdown">
@@ -25,8 +25,8 @@
       <span class="glyphicon glyphicon-option-vertical"></span>
     </a>
     <ul id="quest-settings-dropdown-menu" class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
-      <li><span data-toggle="modal" data-target="#project-modal">Change Project...</span></li>
-      <li><span data-toggle="modal" data-target="#add-provider-modal">Add Data Provider...</span></li>
+      <li><a data-toggle="modal" data-target="#project-modal">Manage Project...</a></li>
+      <li><a data-toggle="modal" data-target="#add-provider-modal">Add Data Provider...</a></li>
     </ul>
   </div>
 {% endblock %}
@@ -44,29 +44,56 @@
 {% block after_app_content %}
   {{ block.super }}
     <!-- Project Model -->
-    <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="options-modal">
+    <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="project-modal">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="new-project-title">New Collection</h4>
+            <h4 class="modal-title" id="add-features-title">Manage Project</h4>
           </div>
           <div class="modal-body">
-            <form id="new-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
+            <form id="change-project-form" action="{% url 'quest:manage_project_workflow' %}" method="post">
+              {% csrf_token %}
+              <div id="change-project-select-div"{% if true %}style="display: none;"{% endif %}>
+                {% gizmo project_select_options %}
+                <h4>Create New Project</h4>
+                <hr>
+              </div>
+              {% gizmo new_project_name_text_options %}
+              <div id="delete-project">
+              <h4 class="modal-title" id="delete-project-title">Delete Project</h4>
+              <hr>
+              </div>
+              {% gizmo project_delete_select_options %}
+            </form>
+          </div>
+
+          <div class="modal-footer">
+            <button id='change-project-submit' type="submit" class="btn btn-primary" form="change-project-form" value="Submit">Submit</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+ <!-- Provider Model -->
+    <div class="modal fade" id="add-provider-modal" tabindex="-1" role="dialog" aria-labelledby="project-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="add-provider-title">Add Data Provider</h4>
+          </div>
+          <div class="modal-body">
+            <form id="data-provider-form" action="{% url 'quest:add_dataprovider_workflow' %}" method="post">
               {% csrf_token %}
               <div class="form-group">
-                <label for="project_name">Collection Name</label>
-                <input type="text" class="form-control" id="project_name" name="project_name" placeholder="New Project">
-              </div>
-              <div class="form-group">
-                <label for="project_description">Description</label>
-                <input type="text" class="form-control" id="project_description" name="project_description" placeholder="New Project">
+                <label for="data-provider-url">Data Provider URL</label>
+                <input type="text" class="form-control" id="data-provider-url" name="data-provider-url" placeholder="Http://...">
               </div>
             </form>
           </div>
           <div class="modal-footer">
-            <button id='new-project-submit' type="submit" class="btn btn-primary" form="new-project-form" value="Submit">Submit</button>
-            <img src="{% static 'quest/images/loading.gif' %}" id="new-project-loading-gif" style="display: none;">
+            <button id='data-provider-submit' type="submit" class="btn btn-primary" form="data-provider-form" value="Submit">Submit</button>
           </div>
         </div>
       </div>

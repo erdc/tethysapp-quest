@@ -9,15 +9,15 @@ import os
 
 # 3rd-party imports
 import quest
-from quest.util import NamedString
+from django.contrib import messages
 import plotly.graph_objs as go
 import param
 
 # django imports
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 # tethys imports
 from tethys_sdk.gizmos import (
@@ -60,12 +60,10 @@ def activate_user_settings(func):
 @activate_user_settings
 def get_raster_image(request):
     dataset = request.GET['dataset']
-    success = False
     try:
         metadata = quest.api.get_metadata(dataset)[dataset]
-        success = True
-    except:
-        pass
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
     from django.utils.encoding import smart_str
 
@@ -143,23 +141,89 @@ def new_collection_workflow(request):
     collection_description = request.POST.get('collection_description', "")
     collection = utilities.generate_new_collection(collection_name,
                                                    collection_description)
+    try:
+        result = get_collection_html(request, collection)
+        result['success'] = True
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The collection was successfully created.'
+        }
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+    # Added code here to alert user if collection was not created successfully
+    except ValueError as e:
+        print(e)
+        result['success'] = False
+        result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The collection was NOT successfully created'
 
-    result = get_collection_html(request, collection)
+        }
 
-    return JsonResponse(result)
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
+    finally:
+        pass
+
+    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+
+    # return JsonResponse(result)
 
 
 @login_required()
 @activate_user_settings
-def new_project_workflow(request):
+def manage_project_workflow(request):
     if request.POST:
-        project_name = request.POST.get('project_name')
+        project_name = request.POST.get('new_project_name')
         project_description = request.POST.get('project_description')
+        result = {}
         if project_name:
-            project = quest.api.new_project(project_name, description=project_description)
+            try:
+                project = quest.api.new_project(project_name, description=project_description)
+                result = project
+                result['success'] = True
+                alert_context = {
+                    'alert_style': 'success',
+                    'alert_message': 'The project was successfully created.'
+                }
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+            # Added code here to alert user if project was not created successfully
+            except ValueError as e:
+                result['success'] = False
+                result['error_message'] = str(e)
+                alert_context = {
+                    'alert_style': 'danger',
+                    'alert_message': 'The project was NOT successfully created: ' + str(result['error_message'])
 
-            return JsonResponse({'project': project})
-    return JsonResponse({'error': 'Invalid request ...'})
+                }
+
+                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+                result['messages'] = alert_html
+                request.session['messages'] = [alert_context]
+            finally:
+                pass
+        elif request.POST.get('project'):
+            project_name = request.POST.get('project')
+            quest.api.set_active_project(project_name)
+
+        elif request.POST.get('delete_project'):
+            project_name = request.POST.get('delete_project')
+
+            quest.api.delete_project(project_name)
+
+    return redirect('quest:home')
+
+@login_required()
+@activate_user_settings
+def add_dataprovider_workflow(request):
+    if request.POST:
+        providerUrl = request.POST.get('data-provider-url')
+        if providerUrl:
+            quest.api.add_user_provider(providerUrl)
+            settings_file = quest.util.config._default_config_file()
+            quest.api.save_settings(settings_file)
+        utilities.update_services_metadata()
+    return redirect('quest:home')
 
 
 @login_required()
@@ -184,16 +248,34 @@ def add_features_workflow(request):
         new_collection_added = True
 
     success = False
+    result = {}
 
     try:
-        features = quest.api.add_features(collection_name, features)
+        features = quest.api.add_datasets(collection_name, features)
         options = {'parameter': parameter}
         for feature in features:
-            utilities.stage_dataset_for_download(feature, options)
+            quest.api.stage_for_download(feature, options)
 
         collection = utilities.get_collection_with_metadata(collection_name)
 
         success = True
+        result['success'] = False
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The feature(s) was successfully created.'
+        }
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+    except ValueError as e:
+        result['success'] = False
+        result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The feature(s) was NOT successfully created'
+
+        }
+
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
     # except Exception as e:
     #     print('Ignoring Exception: {0}'.format(str(e)))
     #     pass
@@ -255,13 +337,11 @@ def get_options_html(request, uri, dataset_id, title, options, set_options, opti
 @activate_user_settings
 def get_download_options_workflow(request):
     dataset_id = request.GET['dataset']
-    success = False
     try:
-        options = quest.api.download_options(dataset_id, fmt='param')
-        has_options = len(quest.api.download_options(dataset_id)[dataset_id]) > 0
-        success = True
+        options = quest.api.get_download_options(dataset_id, fmt='param')
+        has_options = len(quest.api.get_download_options(dataset_id)[dataset_id]) > 0
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     options_metadata_name = 'options'
     set_options = {}
@@ -283,7 +363,6 @@ def get_download_options_workflow(request):
 
     result = {
         'has_options': has_options,
-        'success': success,
         'html': html,
     }
 
@@ -305,16 +384,14 @@ def get_publisher_list_workflow(request):
     submit_controller_name = 'authenticate_options_workflow'
     title = 'Select Publisher'
 
-    success = False
     try:
         publishers = quest.api.get_publishers(expand=True)
-        publishers = [NamedString(k, v['display_name']) for k, v in publishers.items()]
-        publishers.insert(0, 'select publisher')
+        publishers = {k: v['display_name'] for k, v in publishers.items()}
         options = {'filters': get_select_object(publishers)}
 
-        success = True
     except Exception as e:
-        raise e
+        print(e)
+        return HttpResponseBadRequest(str(e))
 
     html = get_select_options_html(
         request,
@@ -329,7 +406,6 @@ def get_publisher_list_workflow(request):
 
     result = {
         'has_options': True,
-        'success': success,
         'html': html,
     }
 
@@ -385,12 +461,10 @@ def authenticate_provider_workflow(request):
 def get_publish_options_workflow(request):
     dataset_id = request.GET.get('dataset_id')
     publisher = request.GET.get('uri')
-    success = False
     try:
         options = quest.api.get_publish_options(publisher, fmt='param')
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     html = get_options_html(request,
                             uri=publisher,
@@ -402,7 +476,7 @@ def get_publish_options_workflow(request):
                             submit_controller_name='publish_dataset_workflow',
                             submit_btn_text='Publish')
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
     return JsonResponse(result)
@@ -418,14 +492,12 @@ def get_filter_list_workflow(request):
     # submit_btn_text = 'Apply Filter'
     title = 'Apply Filter'
 
-    success = False
     try:
-        filters = quest.api.get_filters(filters={'dataset': dataset_id})
+        filters = quest.api.get_tools(filters={'dataset': dataset_id})
         filters.insert(0, 'select filter')
         # options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
         options = {'filters': get_select_object(filters)}
 
-        success = True
     except Exception as e:
         raise e
 
@@ -443,7 +515,6 @@ def get_filter_list_workflow(request):
 
     result = {
         'has_options': True,
-        'success': success,
         'html': html,
     }
 
@@ -461,15 +532,13 @@ def get_filter_options_workflow(request):
     submit_btn_text = 'Apply Filter'
     title = 'Filter Options'
 
-    get_options_function = quest.api.apply_filter_options
+    get_options_function = quest.api.get_tool_options
 
-    success = False
     try:
-        options = {filter: quest.api.apply_filter_options(filter, fmt='param')}
+        options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     set_options = {'dataset': dataset_id}
     # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
@@ -488,7 +557,7 @@ def get_filter_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -505,15 +574,13 @@ def get_visualize_options_workflow(request):
     submit_controller_name = 'visualize_dataset_workflow'
     submit_btn_text = 'Visualize'
 
-    success = False
     try:
         options = get_options_function(dataset_id)
         if dataset_id in options:
             options = options[dataset_id]
 
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     set_options = {}
     # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
@@ -530,7 +597,7 @@ def get_visualize_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -542,27 +609,26 @@ def get_visualize_options_workflow(request):
 def add_data_workflow(request):
     feature = request.POST['feature']
 
-    success = False
     try:
-        options = quest.api.download_options(feature)
+        options = quest.api.download_options(feature, fmt='param')
         options = options[feature]
 
-        success = True
     except Exception as e:
-        raise e
-
+        return HttpResponseBadRequest(str(e))
     if 'properties' not in options:
         return retrieve_dataset(request, feature)
 
     html = get_options_html(request,
                             uri=feature,
+                            dataset_id=None,
+                            title='Download Data',
                             options=options,
                             set_options={},
                             options_type='retrieve',
                             submit_controller_name='retrieve_dataset_workflow',
                             submit_btn_text='Retrieve')
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -579,21 +645,17 @@ def get_details_table(request, collection):
 
 
 def retrieve_dataset(request, uri, options=None):
-    success = False
     result = {}
 
     try:
-        dataset_id = utilities.stage_dataset_for_download(uri, options=options)
+        dataset_id = quest.api.stage_for_download(uri, options=options)[0]
         quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
-        success = True
     except Exception as e:
-        result['error'] = str(e)
-
-    result['success'] = success
+        return HttpResponseBadRequest(str(e))
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -636,26 +698,42 @@ def publish_dataset_workflow(request):
 def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
-    filter_options = [p['name'] for p in quest.api.apply_filter_options(filter)['properties']]
-    options = request.POST.copy()
+    options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
-    for k, v in options.items():
-        if k not in filter_options or not v:
-            del options[k]
+    form = widgets_form(options, {})(request.POST)
+    form.is_valid()
+    options = form.cleaned_data
 
+    # import  pdb; pdb.set_trace()
+    # new_options = dict()
+    # for k, v in options.items():
+    #     if k in filter_options and v:
+    #         new_options[k] = v
+    # options = new_options
     try:
-        results = quest.api.apply_filter(filter, options=options)
+        results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
+
+
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
-    # except Exception as e:
-    #     result['success'] = False
-    #     result['error_message'] = str(e)
+        alert_context = {
+            'alert_style': 'success',
+            'alert_message': 'The dataset {} was successfully created by filter {}.'.format(dataset_id, filter)
+        }
+    except Exception as e:
+        alert_context = {
+            'alert_style': 'danger',
+            'alert_message': 'The filter has an Invalid input'
+        }
+        raise e
     finally:
-        pass
+
+        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
+        result['messages'] = alert_html
 
     return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
 
@@ -803,7 +881,6 @@ def show_metadata_workflow(request):
     uri = request.GET['uri']
 
     title = 'Details'
-
     metadata = quest.api.get_metadata(uri)[uri]
     metadata.pop('file_path', None)
     metadata.pop('visualization_path', None)
@@ -867,12 +944,10 @@ def delete_feature_workflow(request):
 @activate_user_settings
 def export_dataset(request):
     dataset = request.GET['dataset']
-    success = False
     try:
         metadata = quest.api.get_metadata(dataset)[dataset]
-        success = True
-    except:
-        pass
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
     from django.utils.encoding import smart_str
 

@@ -41,6 +41,7 @@ h1.title{
 .filter-group{
     margin: 2px 0;
     padding: 10px;
+    padding-left: 30px;
     border-radius: 10px;
     background-color: rgba(255, 255, 255, 0.5);
 }
@@ -70,6 +71,11 @@ h1.title{
     display: inline-block;
 }
 
+.collection input[type=checkbox]{
+  margin-left:-20px;
+  display: inline;
+}
+
 .collection .dropdown-menu{
     right: 0;
 }
@@ -97,6 +103,7 @@ h1.title{
   padding-bottom: 50px;
   height:100%;
   width: 100%;
+  z-index: 0;
 }
 
 #layout-nav{
@@ -108,11 +115,6 @@ h1.title{
 #layout-nav .nav-tab a{
     background: rgba(255, 255, 255, 0.5);
     color: rgb(26, 51, 76);
-}
-
-#app-content-wrapper #app-content #app-navigation .nav li a:hover,
-#layout-nav .nav-tab a:hover{
-    background: rgba(255, 255, 255, 0.9);
 }
 
 #app-content-wrapper #app-content #app-navigation .nav li.active a,
@@ -296,10 +298,24 @@ span.glyphicon.glyphicon-filter.select2-selection__arrow{
     color: rgb(85, 85, 85);
 }
 
-#messages{
+.flash-messages{
     padding: 10px;
     width: 500px;
     position: absolute;
-    bottom: 50px;
-    right: 300px;
+    top: 40px;
+    left: 50%;
+    margin-left: -400px;
+    /*left: 0;
+    right: 0;
+    margin: auto;*/
+    z-index: 1001;
+}
+
+.alert{
+  text-align: center;
+}
+
+#app-header .tethys-app-header #header-buttons-wrapper .header-button #quest-settings-dropdown-menu li a{
+    color: rgb(26, 51, 76);
+    font-size: 13px;
 }

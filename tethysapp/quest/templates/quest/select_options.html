@@ -20,9 +20,7 @@
     var data = $('#options-form').serializeArray();
     $.get(url, data)
     .done(function(result){
-      if(result.success){
         $('#options-content').html(result.html);
-      }
     });
   });
 </script>

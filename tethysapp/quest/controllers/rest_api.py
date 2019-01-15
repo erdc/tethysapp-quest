@@ -93,7 +93,7 @@ def get_features(request):
             filters[filter_name] = value
 
     # try:
-    features = quest.api.get_features(uris=uris, filters=filters, as_geojson=True)
+    features = quest.api.search_catalog(uris=uris, filters=filters, as_geojson=True)
 
     # except Exception as e:
     #     features = {'error': str(e)}
@@ -109,7 +109,7 @@ def add_features(request):
 
     success = False
     try:
-        quest.api.add_features(collection, features)
+        quest.api.add_datasets(collection, features)
         success = True
     except:
         pass
