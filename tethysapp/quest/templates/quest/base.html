@@ -25,8 +25,8 @@
       <span class="glyphicon glyphicon-option-vertical"></span>
     </a>
     <ul id="quest-settings-dropdown-menu" class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
-      <li><span data-toggle="modal" data-target="#project-modal">Change Project...</span></li>
-      <li><span data-toggle="modal" data-target="#add-provider-modal">Add Data Provider...</span></li>
+      <li><a data-toggle="modal" data-target="#project-modal">Manage Project...</a></li>
+      <li><a data-toggle="modal" data-target="#add-provider-modal">Add Data Provider...</a></li>
     </ul>
   </div>
 {% endblock %}
@@ -49,10 +49,10 @@
         <div class="modal-content">
           <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="add-features-title">Change Project</h4>
+            <h4 class="modal-title" id="add-features-title">Manage Project</h4>
           </div>
           <div class="modal-body">
-            <form id="change-project-form" action="{% url 'quest:new_project_workflow' %}" method="post">
+            <form id="change-project-form" action="{% url 'quest:manage_project_workflow' %}" method="post">
               {% csrf_token %}
               <div id="change-project-select-div"{% if true %}style="display: none;"{% endif %}>
                 {% gizmo project_select_options %}
@@ -60,8 +60,14 @@
                 <hr>
               </div>
               {% gizmo new_project_name_text_options %}
+              <div id="delete-project">
+              <h4 class="modal-title" id="delete-project-title">Delete Project</h4>
+              <hr>
+              </div>
+              {% gizmo project_delete_select_options %}
             </form>
           </div>
+
           <div class="modal-footer">
             <button id='change-project-submit' type="submit" class="btn btn-primary" form="change-project-form" value="Submit">Submit</button>
           </div>

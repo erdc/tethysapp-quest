@@ -26,6 +26,9 @@ class Quest(TethysAppBase):
             UrlMap(name='home',
                            url='quest',
                            controller='quest.controllers.home'),
+            UrlMap(name='home_messages',
+                   url='quest/{messages}',
+                   controller='quest.controllers.home'),
 
             ####################################################
             #                                                  #
@@ -34,9 +37,9 @@ class Quest(TethysAppBase):
             ####################################################
 
             # -----------------  Workflows  ---------------------
-            UrlMap(name='new_project_workflow',
-                   url='quest/rest/workflows/new-project',
-                   controller='quest.controllers.quest_workflows.new_project_workflow'),
+            UrlMap(name='manage_project_workflow',
+                   url='quest/rest/workflows/manage-project',
+                   controller='quest.controllers.quest_workflows.manage_project_workflow'),
 
             UrlMap(name='add_dataprovider_workflow',
                    url='quest/rest/workflows/add-provider',

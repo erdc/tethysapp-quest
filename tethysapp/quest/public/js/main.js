@@ -402,7 +402,7 @@ function show_details(uri){
             $('#details-content').html(result.html);
         }
     })
-    .fail(function() {
+    .fail(function(result) {
         console.log( "error: " + result );
     })
     .always(function() {
@@ -482,27 +482,20 @@ function submit_options(event){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
-            if(result.collection){
-                update_details_table(result.collection_name, result.details_table_html);
-                update_datasets_by_feature(result.collection);
-            }
-            if(result.messages){
-                //display messages
-                $('#messages').append(result.messages);
-            }
-
-//            get_tasks();
-        }
-        else{
-            console.log(result);
+        if(result.collection){
+            update_details_table(result.collection_name, result.details_table_html);
+            update_datasets_by_feature(result.collection);
         }
     })
     .fail(function(result) {
         console.log( "error: " + result );
     })
-    .always(function() {
+    .always(function(result) {
         change_status_to_complete(dataset_id);
+        if(result.messages){
+            //display messages
+            $('.flash-messages').append(result.messages);
+        }
     });
 }
 
@@ -517,7 +510,7 @@ function update_datasets_by_feature(collection){
         datasets_by_feature[feature.name] = [];
     });
     collection.datasets.forEach(function(dataset){
-        datasets_by_feature[dataset.feature].push(dataset);
+        datasets_by_feature[dataset.catalog_entry].push(dataset);
     });
 }
 
@@ -627,7 +620,6 @@ function delete_collection(event){
 function get_dataset_context_menu_items(dataset){
 
     var dataset_id = dataset.name;
-
     var dataset_contextmenu_items = [
 
         {
@@ -1091,7 +1083,7 @@ $.ajaxSetup({
 function get_contextmenu_items(target){
     var dataset_id = target.parent().data('dataset_id');
     var download_status = target.parent().children('td').last().prev().text();
-    dataset = {name: dataset_id,
+    var dataset = {name: dataset_id,
                status: download_status,
                }
     return get_dataset_context_menu_items(dataset);
