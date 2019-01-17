@@ -59,7 +59,6 @@ function add_features_to_collection(e){
 
   $.get(url, data)
   .done(function(result) {
-      if(result.success){
           QUEST_MAP.deactivate_search_layer_interaction();
           update_datasets_by_feature(result.collection);
           QUEST_MAP.update_collection_layer(result.collection);
@@ -73,11 +72,6 @@ function add_features_to_collection(e){
             // update details table
             update_details_table(result.collection.name, result.details_table_html);
           }
-      }
-      else{
-        console.log('error');
-        console.log(result);
-      }
 
   })
   .fail(function() {
@@ -201,14 +195,9 @@ function delete_dataset(dataset_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
             reset_plot(dataset_id);
-        }
-        else{
-            console.log(result);
-        }
     })
     .fail(function() {
         console.log( "error" );
@@ -226,7 +215,6 @@ function delete_feature(feature_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             // delete feature on map
             var layer = get_layer_by_name(result.collection.name);
             layer.getSource().removeFeature(layer.getSource().getFeatureById(feature_id));
@@ -234,7 +222,6 @@ function delete_feature(feature_id){
             // update details table
             update_details_table(result.collection.name, result.details_table_html);
             update_datasets_by_feature(result.collection);
-        }
     })
     .fail(function() {
         console.log( "error" );
@@ -252,7 +239,6 @@ function add_data(feature_id){
 
     $.post(url, data)
     .done(function(result) {
-        if(result.success){
             if(result.html){
                 $('#options-content').html(result.html);
                 $('#options-modal').modal('show');
@@ -262,8 +248,6 @@ function add_data(feature_id){
                 update_details_table(result.collection_name, result.details_table_html);
                 update_datasets_by_feature(result.collection);
             }
-        }
-
     })
     .fail(function() {
         console.log( "error" );
@@ -333,7 +317,7 @@ function populate_options_form_for_dataset(dataset, button_type){
 
     $.get(url, data)
     .done(function(result) {
-        if(result.success){
+
             var options = function(){
                 if(result.html){
                     $('#options-content').html(result.html);
@@ -380,11 +364,10 @@ function populate_options_form_for_dataset(dataset, button_type){
 
              func[button_type]();
 
-        }
 
     })
-    .fail(function() {
-        console.log( "error" );
+    .fail(function(result) {
+        console.log( "error" + result.responseText );
     })
     .always(function() {
 
@@ -397,10 +380,8 @@ function show_details(uri){
 
     $.get(url, data)
     .done(function(result) {
-        if(result.success){
             show_details_layout();
             $('#details-content').html(result.html);
-        }
     })
     .fail(function(result) {
         console.log( "error: " + result );
@@ -488,7 +469,7 @@ function submit_options(event){
         }
     })
     .fail(function(result) {
-        console.log( "error: " + result );
+        console.log("submit_options failed due to the following Error: " + result.responseText);
     })
     .always(function(result) {
         change_status_to_complete(dataset_id);
@@ -516,7 +497,6 @@ function update_datasets_by_feature(collection){
 
 function update_collection_html(result){
   remove_collection_placeholder(result.collection.display_name);
-  if(result.success){
       $('#table-placeholder').css('display', 'none');
       $('#collections-list').append(result.collection_html);
       // update collection select
@@ -530,7 +510,6 @@ function update_collection_html(result){
       $('#collection-details-nav').find('ul').append(result.details_table_tab_html);
       $('#collection-details-content').append(result.details_table_html);
       update_details_table(result.collection.name);
-  }
 }
 
 function add_collection_placeholder(collection_name){
@@ -577,12 +556,10 @@ function update_collection(collection){
   add_collection_placeholder(collection.display_name);
   $.get(get_collection_data_url, {'collection': collection.name})
     .done(function(result) {
-      if(result.success){
         update_datasets_by_feature(result.collection);
         QUEST_MAP.add_collection_layer(result.collection);
         update_collection_html(result.html);
         // collections.push(result.collection);
-      }
     })
     .fail(function() {
 
@@ -601,7 +578,6 @@ function delete_collection(event){
 
     $.get(url)
     .done(function(result){
-        if(result.success){
             $(collection_elements).remove();
             update_details_table(collection_name);
             // if there are no more collections display the placeholder div
@@ -612,7 +588,6 @@ function delete_collection(event){
             // update collection select
             var collection_select = $('#collection')
             collection_select.find('option[value="' + collection_name + '"]').remove();
-        }
     });
 }
 
@@ -724,14 +699,7 @@ $(function() { //wait for page to load
   //load collections
   $.get(get_collections_url)
     .done(function(result) {
-      if(result.success){
         result.collections.forEach(update_collection);
-      }
-      else{
-        console.log('error');
-        console.log(result);
-      }
-
     })
     .fail(function() {
       console.log( "error" );

@@ -10,7 +10,6 @@ import os
 # 3rd-party imports
 import quest
 from django.contrib import messages
-from quest.util import NamedString
 import plotly.graph_objs as go
 import param
 
@@ -61,12 +60,10 @@ def activate_user_settings(func):
 @activate_user_settings
 def get_raster_image(request):
     dataset = request.GET['dataset']
-    success = False
     try:
         metadata = quest.api.get_metadata(dataset)[dataset]
-        success = True
-    except:
-        pass
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
     from django.utils.encoding import smart_str
 
@@ -229,6 +226,7 @@ def add_dataprovider_workflow(request):
     return redirect('quest:home')
 
 
+
 @login_required()
 @activate_user_settings
 def add_features_workflow(request):
@@ -340,13 +338,11 @@ def get_options_html(request, uri, dataset_id, title, options, set_options, opti
 @activate_user_settings
 def get_download_options_workflow(request):
     dataset_id = request.GET['dataset']
-    success = False
     try:
         options = quest.api.get_download_options(dataset_id, fmt='param')
         has_options = len(quest.api.get_download_options(dataset_id)[dataset_id]) > 0
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     options_metadata_name = 'options'
     set_options = {}
@@ -368,7 +364,6 @@ def get_download_options_workflow(request):
 
     result = {
         'has_options': has_options,
-        'success': success,
         'html': html,
     }
 
@@ -390,16 +385,14 @@ def get_publisher_list_workflow(request):
     submit_controller_name = 'authenticate_options_workflow'
     title = 'Select Publisher'
 
-    success = False
     try:
         publishers = quest.api.get_publishers(expand=True)
-        publishers = [NamedString(k, v['display_name']) for k, v in publishers.items()]
-        publishers.insert(0, 'select publisher')
+        publishers = {k: v['display_name'] for k, v in publishers.items()}
         options = {'filters': get_select_object(publishers)}
 
-        success = True
     except Exception as e:
-        raise e
+        print(e)
+        return HttpResponseBadRequest(str(e))
 
     html = get_select_options_html(
         request,
@@ -414,7 +407,6 @@ def get_publisher_list_workflow(request):
 
     result = {
         'has_options': True,
-        'success': success,
         'html': html,
     }
 
@@ -470,12 +462,10 @@ def authenticate_provider_workflow(request):
 def get_publish_options_workflow(request):
     dataset_id = request.GET.get('dataset_id')
     publisher = request.GET.get('uri')
-    success = False
     try:
         options = quest.api.get_publish_options(publisher, fmt='param')
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     html = get_options_html(request,
                             uri=publisher,
@@ -487,7 +477,7 @@ def get_publish_options_workflow(request):
                             submit_controller_name='publish_dataset_workflow',
                             submit_btn_text='Publish')
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
     return JsonResponse(result)
@@ -503,14 +493,12 @@ def get_filter_list_workflow(request):
     # submit_btn_text = 'Apply Filter'
     title = 'Apply Filter'
 
-    success = False
     try:
         filters = quest.api.get_tools(filters={'dataset': dataset_id})
         filters.insert(0, 'select filter')
         # options = {f: quest.api.apply_filter_options(f, fmt='param') for f in filters}
         options = {'filters': get_select_object(filters)}
 
-        success = True
     except Exception as e:
         raise e
 
@@ -528,7 +516,6 @@ def get_filter_list_workflow(request):
 
     result = {
         'has_options': True,
-        'success': success,
         'html': html,
     }
 
@@ -548,13 +535,11 @@ def get_filter_options_workflow(request):
 
     get_options_function = quest.api.get_tool_options
 
-    success = False
     try:
         options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     set_options = {'dataset': dataset_id}
     # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
@@ -573,7 +558,7 @@ def get_filter_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -590,15 +575,13 @@ def get_visualize_options_workflow(request):
     submit_controller_name = 'visualize_dataset_workflow'
     submit_btn_text = 'Visualize'
 
-    success = False
     try:
         options = get_options_function(dataset_id)
         if dataset_id in options:
             options = options[dataset_id]
 
-        success = True
     except Exception as e:
-        raise e
+        return HttpResponseBadRequest(str(e))
 
     set_options = {}
     # metadata = quest.api.get_metadata(dataset_id)[dataset_id]
@@ -615,7 +598,7 @@ def get_visualize_options_workflow(request):
                             submit_controller_name=submit_controller_name,
                             submit_btn_text=submit_btn_text)
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -627,15 +610,12 @@ def get_visualize_options_workflow(request):
 def add_data_workflow(request):
     feature = request.POST['feature']
 
-    success = False
     try:
         options = quest.api.download_options(feature, fmt='param')
         options = options[feature]
 
-        success = True
     except Exception as e:
-        raise e
-
+        return HttpResponseBadRequest(str(e))
     if 'properties' not in options:
         return retrieve_dataset(request, feature)
 
@@ -649,7 +629,7 @@ def add_data_workflow(request):
                             submit_controller_name='retrieve_dataset_workflow',
                             submit_btn_text='Retrieve')
 
-    result = {'success': success,
+    result = {
               'html': html,
               }
 
@@ -719,14 +699,18 @@ def publish_dataset_workflow(request):
 def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
-    filter_options = [p['name'] for p in quest.api.get_tool_options(filter)['properties']]
-    options = request.POST.copy()
+    options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
-    new_options = dict()
-    for k, v in options.items():
-        if k in filter_options and v:
-            new_options[k] = v
-    options = new_options
+    form = widgets_form(options, {})(request.POST)
+    form.is_valid()
+    options = form.cleaned_data
+
+    # import  pdb; pdb.set_trace()
+    # new_options = dict()
+    # for k, v in options.items():
+    #     if k in filter_options and v:
+    #         new_options[k] = v
+    # options = new_options
     try:
         results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]
@@ -741,12 +725,12 @@ def apply_filter_workflow(request):
             'alert_style': 'success',
             'alert_message': 'The dataset {} was successfully created by filter {}.'.format(dataset_id, filter)
         }
-    except:
+    except Exception as e:
         alert_context = {
             'alert_style': 'danger',
             'alert_message': 'The filter has an Invalid input'
-
         }
+        raise e
     finally:
 
         alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
@@ -961,12 +945,10 @@ def delete_feature_workflow(request):
 @activate_user_settings
 def export_dataset(request):
     dataset = request.GET['dataset']
-    success = False
     try:
         metadata = quest.api.get_metadata(dataset)[dataset]
-        success = True
-    except:
-        pass
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
     from django.utils.encoding import smart_str
 
