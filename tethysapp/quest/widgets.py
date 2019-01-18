@@ -81,7 +81,7 @@ widget_map = {
         lambda p, initial: forms.ChoiceField(
             initial=initial or p.default,
             widget=Select2Widget,
-            choices=p.get_range().items(),
+            choices=[(v, k) for k, v in p.get_range().items()],
         ),
     param_util.CatalogEntrySelector:
         lambda p, initial: forms.MultipleChoiceField(

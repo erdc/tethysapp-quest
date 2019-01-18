@@ -10,7 +10,6 @@ from tethys_gizmos.gizmo_options import TableView
 
 from .app import Quest as app
 
-
 ISO_DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 
 # global variable to cache the services metadata query

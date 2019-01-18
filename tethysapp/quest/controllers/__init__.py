@@ -60,15 +60,18 @@ def home(request):
     esri_layers = [{'ESRI': {'layer': l}} for l in esri_layer_names]
     basemaps = [
         'Stamen',
-        {'Stamen': {'layer': 'toner', 'label': 'Black and White'}},
+        {'Stamen': {'layer': 'toner', 'control_label': 'Black and White'}},
         {'Stamen': {'layer': 'watercolor'}},
         'OpenStreetMap',
         'CartoDB',
         {'CartoDB': {'style': 'dark'}},
-        {'CartoDB': {'style': 'light', 'labels': False, 'label': 'CartoDB-light-no-labels'}},
+        {'CartoDB': {'style': 'light', 'labels': False, 'control_label': 'CartoDB-light-no-labels'}},
         'ESRI',
+        {'XYZ': {'url': 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', 'control_label': 'Wikimedia'}}
     ]
     basemaps.extend(esri_layers)
+
+    MapView.ol_version = '5.3.0'
 
     map_view_options = MapView(height='100%',
                                width='100%',

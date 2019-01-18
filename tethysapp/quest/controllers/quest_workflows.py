@@ -9,7 +9,6 @@ import os
 
 # 3rd-party imports
 import quest
-from quest.util import NamedString
 import plotly.graph_objs as go
 import param
 
@@ -597,7 +596,7 @@ def retrieve_dataset(request, uri, options=None):
     result = {}
 
     try:
-        dataset_id = quest.api.stage_for_download(uri, options=options)
+        dataset_id = quest.api.stage_for_download(uri, options=options)[0]
         quest.api.download_datasets(dataset_id, raise_on_error=False)
         collection = quest.api.get_datasets(expand=True)[dataset_id]['collection']
         result['details_table_html'] = get_details_table(request, collection)
@@ -650,14 +649,10 @@ def publish_dataset_workflow(request):
 def apply_filter_workflow(request):
     result = {'success': False}
     filter = request.POST.get('uri')
-    filter_options = [p['name'] for p in quest.api.get_tool_options(filter)['properties']]
-    options = request.POST.copy()
-
-    new_options = dict()
-    for k, v in options.items():
-        if k in filter_options and v:
-            new_options[k] = v
-    options = new_options
+    filter_options = {filter: quest.api.get_tool_options(filter, fmt='param')}
+    form = widgets_form(filter_options, {})(request.POST)
+    if form.is_valid():
+        options = form.cleaned_data
     try:
         results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]
@@ -666,9 +661,9 @@ def apply_filter_workflow(request):
         result['collection'] = utilities.get_collection_with_metadata(collection)
         result['details_table_html'] = get_details_table(request, collection)
         result['success'] = True
-    # except Exception as e:
-    #     result['success'] = False
-    #     result['error_message'] = str(e)
+    except Exception as e:
+        result['success'] = False
+        result['error_message'] = str(e)
     finally:
         pass
 
