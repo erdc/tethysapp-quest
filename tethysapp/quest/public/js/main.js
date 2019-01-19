@@ -1128,5 +1128,9 @@ $.fn.contextMenu = function (settings) {
 
         return position;
     }
-
 };
+
+//Manage Project
+//$('#dtdtProject').mdbRowEditor();
+//$('.dataTables_length').addClass('bs-select');
+
