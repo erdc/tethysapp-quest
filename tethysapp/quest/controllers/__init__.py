@@ -35,7 +35,6 @@ def home(request):
     """
     Controller for the app home page.
     """
-    messages = request.session.pop('messages', None)
     # Define view options
     view_options = MVView(
         projection='EPSG:4326',
@@ -46,10 +45,7 @@ def home(request):
     )
 
     esri_layer_names = [
-        # 'ESRI_Imagery_World_2D',
-        # 'ESRI_StreetMap_World_2D',
         'NatGeo_World_Map',
-        # 'NGS_Topo_US_2D',
         'Ocean_Basemap',
         'USA_Topo_Maps',
         'World_Imagery',
@@ -62,15 +58,18 @@ def home(request):
     esri_layers = [{'ESRI': {'layer': l}} for l in esri_layer_names]
     basemaps = [
         'Stamen',
-        {'Stamen': {'layer': 'toner', 'label': 'Black and White'}},
+        {'Stamen': {'layer': 'toner', 'control_label': 'Black and White'}},
         {'Stamen': {'layer': 'watercolor'}},
         'OpenStreetMap',
         'CartoDB',
         {'CartoDB': {'style': 'dark'}},
-        {'CartoDB': {'style': 'light', 'labels': False, 'label': 'CartoDB-light-no-labels'}},
+        {'CartoDB': {'style': 'light', 'labels': False, 'control_label': 'CartoDB-light-no-labels'}},
         'ESRI',
+        {'XYZ': {'url': 'https://maps.wikimedia.org/osm-intl/{z}/{x}/{y}.png', 'control_label': 'Wikimedia'}}
     ]
     basemaps.extend(esri_layers)
+
+    MapView.ol_version = '5.3.0'
 
     map_view_options = MapView(height='100%',
                                width='100%',
@@ -140,7 +139,6 @@ def home(request):
                'project_delete_select_options': project_delete_select_options,
                'new_project_name_text_options': new_project_name_text_options,
                'active_project': quest.api.get_active_project(),
-               'messages': messages
                }
 
     return render(request, 'quest/home.html', context)

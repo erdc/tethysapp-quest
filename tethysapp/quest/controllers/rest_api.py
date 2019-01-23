@@ -83,9 +83,10 @@ def delete_collection(request, name):
 @activate_user_settings
 def get_features(request):
 
+    collection = request.GET.get('collection')
     uris = request.GET.get('uris')
     services = request.GET.get('services')
-    uris = utilities.listify(uris, services)
+    uris = utilities.listify(uris, services, collection)
     filters = {}
     for filter_name in ['geom_type', 'parameter', 'bbox']:
         value = request.GET.get(filter_name)
@@ -94,7 +95,9 @@ def get_features(request):
 
     # try:
     features = quest.api.search_catalog(uris=uris, filters=filters, as_geojson=True)
-
+    if collection:
+        for feature in features['features']:
+            feature['properties']['collection'] = collection
     # except Exception as e:
     #     features = {'error': str(e)}
 

@@ -1,6 +1,6 @@
 {% load staticfiles %}
 
-{% if status == 'downloaded' or status == 'filter applied' %}
+{% if status == 'downloaded' or status == 'tool applied' %}
   <span class="actions-btn">
     <button type="button" class="btn btn-primary btn-sm dataset-action dataset-action-btn-{{ dataset }}" id="visualize-dataset-options-btn-{{ dataset }}" data-action-type="visualize" data-dataset-id="{{ dataset }}">
       View

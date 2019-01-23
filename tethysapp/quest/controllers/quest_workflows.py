@@ -9,11 +9,11 @@ import os
 
 # 3rd-party imports
 import quest
-from django.contrib import messages
 import plotly.graph_objs as go
 import param
 
 # django imports
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.core.urlresolvers import reverse
@@ -29,6 +29,24 @@ from tethys_sdk.gizmos import (
 from ..app import Quest as app
 from ..widgets import widgets_form
 from .. import utilities
+
+from django.contrib.messages.storage.base import Message
+
+def to_dict(self):
+    return {'message': self.message, 'tags': self.tags}
+
+Message.to_dict = to_dict
+
+
+def render_to_json_response(request, context, **kwargs):
+    msgs = messages.get_messages(request)
+    msgs = [m.to_dict() for m in msgs]
+
+    messages_html = render(request, 'quest/flash_messages.html', {}).content.decode('utf-8')
+
+    context['messages'] = messages_html
+
+    return JsonResponse(context, json_dumps_params={'default': utilities.pre_jsonify})
 
 
 
@@ -94,11 +112,11 @@ def get_collections(request):
 
     collections = list(quest.api.get_collections(expand=True).values())
 
-    result = {'success': True,
-              'collections': collections,
-              }
+    result = {
+        'collections': collections,
+    }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -110,12 +128,12 @@ def get_collection_data(request):
 
     html = get_collection_html(request, collection)
 
-    result = {'success': True,
-              'collection': collection,
-              'html': html,
-              }
+    result = {
+        'collection': collection,
+        'html': html,
+    }
 
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 def get_collection_html(request, collection):
@@ -125,12 +143,12 @@ def get_collection_html(request, collection):
     details_table_html = render(request, 'quest/details_table.html', context).content.decode('utf-8')
     details_table_tab_html = render(request, 'quest/details_table_tab.html', context).content.decode('utf-8')
 
-    result = {'success': True,
-              'collection_html': collection_html,
-              'details_table_html': details_table_html,
-              'details_table_tab_html': details_table_tab_html,
-              'collection': collection,
-              }
+    result = {
+        'collection_html': collection_html,
+        'details_table_html': details_table_html,
+        'details_table_tab_html': details_table_tab_html,
+        'collection': collection,
+    }
     return result
 
 
@@ -143,31 +161,13 @@ def new_collection_workflow(request):
                                                    collection_description)
     try:
         result = get_collection_html(request, collection)
-        result['success'] = True
-        alert_context = {
-            'alert_style': 'success',
-            'alert_message': 'The collection was successfully created.'
-        }
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-    # Added code here to alert user if collection was not created successfully
     except ValueError as e:
-        print(e)
-        result['success'] = False
         result['error_message'] = str(e)
-        alert_context = {
-            'alert_style': 'danger',
-            'alert_message': 'The collection was NOT successfully created'
-
-        }
-
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-        result['messages'] = alert_html
+        messages.error(request, 'The collection was NOT successfully created')
     finally:
         pass
 
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
-
-    # return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -181,30 +181,16 @@ def manage_project_workflow(request):
             try:
                 project = quest.api.new_project(project_name, description=project_description)
                 result = project
-                result['success'] = True
-                alert_context = {
-                    'alert_style': 'success',
-                    'alert_message': 'The project was successfully created.'
-                }
-                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-            # Added code here to alert user if project was not created successfully
+                messages.success(request, 'The "{}" project is now active.'.format(project_name))
             except ValueError as e:
-                result['success'] = False
                 result['error_message'] = str(e)
-                alert_context = {
-                    'alert_style': 'danger',
-                    'alert_message': 'The project was NOT successfully created: ' + str(result['error_message'])
-
-                }
-
-                alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-                result['messages'] = alert_html
-                request.session['messages'] = [alert_context]
+                messages.error(request, 'The project was NOT successfully created: ' + result['error_message'])
             finally:
                 pass
         elif request.POST.get('project'):
             project_name = request.POST.get('project')
             quest.api.set_active_project(project_name)
+            messages.success(request, 'The "{}" project is now active.'.format(project_name))
 
         elif request.POST.get('delete_project'):
             project_name = request.POST.get('delete_project')
@@ -248,7 +234,6 @@ def add_features_workflow(request):
         collection_name = new_collection['name']
         new_collection_added = True
 
-    success = False
     result = {}
 
     try:
@@ -258,25 +243,9 @@ def add_features_workflow(request):
             quest.api.stage_for_download(feature, options)
 
         collection = utilities.get_collection_with_metadata(collection_name)
-
-        success = True
-        result['success'] = False
-        alert_context = {
-            'alert_style': 'success',
-            'alert_message': 'The feature(s) was successfully created.'
-        }
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
     except ValueError as e:
-        result['success'] = False
         result['error_message'] = str(e)
-        alert_context = {
-            'alert_style': 'danger',
-            'alert_message': 'The feature(s) was NOT successfully created'
-
-        }
-
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-        result['messages'] = alert_html
+        messages.error(request, 'The feature(s) was NOT successfully created')
     # except Exception as e:
     #     print('Ignoring Exception: {0}'.format(str(e)))
     #     pass
@@ -295,9 +264,7 @@ def add_features_workflow(request):
             render(request, 'quest/details_table_tab.html',
                    result).content.decode('utf-8')
 
-    result['success'] = success
-
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 def get_select_options_html(request, uri, dataset_id, title, options, set_options, options_type, submit_controller_name):
@@ -367,7 +334,7 @@ def get_download_options_workflow(request):
         'html': html,
     }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 def get_select_object(options):
@@ -410,7 +377,7 @@ def get_publisher_list_workflow(request):
         'html': html,
     }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -437,11 +404,11 @@ def authenticate_options_workflow(request):
 
     html = render(request, 'quest/authenticate.html', context).content.decode('utf-8')
 
-    result = {'success': True,
-              'html': html,
-              }
+    result = {
+        'html': html,
+    }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -478,9 +445,9 @@ def get_publish_options_workflow(request):
                             submit_btn_text='Publish')
 
     result = {
-              'html': html,
-              }
-    return JsonResponse(result)
+        'html': html,
+    }
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -519,7 +486,7 @@ def get_filter_list_workflow(request):
         'html': html,
     }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -559,10 +526,10 @@ def get_filter_options_workflow(request):
                             submit_btn_text=submit_btn_text)
 
     result = {
-              'html': html,
-              }
+        'html': html,
+    }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -599,10 +566,10 @@ def get_visualize_options_workflow(request):
                             submit_btn_text=submit_btn_text)
 
     result = {
-              'html': html,
-              }
+        'html': html,
+    }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -630,11 +597,11 @@ def add_data_workflow(request):
                             submit_btn_text='Retrieve')
 
     result = {
-              'html': html,
-              }
+        'html': html,
+    }
 
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 def get_details_table(request, collection):
@@ -658,7 +625,7 @@ def retrieve_dataset(request, uri, options=None):
     except Exception as e:
         return HttpResponseBadRequest(str(e))
 
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -685,58 +652,33 @@ def publish_dataset_workflow(request):
 
     quest.api.publish(publisher, **options)
 
-    alert_context = {
-        'alert_style': 'success',
-        'alert_message': 'The dataset {} was successfully published to {}.'.format(options['dataset'], publisher)
-    }
-    alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-
-    return JsonResponse({'success': True, 'messages': alert_html}, json_dumps_params={'default': utilities.pre_jsonify})
-
+    messages.success(request, 'The dataset {} was successfully published to {}.'.format(options['dataset'], publisher))
+    return render_to_json_response(request, {})
 
 @login_required()
 @activate_user_settings
 def apply_filter_workflow(request):
-    result = {'success': False}
+    result = {}
     filter = request.POST.get('uri')
     options = {filter: quest.api.get_tool_options(filter, fmt='param')}
 
     form = widgets_form(options, {})(request.POST)
-    form.is_valid()
+    valid = form.is_valid()
     options = form.cleaned_data
 
-    # import  pdb; pdb.set_trace()
-    # new_options = dict()
-    # for k, v in options.items():
-    #     if k in filter_options and v:
-    #         new_options[k] = v
-    # options = new_options
     try:
         results = quest.api.run_tool(filter, options=options)
         dataset_id = results['datasets'][0]
         collection = quest.api.get_metadata(dataset_id)[dataset_id]['collection']
 
-
         result['collection_name'] = collection
         result['collection'] = utilities.get_collection_with_metadata(collection)
         result['details_table_html'] = get_details_table(request, collection)
-        result['success'] = True
-        alert_context = {
-            'alert_style': 'success',
-            'alert_message': 'The dataset {} was successfully created by filter {}.'.format(dataset_id, filter)
-        }
+        # messages.success(request, 'The dataset {} was successfully created by filter {}.'.format(dataset_id, filter))
     except Exception as e:
-        alert_context = {
-            'alert_style': 'danger',
-            'alert_message': 'The filter has an Invalid input'
-        }
-        raise e
-    finally:
+        messages.error(request, 'The filter has an Invalid input')
 
-        alert_html = render(request, 'quest/alert.html', alert_context).content.decode('utf-8')
-        result['messages'] = alert_html
-
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 @login_required()
@@ -801,16 +743,15 @@ def visualize_dataset_workflow(request):
 
         html = render(request, 'quest/visualize.html', context).content.decode('utf-8')
 
-        result = {'success': True,
-                  'html': html,
-
-                  }
+        result = {
+            'html': html,
+        }
 
     else:
         try:
             metadata = quest.api.get_metadata(dataset)[dataset]
             file_path = metadata['file_path']
-            result = {'success': True}
+            result = {}
         except Exception as e:
 
             result['error'] = e
@@ -830,7 +771,7 @@ def visualize_dataset_workflow(request):
 
     result['datatype'] = datatype
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 def get_metadata_table_html(request, title, metadata, boarders=False):
@@ -888,17 +829,17 @@ def show_metadata_workflow(request):
 
     html = get_metadata_table_html(request, title, metadata)
 
-    result = {'success': True,
-              'html': html,
-              }
+    result = {
+        'html': html,
+    }
 
-    return JsonResponse(result)
+    return render_to_json_response(request, result)
 
 
 @login_required()
 @activate_user_settings
 def delete_dataset_workflow(request):
-    result = {'success': False}
+    result = {}
     dataset = request.POST['dataset']
     try:
         # get the name of the collection before deleting dataset
@@ -910,35 +851,35 @@ def delete_dataset_workflow(request):
 
         # get the updated collection details after the dataset has been deleted
         result['details_table_html'] = get_details_table(request, collection)
-        result['success'] = True
+        # messages.success(request, 'The dataset {} was deleted.'.format(dataset))
     except Exception as e:
-        result['success'] = False
         result['error'] = str(e)
+        messages.error(request, 'There was an error while deleting dataset {}.'.format(dataset))
 
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 @login_required()
 @activate_user_settings
 def delete_feature_workflow(request):
-    result = {'success': False}
+    result = {}
     feature = request.POST['feature']
     try:
         # get the name of the collection before deleting feature
-        collection = quest.api.get_metadata(feature)[feature]['collection']
+        datasets = quest.api.get_datasets(filters={'catalog_entry': feature})
+        collection = quest.api.get_metadata(datasets[0])[datasets[0]]['collection']
 
-        quest.api.delete(feature)
+        quest.api.delete(datasets)
 
         result['collection'] = utilities.get_collection_with_metadata(collection)
 
         # get the updated collection details after the feature has been deleted
         result['details_table_html'] = get_details_table(request, collection)
-        result['success'] = True
     except Exception as e:
-        result['success'] = False
         result['error'] = str(e)
+        messages.error(request, 'There was an error while deleting the feature {}.'.format(feature))
 
-    return JsonResponse(result, json_dumps_params={'default': utilities.pre_jsonify})
+    return render_to_json_response(request, result)
 
 
 @login_required()

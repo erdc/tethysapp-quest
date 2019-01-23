@@ -17,6 +17,7 @@ var MAP_CONTEXT_MENU = (function() {
     // private functions
     var get_menu_items,
         update_menu,
+        hide_context_menu,
         bind_event_listeners;
 
 
@@ -24,9 +25,10 @@ var MAP_CONTEXT_MENU = (function() {
    *                    PRIVATE FUNCTION DECLARATIONS
    *************************************************************************/
     // define private functions here.
-    get_menu_items = function(feature){
+    get_menu_items = function(feature, layer){
         var feature_id = feature.getId();
-        if(feature_id.startsWith('svc')){
+        if(QUEST_MAP.is_search_active()){
+          if(layer.get('name') == 'search-layer'){
             return [{
                 text: 'Add To Collection',
                 callback: function(){
@@ -36,7 +38,8 @@ var MAP_CONTEXT_MENU = (function() {
                     $('#add-to-collection-button').click();
                 }
             }]
-        }else if(feature_id.startsWith('f')){
+          }
+        }else{
             var datasets = datasets_by_feature[feature_id];
             var location_contextmenu_items = [
                 {
@@ -82,17 +85,29 @@ var MAP_CONTEXT_MENU = (function() {
     }
 
     update_menu = function(evt){
-      var feature = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
-        return feature;
+      var feature_data = map.forEachFeatureAtPixel(evt.pixel, function(feature, layer){
+        return [feature, layer];
       });
 
-      if (feature) { // open only on features
-        map_context_menu.enable();
-        map_context_menu.clear();
-        map_context_menu.extend(get_menu_items(feature));
-      } else {
-        map_context_menu.disable();
+      hide_context_menu();
+
+      if (feature_data) { // open only on features
+        var feature = feature_data[0];
+        var layer = feature_data[1];
+        var menu_items = get_menu_items(feature, layer);
+
+        if(menu_items){
+            map_context_menu.enable();
+            map_context_menu.clear();
+            map_context_menu.extend(menu_items);
+        }
       }
+    }
+
+    hide_context_menu = function(){
+      map_context_menu.close();
+//      map_context_menu.clear();
+      map_context_menu.disable();
     }
 
     bind_event_listeners = function(){
@@ -103,6 +118,10 @@ var MAP_CONTEXT_MENU = (function() {
         // prevent standard browser context menu from displaying
         map.getViewport().addEventListener('contextmenu', function (evt) {
             evt.preventDefault();
+        });
+
+        map.getViewport().addEventListener('click', function (evt) {
+            hide_context_menu();
         });
     }
 

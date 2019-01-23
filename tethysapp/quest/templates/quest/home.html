@@ -19,11 +19,7 @@
 {% endblock %}
 
 {% block flash %}
-  <div class="flash-messages nav-justified">
-    {% for message in messages %}
-      {% include 'quest/alert.html' with alert_style=message.alert_style alert_message=message.alert_message %}
-    {% endfor %}
-  </div>
+  {% include 'quest/flash_messages.html' %}
 {% endblock %}
 
 {% block app_content %}

@@ -33,6 +33,7 @@ var QUEST_MAP = (function() {
         deactivate_collection_interaction,
         activate_search_layer_interaction,
         deactivate_search_layer_interaction,
+        is_search_active,
         toggle_feature_selection_by_id,
         select_feature_if_not_selected,
         get_selected_features,
@@ -107,7 +108,7 @@ var QUEST_MAP = (function() {
     }
 
     add_collection_layer = function(collection){
-        var params = {'uris': collection.name};
+        var params = {'collection': collection.name};
         var source_url = get_source_url(params);
         load_map_layer(collection.name, source_url, collection.metadata.color);
     }
@@ -197,6 +198,13 @@ var QUEST_MAP = (function() {
     //    search_select_interaction.getFeatures().clear();
     }
 
+    is_search_active = function(){
+        if(active_interaction === search_select_interaction)
+            return true;
+        else
+            return false;
+    }
+
     toggle_feature_selection_by_id = function(feature_id, collection_name, show)
     {
       var collection_vector_layer = get_layer_by_name(collection_name);
@@ -239,6 +247,7 @@ var QUEST_MAP = (function() {
 
     select_table_element_for_feature = function(event) {
       var feature = event.element;
+      $('#collection-details-nav .' + feature.get('collection') + '-collection a').click();
       $("tbody[data-collection_id='" + feature.get('collection')  + "'] tr[data-feature_id='" + feature.get('name') + "']")
       .addClass('selected');
     }
@@ -382,9 +391,11 @@ var QUEST_MAP = (function() {
       deactivate_collection_interaction: deactivate_collection_interaction,
       activate_search_layer_interaction: activate_search_layer_interaction,
       deactivate_search_layer_interaction: deactivate_search_layer_interaction,
+      is_search_active: is_search_active,
       select_feature: select_feature_if_not_selected,
       toggle_feature_selection_by_id: toggle_feature_selection_by_id,
       set_layer_visibility: set_layer_visibility,
+      get_layer_by_name: get_layer_by_name,
     };
 
   // Initialization: jQuery function that gets called when

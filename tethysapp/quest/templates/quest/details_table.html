@@ -16,7 +16,7 @@
       <tbody data-collection_id="{{ collection.name }}">
         {% for row in rows %}
           {% with auxiliary_data=row.0 row=row|slice:"1:" %}
-          <tr data-feature_id="{{ auxiliary_data.feature }}" data-dataset_id="{{ auxiliary_data.name }}">
+          <tr data-feature_id="{{ auxiliary_data.catalog_entry }}" data-dataset_id="{{ auxiliary_data.name }}">
             {% for entry in row %}
             <td>{{ entry }}</td>
             {% endfor %}

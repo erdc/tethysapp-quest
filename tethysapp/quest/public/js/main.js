@@ -59,26 +59,27 @@ function add_features_to_collection(e){
 
   $.get(url, data)
   .done(function(result) {
-          QUEST_MAP.deactivate_search_layer_interaction();
-          update_datasets_by_feature(result.collection);
-          QUEST_MAP.update_collection_layer(result.collection);
+      QUEST_MAP.deactivate_search_layer_interaction();
+      update_datasets_by_feature(result.collection);
+      QUEST_MAP.update_collection_layer(result.collection);
 
-          if(result.collection_html)
-          {
-            //add new colleciton and assicated info
-            update_collection_html(result);
-          }
-          else {
-            // update details table
-            update_details_table(result.collection.name, result.details_table_html);
-          }
+      if(result.collection_html)
+      {
+        //add new colleciton and assicated info
+        update_collection_html(result);
+      }
+      else {
+        // update details table
+        update_details_table(result.collection.name, result.details_table_html);
+      }
 
   })
   .fail(function() {
       console.log( "error" );
   })
-  .always(function() {
+  .always(function(result) {
     collection_status.hide();
+    update_messages(result.messages);
   });
 };
 
@@ -192,7 +193,7 @@ function delete_dataset(dataset_id){
     var csrftoken = getCookie('csrftoken');
     var data = {dataset: dataset_id,
                 csrfmiddlewaretoken: csrftoken};
-
+    change_status_to_loading(dataset_id);
     $.post(url, data)
     .done(function(result) {
             update_details_table(result.collection.name, result.details_table_html);
@@ -201,9 +202,10 @@ function delete_dataset(dataset_id){
     })
     .fail(function() {
         console.log( "error" );
+        change_status_from_loading(dataset_id);
     })
-    .always(function() {
-
+    .always(function(result) {
+        update_messages(result.messages);
     });
 }
 
@@ -216,7 +218,7 @@ function delete_feature(feature_id){
     $.post(url, data)
     .done(function(result) {
             // delete feature on map
-            var layer = get_layer_by_name(result.collection.name);
+            var layer = QUEST_MAP.get_layer_by_name(result.collection.name);
             layer.getSource().removeFeature(layer.getSource().getFeatureById(feature_id));
 
             // update details table
@@ -226,8 +228,8 @@ function delete_feature(feature_id){
     .fail(function() {
         console.log( "error" );
     })
-    .always(function() {
-
+    .always(function(result) {
+        update_messages(result.messages);
     });
 }
 
@@ -252,8 +254,8 @@ function add_data(feature_id){
     .fail(function() {
         console.log( "error" );
     })
-    .always(function() {
-
+    .always(function(result) {
+        update_messages(result.messages);
     });
 }
 
@@ -369,8 +371,8 @@ function populate_options_form_for_dataset(dataset, button_type){
     .fail(function(result) {
         console.log( "error" + result.responseText );
     })
-    .always(function() {
-
+    .always(function(result) {
+        update_messages(result.messages);
     });
 }
 
@@ -386,8 +388,8 @@ function show_details(uri){
     .fail(function(result) {
         console.log( "error: " + result );
     })
-    .always(function() {
-
+    .always(function(result) {
+        update_messages(result.messages);
     });
 }
 
@@ -473,10 +475,11 @@ function submit_options(event){
     })
     .always(function(result) {
         change_status_to_complete(dataset_id);
-        if(result.messages){
-            //display messages
-            $('.flash-messages').append(result.messages);
-        }
+//        if(result.messages){
+//            //display messages
+//            $('.flash-messages').append(result.messages);
+//        }
+        update_messages(result.messages);
     });
 }
 
@@ -541,15 +544,16 @@ function new_collection(event){
   add_collection_placeholder(collection_name);
 
   $.post(url, data)
-  .done(function(result){
+    .done(function(result){
     update_collection_html(result);
 
-  })
-  .fail(function() {
+    })
+    .fail(function() {
       console.log( "error" );
-  })
-  .always(function() {
-  });
+    })
+    .always(function(result) {
+        update_messages(result.messages);
+    });
 }
 
 function update_collection(collection){
@@ -561,12 +565,24 @@ function update_collection(collection){
         update_collection_html(result.html);
         // collections.push(result.collection);
     })
-    .fail(function() {
-
-      console.log( "error" );
+    .fail(function(response) {
+        console.log('ERROR!')
     })
-    .always(function() {
+    .always(function(result) {
+        update_messages(result.messages);
     });
+}
+
+function update_messages(messages){
+    var flash_messages = $('.flash-messages');
+    if(flash_messages.length > 0){
+        messages = $(messages).html();
+        flash_messages.append(messages);
+    }
+    else{
+        $('#app-content').prepend(messages);
+    }
+
 }
 
 function delete_collection(event){
@@ -704,8 +720,9 @@ $(function() { //wait for page to load
     .fail(function() {
       console.log( "error" );
     })
-    .always(function() {
+    .always(function(result) {
       $('#loading-gif-collections').hide();
+      update_messages(result.messages);
     });
 
   $('#add-to-collection-button').click(function(e){

@@ -164,7 +164,7 @@ def get_dataset_rows(datasets):
         data_type = dataset['datatype']
         status = dataset['status']
         created_time = dataset['created_at']
-        auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'feature', 'message', 'status'}}
+        auxiliary = {k: v for k, v in dataset.items() if k in {'name', 'catalog_entry', 'message', 'status'}}
         rows.append((auxiliary, name, created_time, parameter, location, source, data_type, status))
 
     return rows
@@ -187,6 +187,24 @@ def pre_jsonify(obj):
         return geojson.Feature(geometry=obj, properties={})
 
 
+def replace_nan_with_none(obj):
+    """Recursively replace all instances of NaN so object can be serialized to JSON
+
+    Note:
+        This is required since Quest Catalog Entries do not have the same fields as other catalog entries
+        resulting in NaN values in the dataframe. It may need to be fixed in Quest.
+    """
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if v != v:  # i.e. obj == NaN
+                obj[k] = None
+            elif isinstance(v, (dict, list, tuple)):
+                replace_nan_with_none(v)
+    elif isinstance(obj, (list, tuple)):
+        for i in obj:
+            replace_nan_with_none(i)
+
+
 def add_metadata_to_collection(collection):
     collection['features'] = \
         list(quest.api.search_catalog(collection['name'], expand=True).values())
@@ -195,6 +213,8 @@ def add_metadata_to_collection(collection):
                                     filters={'collection': collection['name']},
                                     ).values())
     collection['table_view_options'] = get_datasets_table_options(collection)
+
+    replace_nan_with_none(collection)
 
 
 def generate_new_collection(collection_name, collection_description,
