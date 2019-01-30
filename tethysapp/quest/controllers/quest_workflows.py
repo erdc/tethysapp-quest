@@ -39,14 +39,11 @@ Message.to_dict = to_dict
 
 
 def render_to_json_response(request, context, **kwargs):
-    msgs = messages.get_messages(request)
-    msgs = [m.to_dict() for m in msgs]
-
     messages_html = render(request, 'quest/flash_messages.html', {}).content.decode('utf-8')
 
     context['messages'] = messages_html
 
-    return JsonResponse(context, json_dumps_params={'default': utilities.pre_jsonify})
+    return JsonResponse(context, json_dumps_params={'default': utilities.pre_jsonify}, **kwargs)
 
 
 
