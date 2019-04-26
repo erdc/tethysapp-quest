@@ -16,7 +16,7 @@ import param
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import render, redirect
 
 # tethys imports
@@ -166,35 +166,89 @@ def new_collection_workflow(request):
 
     return render_to_json_response(request, result)
 
+@login_required()
+@activate_user_settings
+def set_project_active_workflow(request):
+    try:
+        if request.is_ajax():
+            print(request)
+            obj = quest.api.get_active_project()
+            print(obj)
+            project_name = request.POST.get('project_name')
+            quest.api.set_active_project(project_name)
+            messages.success(request, 'The "{}" project is now active.'.format(project_name))
+            return render_to_json_response(request, {'redirect_url': reverse('quest:home')})
+        else:
+            raise ValueError('Cannot call ajax fro some reason ')
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
 @login_required()
 @activate_user_settings
-def manage_project_workflow(request):
-    if request.POST:
-        project_name = request.POST.get('new_project_name')
-        project_description = request.POST.get('project_description')
-        result = {}
-        if project_name:
-            try:
-                project = quest.api.new_project(project_name, description=project_description)
-                result = project
-                messages.success(request, 'The "{}" project is now active.'.format(project_name))
-            except ValueError as e:
-                result['error_message'] = str(e)
-                messages.error(request, 'The project was NOT successfully created: ' + result['error_message'])
-            finally:
-                pass
-        elif request.POST.get('project'):
-            project_name = request.POST.get('project')
-            quest.api.set_active_project(project_name)
-            messages.success(request, 'The "{}" project is now active.'.format(project_name))
+def delete_project_workflow(request):
+    try:
+        if request.is_ajax():
+            print(request)
+            obj = quest.api.get_active_project()
+            print(obj)
+            if request.POST.get('delete_project'):
+              project_name = request.POST.get('delete_project')
 
-        elif request.POST.get('delete_project'):
-            project_name = request.POST.get('delete_project')
+              quest.api.delete_project(project_name)
+              messages.success(request, 'The "{}" project is now deleted.'.format(project_name))
+            return render_to_json_response(request, {'redirect_url': reverse('quest:home')})
+        else:
+            raise ValueError('Cannot call ajax fro some reason ')
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
-            quest.api.delete_project(project_name)
 
-    return redirect('quest:home')
+@login_required()
+@activate_user_settings
+def update_project_workflow(request):
+    try:
+        if request.is_ajax():
+            print(request)
+            project_key = request.POST.get('project_key')
+            project_name = request.POST.get('project_name')
+            project_description = request.POST.get('project_description')
+            #obj = quest.api.get_active_project()
+            print(project_key)
+            print(project_name)
+            print(project_description)
+            if request.POST.get('project_name'):
+              quest.api.update_project_metadata(name=project_key, display_name=project_name, description=project_description)
+              messages.success(request, 'The "{}" project is now updated.'.format(project_name))
+            return render_to_json_response(request, {'redirect_url': reverse('quest:home')})
+        else:
+            raise ValueError('Cannot call ajax fro some reason ')
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
+
+
+@login_required()
+@activate_user_settings
+def add_project_workflow(request):
+    try:
+        if request.is_ajax():
+            print(request)
+            project_name = request.POST.get('project_name')
+            project_description = request.POST.get('project_description')
+            print(project_name)
+            result = {}
+            if project_name:
+                try:
+                    project = quest.api.new_project(project_name, description=project_description)
+                    result = project
+                    messages.success(request, 'The "{}" project is now active.'.format(project_name))
+                except ValueError as e:
+                    result['error_message'] = str(e)
+                    messages.error(request, 'The project was NOT successfully created: ' + result['error_message'])
+                finally:
+                    pass
+            return render_to_json_response(request, {'redirect_url': reverse('quest:home')})
+    except Exception as e:
+        return HttpResponseBadRequest(str(e))
 
 @login_required()
 @activate_user_settings

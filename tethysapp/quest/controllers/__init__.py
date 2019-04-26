@@ -11,9 +11,10 @@ import json
 import quest
 
 # django imports
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.http import HttpResponseRedirect, HttpResponse, Http404
 
 # tethys imports
 from tethys_sdk.gizmos import (
@@ -139,6 +140,7 @@ def home(request):
                'project_delete_select_options': project_delete_select_options,
                'new_project_name_text_options': new_project_name_text_options,
                'active_project': quest.api.get_active_project(),
+               'projects': quest.api.get_projects(expand=True)
                }
 
     return render(request, 'quest/home.html', context)

@@ -1,4 +1,6 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
+# from django.conf.urls import url
+# from django import  views
 from tethys_sdk.app_settings import CustomSetting
 
 
@@ -15,6 +17,11 @@ class Quest(TethysAppBase):
     color = '#1A334C'
     enable_feedback = True
     feedback_emails = ['scott.d.christensen@erdc.dren.mil']
+
+    # urlpatterns = [
+    #     url(r'^signup/$', views.SignUpView.as_view(), name='signup'),
+    #     url(r'^ajax/validate_username/$', views.validate_username, name='validate_username'),
+    # ]
         
     def url_maps(self):
         """
@@ -37,17 +44,26 @@ class Quest(TethysAppBase):
             ####################################################
 
             # -----------------  Workflows  ---------------------
-            UrlMap(name='manage_project_workflow',
-                   url='quest/rest/workflows/manage-project',
-                   controller='quest.controllers.quest_workflows.manage_project_workflow'),
+
+            UrlMap(name='update_project_workflow',
+            url='quest/rest/workflows/update-project',
+            controller='quest.controllers.quest_workflows.update_project_workflow'),
+
+            UrlMap(name='delete_project_workflow',
+                   url='quest/rest/workflows/delete-project',
+                   controller='quest.controllers.quest_workflows.delete_project_workflow'),
+
+            UrlMap(name='set_project_active_workflow',
+                   url='quest/rest/workflows/set-project-active',
+                   controller='quest.controllers.quest_workflows.set_project_active_workflow'),
+
+            UrlMap(name='add_project_workflow',
+                   url='quest/rest/workflows/add-project',
+                   controller='quest.controllers.quest_workflows.add_project_workflow'),
 
             UrlMap(name='add_dataprovider_workflow',
                    url='quest/rest/workflows/add-provider',
                    controller='quest.controllers.quest_workflows.add_dataprovider_workflow'),
-
-            UrlMap(name='delete_project_workflow',
-                   url='quest/rest/workflows/delete-project',
-                   controller='quest.controllers.quest_workflows.manage_project_workflow'),
 
             UrlMap(name='add_dataprovider_workflow',
                    url='quest/rest/workflows/add-provider',

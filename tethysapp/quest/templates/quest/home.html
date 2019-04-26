@@ -165,6 +165,10 @@
     var get_collections_url = '{% url 'quest:get_collections' %}';
     var get_collection_data_url = '{% url 'quest:get_collection_data' %}';
     var update_collection_url = '{% url 'quest:update_collection' %}';
+    var set_project_active_url = '{% url 'quest:set_project_active_workflow' %}';
+    var delete_project_workflow_url = '{% url 'quest:delete_project_workflow' %}';
+    var add_project_workflow_url = '{% url 'quest:add_project_workflow' %}';
+    var update_project_workflow_url = '{% url 'quest:update_project_workflow' %}';
     var services = {% autoescape off %}{{ services }}{% endautoescape %};
     var source_urls = [];
     <!--[{% for service in services %}'{% url 'quest:get_features' %}?service={{ service }}', {% endfor %}];-->
@@ -174,4 +178,6 @@
   <script src="{% static 'quest/js/map.js' %}" type="text/javascript"></script>
   <script src="{% static 'quest/js/map_context_menu.js' %}" type="text/javascript"></script>
   <script src="{% static 'quest/vendor/ol3-contextmenu/ol3-contextmenu.js' %}" type="text/javascript"></script>
+  <!--<script src="{% static 'quest/js/jquery-3.3.1.js' %}" type="text/javascript"></script>-->
+  <script src="{% static 'quest/js/tableEdit.js' %}" type="text/javascript"></script>
 {% endblock %}

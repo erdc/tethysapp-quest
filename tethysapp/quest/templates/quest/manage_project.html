@@ -1,0 +1,74 @@
+{% load tethys_gizmos%}
+<div class="wrapper-modal-editor">
+    <div class="row d-flex justify-content-center modalWrapper">
+      <div class="modal fade" id="project-modal" tabindex="-1" role="dialog" aria-labelledby="project-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header text-center">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 style="font-weight: bold;" class="modal-title" id="add-features-title">Manage Project</h4>
+          </div>
+          <div class="modal-body">
+              <div class="px-4">
+
+                <div class="table-wrapper">
+                  <!--Table-->
+                  <table id="dtProject" class="table  table-bordered table-hover" cellspacing="0" mb-0>
+
+                    <!--Table head-->
+                    <thead>
+                      <tr>
+                        <th>
+                          Project Name
+                        </th>
+                        <th>
+                          Project Description
+                        </th>
+                        <th>
+                          Active
+                        </th>
+                        <th>
+                          Create Date
+                        </th>
+                        <th>
+                          Update Date
+                        </th>
+                        <!--<th>-->
+                          <!--Actions-->
+                        <!--</th>-->
+                      </tr>
+                    </thead>
+                    <!--Table head-->
+
+                    <!--Table body-->
+                    <tbody>
+
+                    {% for key, project in projects.items %}
+                      <tr {% if key == active_project %} class="active-project"{%endif%} data-project-id="{{ project.name }}" >
+                        <td>{{project.display_name}}</td>
+                        <td>{{project.description}}</td>
+                        <td>
+                          <input  type="radio" name="activeProjectRadio" value="{{project.name}}" class="id_activeProjectRadio" {% if key == active_project %} checked {%endif%}>
+                        </td>
+                        <td>{{project.created_at}}</td>
+                        <td>{{project.updated_at}}</td>
+                      </tr>
+                    {% endfor %}
+
+                    </tbody>
+                  </table>
+                  <!--Table-->
+
+                  <!--<div class="modal-footer">-->
+                    <span><button id="but_add">Add New Project</button></span>
+
+                </div>
+
+              </div>
+          </div>
+        </div>
+      </div>
+      </div>
+
+    </div>
+</div>

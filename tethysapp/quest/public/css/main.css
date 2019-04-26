@@ -321,18 +321,41 @@ span.glyphicon.glyphicon-filter.select2-selection__arrow{
 }ids
 
 /*Manage Project Display*/
-/*
-.tr-color-selected{
-background-color: hsla(196, 77%, 55%, 0.3) !important;
-transition: all .2s ease-in;
+table#dtProject.table {
+  border: 1px solid #1C6EA4;
+  background-color: #EEEEEE;
+  width: 100%;
+  text-align: center;
+  border-collapse: collapse;
 }
-.closeByClick{
-transition: opacity .15s linear;
-position: fixed;
-top: 0;
-right: 0;
-bottom: 0;
-left: 0;
-background: rgba(0,0,0, .2);
-z-index: 1090;
+table#dtProject.table td, table.dtProject th {
+  border: 1px solid #AAAAAA;
+  padding: 3px 2px;
+}
+table#dtProject.table tbody td {
+  font-size: 13px;
+}
+table#dtProject.table tr:nth-child(even) {
+  background: #D0E4F5;
+}
+table#dtProject.table thead {
+  background: #1C6EA4;
+  background: -moz-linear-gradient(top, #5592bb 0%, #327cad 66%, #1C6EA4 100%);
+  background: -webkit-linear-gradient(top, #5592bb 0%, #327cad 66%, #1C6EA4 100%);
+  background: linear-gradient(to bottom, #5592bb 0%, #327cad 66%, #1C6EA4 100%);
+  border-bottom: 2px solid #444444;
+}
+table#dtProject.table thead th {
+  font-size: 15px;
+  font-weight: bold;
+  color: #FFFFFF;
+  border-left: 2px solid #D0E4F5;
+}
+/*table#dtProject.table thead th:first-child {
+  border-left: none;
 }*/
+/*table#dtProject.table.id_activeProjectRadio {
+  display: inline-block;
+  text-align: center;
+  width: 100%;
+}

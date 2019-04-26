@@ -1019,6 +1019,52 @@ $(function() { //wait for page to load
     checkSiblings(container);
   });
 
+  $( "#dtProject" ).SetEditable({ $addButton: $('#but_add'), columnsEd: "0,1"});
+
+
+  $(".id_activeProjectRadio").click(function () {
+      console.log( $(this).val() );
+
+    var url = set_project_active_url;
+    var csrftoken = getCookie('csrftoken');
+    var data = {project_name: $(this).val(),
+                csrfmiddlewaretoken: csrftoken};
+    $.post(url, data)
+    .done(function(result) {
+      window.location = result.redirect_url;
+    })
+    .fail(function() {
+        console.log( "error" );
+    })
+    .always(function(result) {
+        update_messages(result.messages);
+    });
+
+    });
+
+//  $(".bElim").click(function () {
+//    console.log( $(this).val() );
+//
+//  var url = set_project_active_url;
+//  var csrftoken = getCookie('csrftoken');
+//  var data = {project_name: $(this).val(),
+//              csrfmiddlewaretoken: csrftoken};
+//  $.post(url, data)
+//  .done(function(result) {
+//    window.location = result.redirect_url;
+//  })
+//  .fail(function() {
+//      console.log( "error" );
+//  })
+//  .always(function(result) {
+//      update_messages(result.messages);
+//  });
+//
+//  });
+
+
+
+
 
 }); //wait for page to load
 
