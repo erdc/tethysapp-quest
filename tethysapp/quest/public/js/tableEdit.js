@@ -53,7 +53,6 @@ TableEdit
           var project_description = proj_data[2];
 
           if (!newProj) {
-            console.log('this is not a new project');
 
             var url = update_project_workflow_url;
             var csrftoken = getCookie('csrftoken');
@@ -73,7 +72,6 @@ TableEdit
             });
           }
           else {
-            console.log(newProj + ' This is a new Project');
             var url = add_project_workflow_url;
             var csrftoken = getCookie('csrftoken');
             var data = {project_name: project_name,
@@ -101,6 +99,9 @@ TableEdit
         onDelete: function(row) {
           var project_key = $(row).data("project-id");
 
+          console.log(project_key);
+          var project_name = $(row).closest('tr').find('td:eq(2) input').val();
+          console.log(project_name);
           var url = delete_project_workflow_url;
           var csrftoken = getCookie('csrftoken');
           var data = {delete_project: project_key,
@@ -138,8 +139,8 @@ TableEdit
 //          });
 
 
-          console.log(row[1]);
-          console.log(row[2]);
+//          console.log(row[1]);
+//          console.log(row[2]);
 
 //          var project_name = row[1];//$(row).data("project-id");
 //          var project_description = row[2];
@@ -236,6 +237,10 @@ function rowAcep(but) {
 function rowCancel(but) {
     var $row = $(but).parents('tr');  //
     var $cols = $row.find('td');  //
+
+    if($row.hasClass('new-project'))
+      $row.remove();
+
     if (!ModoEdicion($row)) return;  //
     IterarCamposEdit($cols, function($td) {  //
         var cont = $td.find('div').html(); //
