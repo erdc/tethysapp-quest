@@ -3,7 +3,6 @@ import os
 import geojson
 
 import quest
-from past.builtins import basestring  # for python 2 compatibility
 from shapely.geometry.base import BaseGeometry
 from tethys_gizmos.gizmo_options import TableView
 
@@ -48,7 +47,7 @@ def get_quest_providers_with_services():
     return list(providers.values())
 
 
-class CheckboxTree(object):
+class CheckboxTree:
     def __init__(self, title=None, value=None, name=None):
         self._name = name
         self.title = title
@@ -246,7 +245,7 @@ def listify(*args):
             pass
         elif isinstance(arg, list) or isinstance(arg, tuple):
             l.extend(arg)
-        elif isinstance(arg, basestring):
+        elif isinstance(arg, str):
             l.append(arg)
         else:
             raise ValueError('{0} is not listifyable.'.format(arg))

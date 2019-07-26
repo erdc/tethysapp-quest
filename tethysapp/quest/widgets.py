@@ -12,10 +12,10 @@ class ConditionalSelectWidget(forms.widgets.Select):
 
     def __init__(self, forms, **kwargs):
         self.forms = forms
-        super(ConditionalSelectWidget, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def get_context(self, name, value, attrs):
-        context = super(ConditionalSelectWidget, self).get_context(name, value, attrs)
+        context = super().get_context(name, value, attrs)
 
         select_options = SelectInput(
             name=name,
@@ -112,15 +112,14 @@ widget_map = {
                 # 'showMeridian': False,
                 'minView': 2,  # month view
                 'maxView': 4,  # 10-year overview
-                'todayBtn': 'true',
+                'showTodayButton': 'true',
                 'clearBtn': True,
                 'todayHighlight': True,
                 'minuteStep': 5,
                 'pickerPosition': 'bottom-left',
                 'forceParse': 'true',
                 'keyboardNavigation': 'true',
-                },
-                bootstrap_version=3),
+                }),
         ),
     param.List:
         lambda p, initial: TagField(
@@ -170,26 +169,26 @@ widget_map = {
 }
 
 
-def widgets(paramitarized_obj, set_options):
-    class_name = '{}Form'.format(paramitarized_obj.name.title())
+def widgets(parameterized_obj, set_options):
+    class_name = '{}Form'.format(parameterized_obj.name.title())
     form_class = type(class_name, (forms.Form,), dict(forms.Form.__dict__))
 
     params = list(filter(lambda x: (x.precedence is None or x.precedence >= 0) and not x.constant,
-                         paramitarized_obj.params().values()))
+                         parameterized_obj.param.objects().values()))
 
     for p in sorted(params, key=lambda p: p.precedence or 9999):
-        form_class.base_fields[p._attrib_name] = widget_map[type(p)](p, set_options.get(p._attrib_name))
-        form_class.base_fields[p._attrib_name].widget.attrs.update({'class': 'form-control'})
+        form_class.base_fields[p.name] = widget_map[type(p)](p, set_options.get(p.name))
+        form_class.base_fields[p.name].widget.attrs.update({'class': 'form-control'})
 
     return form_class
 
 
 # WIP: attempt at handling conditional widgets
-def widgets_form(paramitarized_obj_dict, set_options):
+def widgets_form(parameterized_obj_dict, set_options):
 
     form_classes = {}
 
-    for name, paramitarized_obj in paramitarized_obj_dict.items():
+    for name, paramitarized_obj in parameterized_obj_dict.items():
         form_class = widgets(paramitarized_obj, set_options)
         form_classes[name] = form_class
 
