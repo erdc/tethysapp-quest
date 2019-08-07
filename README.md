@@ -10,5 +10,6 @@ Install the following pip packages::
 Add the following to the ``INSTALLED_APPS`` list in the `settings.py` file::
 
     'datetimewidget',
+    'bootstrap_datepicker_plus',
     'django_select2',
     'taggit',

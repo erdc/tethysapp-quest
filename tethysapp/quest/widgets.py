@@ -1,9 +1,9 @@
 from django import forms
 import param
 from tethys_sdk.gizmos import SelectInput
-from datetimewidget.widgets import DateWidget
+from bootstrap_datepicker_plus import DatePickerInput as DateWidget
 from django_select2.forms import Select2Widget, Select2MultipleWidget
-from taggit.forms import TagWidget, TagField
+from taggit.forms import TagField
 from quest.util import param_util
 
 

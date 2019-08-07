@@ -16,7 +16,7 @@ import param
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.shortcuts import render, redirect
 
 # tethys imports
@@ -24,6 +24,7 @@ from tethys_sdk.gizmos import (
     PlotlyView,
     TableView
 )
+from tethys_sdk.workspaces import app_workspace, user_workspace
 
 # local imports
 from ..app import Quest as app
@@ -52,11 +53,16 @@ user_services = app.get_custom_setting('user_services')
 
 def activate_user_settings(func):
 
-    def wrapper(request, *args, **kwargs):
+    @app_workspace()
+    @user_workspace()
+    def wrapper(request, app_workspace, user_workspace, *args, **kwargs):
+        workspaces_dir = os.path.join(os.path.dirname(__file__), 'workspaces')
+        user_workspace.path = os.path.join(workspaces_dir, request.user.username)
+        app_workspace.path = os.path.join('workspaces', 'app_workspace')
 
         # change settings to point at users worksapce
-        quest.api.update_settings({'BASE_DIR': app.get_user_workspace(request.user).path,
-                                   'CACHE_DIR': os.path.join(app.get_app_workspace().path, 'cache'),
+        quest.api.update_settings({'BASE_DIR': user_workspace.path,
+                                   'CACHE_DIR': os.path.join(app_workspace.path, 'cache'),
                                    })
 
         # read in any saved settings for user
